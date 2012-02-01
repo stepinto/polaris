@@ -255,7 +255,7 @@ public class IndexPipeline implements Serializable {
                         out.setPackage_(result.getPackage());
                         out.setImportedClasses(result.getImportedClasses());
                         out.setImportedPackages(result.getImportedPackages());
-
+                        emitter.emit(out);
                     } catch (IOException e) {
                         LOG.warn("Failed to parse " + FileHandle.createFromThrift(in.getFile()));
                         LOG.debug("Exception", e);
@@ -322,9 +322,11 @@ public class IndexPipeline implements Serializable {
         Preconditions.checkNotNull(dir);
         try {
             SequenceFile.Writer w1 = SequenceFile.createWriter(fs, conf,
-                    new Path(new File(inputDir1, "data").getPath()), NullWritable.class, BytesWritable.class);
+                    new Path(new File(inputDir1, "sources-of-" + project).getPath()),
+                    NullWritable.class, BytesWritable.class);
             SequenceFile.Writer w2 = SequenceFile.createWriter(fs, conf,
-                    new Path(new File(inputDir2, "data").getPath()), NullWritable.class, BytesWritable.class);
+                    new Path(new File(inputDir2, "dirs-of-" + project).getPath()),
+                    NullWritable.class, BytesWritable.class);
 
             final List<File> sourceDirs = Lists.newArrayList();
             final List<File> sourceFiles = Lists.newArrayList();
@@ -438,14 +440,15 @@ public class IndexPipeline implements Serializable {
     }
 
     private PCollection<TParsedFile> discoverMembers(
-            PCollection<TParsedFile> discoveredClassesPerFile,
+            PCollection<TParsedFile> parsedFiles,
             PTable<TFileHandle, TFileHandle> importGraph) {
-        PTable<Long, TParsedFile> parsedFilesById =
-                pivotDiscoveredClassByFileId(discoveredClassesPerFile);
-        PTable<Long, Long> importGraphPlainIds = plainFileIdsFromImportGraph(importGraph);
-        PTable<Long, Long> inverseImportGraphPlainIds = inverse(importGraphPlainIds, tableOf(longs(), longs()));
+        // Assume A imports B...
+        PTable<Long, TParsedFile> parsedFilesById = pivotParsedFilesByFileId(parsedFiles); // A -> class A {...}
+        PTable<Long, Long> importGraphPlainIds = plainFileIdsFromImportGraph(importGraph); // A -> B
+        PTable<Long, Long> inverseImportGraphPlainIds =
+                inverse(importGraphPlainIds, tableOf(longs(), longs())); // B -> A
         PTable<Long, TParsedFile> parsedFilesByImporterId = inverseImportGraphPlainIds.join(
-                parsedFilesById).values().parallelDo(
+                parsedFilesById).values().parallelDo( // A -> class B {...}
                         IdentityFn.<Pair<Long, TParsedFile>>getInstance(),
                         tableOf(longs(), T_PARSED_FILE_PTYPE_COMPRESSED));
         // Left join because a file can be imported by nobody.
@@ -502,7 +505,7 @@ public class IndexPipeline implements Serializable {
                 }, T_PARSED_FILE_PTYPE_COMPRESSED);
     }
 
-    private PTable<Long, TParsedFile> pivotDiscoveredClassByFileId(PCollection<TParsedFile> parsedFiles) {
+    private PTable<Long, TParsedFile> pivotParsedFilesByFileId(PCollection<TParsedFile> parsedFiles) {
         return parsedFiles.parallelDo(
                 new MapFn<TParsedFile, Pair<Long, TParsedFile>>() {
             @Override
@@ -591,9 +594,11 @@ public class IndexPipeline implements Serializable {
             }
 
             // Process repository layout.
-            {
-                SequenceFile.Reader r = new SequenceFile.Reader(
-                        fs, new Path(new File(inputDir2, "data").getPath()), conf);
+            for (File file : inputDir2.listFiles()) {
+                if (file.getPath().endsWith(".crc")) {
+                    continue;
+                }
+                SequenceFile.Reader r = new SequenceFile.Reader(fs, new Path(file.getPath()), conf);
                 BytesWritable value = new BytesWritable();
                 while (r.next(NullWritable.get(), value)) {
                     TFileHandle f = new TFileHandle();

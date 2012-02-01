@@ -38,7 +38,8 @@ public class TypeDbWriterImpl implements TypeDbWriter {
             document.add(new Field(TypeDbIndexedField.TYPE_ID, String.valueOf(handle.getId()),
                     Field.Store.YES, Field.Index.ANALYZED));
             // TODO: index project name
-            document.add(new Field(TypeDbIndexedField.PROJECT, "TODO", Field.Store.YES, Field.Index.ANALYZED));
+            document.add(new Field(TypeDbIndexedField.PROJECT, type.getJumpTarget().getFile().getProject(),
+                    Field.Store.YES, Field.Index.ANALYZED));
             FullTypeName typeName = handle.getName();
             document.add(new Field(TypeDbIndexedField.FULL_TYPE, typeName.toString(),
                     Field.Store.YES, Field.Index.ANALYZED));
