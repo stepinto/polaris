@@ -2,6 +2,7 @@ package com.codingstory.polaris.pipeline;
 
 import com.codingstory.polaris.IdGenerator;
 import com.codingstory.polaris.SimpleIdGenerator;
+import com.codingstory.polaris.SnappyUtils;
 import com.codingstory.polaris.indexing.DirectoryTranverser;
 import com.codingstory.polaris.indexing.IndexPathUtils;
 import com.codingstory.polaris.parser.ClassType;
@@ -34,6 +35,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.crunch.CrunchRuntimeException;
 import org.apache.crunch.DoFn;
 import org.apache.crunch.Emitter;
 import org.apache.crunch.MapFn;
@@ -55,6 +57,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.thrift.TBase;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -64,6 +68,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 
@@ -80,9 +85,89 @@ public class IndexPipeline implements Serializable {
     private static final TSerializer SERIALIZER = new TSerializer(new TBinaryProtocol.Factory());
     private static final TDeserializer DESERIALIZER = new TDeserializer(new TBinaryProtocol.Factory());
     private static final WritableTypeFamily TYPE_FAMILY = WritableTypeFamily.getInstance();
-    private static final PType<TFileHandle> T_FILE_HANDLE_PTYPE = thrifts(TFileHandle.class, TYPE_FAMILY);
-    private static final PType<TParsedFile> T_PARSED_FILE_PTYPE = thrifts(TParsedFile.class, TYPE_FAMILY);
-    private static final PType<TFileContent> T_FILE_CONTENT_PTYPE = thrifts(TFileContent.class, TYPE_FAMILY);
+    private static final PType<TFileHandle> T_FILE_HANDLE_PTYPE_COMPRESSED = thriftsCompressed(TFileHandle.class);
+    private static final PType<TParsedFile> T_PARSED_FILE_PTYPE_COMPRESSED = thriftsCompressed(TParsedFile.class);
+    private static final PType<TFileContent> T_FILE_CONTENT_PTYPE_COMPRESSED = thriftsCompressed(TFileContent.class);
+
+    /*
+    private static class SnappyInputMapFn extends MapFn<ByteBuffer, ByteBuffer> {
+        @Override
+        public ByteBuffer map(ByteBuffer compressed) {
+            byte[] compressedBytes = new byte[compressed.limit() - compressed.position()];
+            System.arraycopy(compressed.array(), compressed.position(), compressedBytes, 0, compressedBytes.length);
+            return ByteBuffer.wrap(SnappyUtils.uncompress(compressedBytes));
+        }
+    }
+
+    private static class SnappyOutputMapFn extends MapFn<ByteBuffer, ByteBuffer> {
+        @Override
+        public ByteBuffer map(ByteBuffer uncompressed) {
+            byte[] uncompressedBytes = new byte[uncompressed.limit() - uncompressed.position()];
+            System.arraycopy(uncompressed.array(), uncompressed.position(),
+                    uncompressedBytes, 0, uncompressedBytes.length);
+            return ByteBuffer.wrap(SnappyUtils.compress(uncompressedBytes));
+        }
+    }
+    */
+
+    // Copied from crunch since the original is private.
+    private static class ThriftInputMapFn<T extends TBase> extends MapFn<ByteBuffer, T> {
+
+        private final Class<T> clazz;
+        private transient T instance;
+        private transient TDeserializer deserializer;
+        private transient byte[] bytes;
+
+        public ThriftInputMapFn(Class<T> clazz) {
+            this.clazz = clazz;
+        }
+
+        @Override
+        public void initialize() {
+            this.instance = ReflectionUtils.newInstance(clazz, null);
+            this.deserializer = new TDeserializer(new TBinaryProtocol.Factory());
+            this.bytes = new byte[0];
+        }
+
+        @Override
+        public T map(ByteBuffer bb) {
+            T next = (T) instance.deepCopy();
+            int len = bb.limit() - bb.position();
+            if (len != bytes.length) {
+                bytes = new byte[len];
+            }
+            System.arraycopy(bb.array(), bb.position(), bytes, 0, len);
+            try {
+                deserializer.deserialize(next, SnappyUtils.uncompress(bytes));
+            } catch (TException e) {
+                throw new CrunchRuntimeException(e);
+            }
+            return next;
+        }
+    }
+
+    // Copied from crunch since the original is private.
+    private static class ThriftOutputMapFn<T extends TBase> extends MapFn<T, ByteBuffer> {
+
+        private transient TSerializer serializer;
+
+        public ThriftOutputMapFn() {
+        }
+
+        @Override
+        public void initialize() {
+            this.serializer = new TSerializer(new TBinaryProtocol.Factory());
+        }
+
+        @Override
+        public ByteBuffer map(T t) {
+            try {
+                return ByteBuffer.wrap(SnappyUtils.compress(serializer.serialize(t)));
+            } catch (TException e) {
+                throw new CrunchRuntimeException(e);
+            }
+        }
+    }
 
     private final transient Configuration conf; // No need to access it from MR tasks.
     private final transient FileSystem fs;
@@ -131,7 +216,7 @@ public class IndexPipeline implements Serializable {
 
         Pipeline pipeline = new MRPipeline(IndexPipeline.class, "polaris-index-pipeline", conf);
         PCollection<TFileContent> fileContents = pipeline
-            .read(At.sequenceFile(new Path(inputDir1.getPath()), T_FILE_CONTENT_PTYPE));
+            .read(At.sequenceFile(new Path(inputDir1.getPath()), T_FILE_CONTENT_PTYPE_COMPRESSED));
         PCollection<TParsedFile> parsedFiles1stPass = discoverClasses(fileContents);
         PCollection<TFileImports> fileImports = extractImports(fileContents);
         PTable<TFileHandle, TFileHandle> importGraph1 =
@@ -143,7 +228,7 @@ public class IndexPipeline implements Serializable {
         // TODO: reverseImportGraphByFilePackage
         // TODO: Iterate to compute transitive closure
         PCollection<TParsedFile> parsedFiles2ndPass = discoverMembers(parsedFiles1stPass, importGraph);
-        pipeline.write(parsedFiles2ndPass, At.sequenceFile(new Path(outputDir.getPath()), T_PARSED_FILE_PTYPE));
+        pipeline.write(parsedFiles2ndPass, At.sequenceFile(new Path(outputDir.getPath()), T_PARSED_FILE_PTYPE_COMPRESSED));
 
         LOG.info("About to run indexing pipeline");
         checkPipelineResult(pipeline.run());
@@ -265,7 +350,7 @@ public class IndexPipeline implements Serializable {
                         StringUtils.removeStart(sourceFile.getPath(), dir.getPath()));
                 in.setFile(handle.toThrift());
                 in.setContent(FileUtils.readFileToString(sourceFile));
-                w1.append(NullWritable.get(), new BytesWritable(SERIALIZER.serialize(in)));
+                w1.append(NullWritable.get(), new BytesWritable(SnappyUtils.compress(SERIALIZER.serialize(in))));
                 count++;
                 if (count % 5000 == 0) {
                     LOG.info("Processed " + count + " files");
@@ -278,7 +363,7 @@ public class IndexPipeline implements Serializable {
                 f.setId(ID_GENERATOR.next());
                 f.setProject(project);
                 f.setPath(StringUtils.removeStart(sourceDir.getPath(), dir.getPath()) + "/");
-                w2.append(NullWritable.get(), new BytesWritable(SERIALIZER.serialize(f)));
+                w2.append(NullWritable.get(), new BytesWritable(SnappyUtils.compress(SERIALIZER.serialize(f))));
             }
             w2.close();
         } catch (TException e) {
@@ -305,7 +390,7 @@ public class IndexPipeline implements Serializable {
                     emitter.emit(Pair.of(clazz, in.getFile()));
                 }
             }
-        }, tableOf(strings(), T_FILE_HANDLE_PTYPE));
+        }, tableOf(strings(), T_FILE_HANDLE_PTYPE_COMPRESSED));
 
         PTable<String, TFileHandle> right = discoveredClassesPerFile.parallelDo(
                 new DoFn<TParsedFile, Pair<String, TFileHandle>>() {
@@ -320,7 +405,7 @@ public class IndexPipeline implements Serializable {
                             emitter.emit(Pair.of(clazz.getHandle().getName(), in.getSource().getHandle()));
                         }
                     }
-                }, tableOf(strings(), T_FILE_HANDLE_PTYPE));
+                }, tableOf(strings(), T_FILE_HANDLE_PTYPE_COMPRESSED));
 
         return left.join(right).values().parallelDo(
                 new MapFn<Pair<TFileHandle, TFileHandle>, Pair<TFileHandle, TFileHandle>>() {
@@ -328,7 +413,7 @@ public class IndexPipeline implements Serializable {
                     public Pair<TFileHandle, TFileHandle> map(Pair<TFileHandle, TFileHandle> in) {
                         return in;
                     }
-                },tableOf(T_FILE_HANDLE_PTYPE, T_FILE_HANDLE_PTYPE));
+                },tableOf(T_FILE_HANDLE_PTYPE_COMPRESSED, T_FILE_HANDLE_PTYPE_COMPRESSED));
     }
 
     /** Produces import relation A -> B if A and B are in same package. */
@@ -340,7 +425,7 @@ public class IndexPipeline implements Serializable {
                     public Pair<TFileHandle, TFileHandle> map(Pair<TParsedFile, TParsedFile> in) {
                         return Pair.of(in.first().getSource().getHandle(), in.second().getSource().getHandle());
                     }
-                }, tableOf(T_FILE_HANDLE_PTYPE, T_FILE_HANDLE_PTYPE));
+                }, tableOf(T_FILE_HANDLE_PTYPE_COMPRESSED, T_FILE_HANDLE_PTYPE_COMPRESSED));
     }
 
     private PTable<TFileHandle, TFileHandle> reverseImportGraph(PTable<TFileHandle, TFileHandle> importGraph) {
@@ -349,7 +434,7 @@ public class IndexPipeline implements Serializable {
             public Pair<TFileHandle, TFileHandle> map(Pair<TFileHandle, TFileHandle> in) {
                 return Pair.of(in.second(), in.first());
             }
-        }, tableOf(T_FILE_HANDLE_PTYPE, T_FILE_HANDLE_PTYPE));
+        }, tableOf(T_FILE_HANDLE_PTYPE_COMPRESSED, T_FILE_HANDLE_PTYPE_COMPRESSED));
     }
 
     private PCollection<TParsedFile> discoverMembers(
@@ -362,7 +447,7 @@ public class IndexPipeline implements Serializable {
         PTable<Long, TParsedFile> parsedFilesByImporterId = inverseImportGraphPlainIds.join(
                 parsedFilesById).values().parallelDo(
                         IdentityFn.<Pair<Long, TParsedFile>>getInstance(),
-                        tableOf(longs(), T_PARSED_FILE_PTYPE));
+                        tableOf(longs(), T_PARSED_FILE_PTYPE_COMPRESSED));
         // Left join because a file can be imported by nobody.
         return Join.leftJoin(parsedFilesById, parsedFilesByImporterId.collectValues()).values()
                 .parallelDo(new MapFn<Pair<TParsedFile, Collection<TParsedFile>>, TParsedFile>() {
@@ -414,7 +499,7 @@ public class IndexPipeline implements Serializable {
                             throw new AssertionError(e);
                         }
                     }
-                }, T_PARSED_FILE_PTYPE);
+                }, T_PARSED_FILE_PTYPE_COMPRESSED);
     }
 
     private PTable<Long, TParsedFile> pivotDiscoveredClassByFileId(PCollection<TParsedFile> parsedFiles) {
@@ -424,7 +509,7 @@ public class IndexPipeline implements Serializable {
             public Pair<Long, TParsedFile> map(TParsedFile in) {
                 return Pair.of(in.getSource().getHandle().getId(), in);
             }
-        }, tableOf(longs(), T_PARSED_FILE_PTYPE));
+        }, tableOf(longs(), T_PARSED_FILE_PTYPE_COMPRESSED));
     }
 
     private PTable<String,TParsedFile> pivotParsedFilesByPackage(PCollection<TParsedFile> parsedFiles) {
@@ -442,7 +527,7 @@ public class IndexPipeline implements Serializable {
             public Pair<Long, TFileContent> map(TFileContent in) {
                 return Pair.of(in.getFile().getId(), in);
             }
-        }, tableOf(longs(), T_FILE_CONTENT_PTYPE));
+        }, tableOf(longs(), T_FILE_CONTENT_PTYPE_COMPRESSED));
     }
 
     private static PTable<Long, Long> plainFileIdsFromImportGraph(PTable<TFileHandle, TFileHandle> importGraph) {
@@ -483,7 +568,9 @@ public class IndexPipeline implements Serializable {
                 BytesWritable value = new BytesWritable();
                 while (r.next(NullWritable.get(), value)) {
                     TParsedFile parsedFile = new TParsedFile();
-                    DESERIALIZER.deserialize(parsedFile, value.getBytes());
+                    DESERIALIZER.deserialize(
+                            parsedFile,
+                            SnappyUtils.uncompress(value.getBytes(), 0, value.getLength()));
                     if (parsedFile.isSetClasses()) {
                         for (TClassType t : parsedFile.getClasses()) {
                             typeDb.write(ClassType.createFromThrift(t));
@@ -510,7 +597,7 @@ public class IndexPipeline implements Serializable {
                 BytesWritable value = new BytesWritable();
                 while (r.next(NullWritable.get(), value)) {
                     TFileHandle f = new TFileHandle();
-                    DESERIALIZER.deserialize(f, value.getBytes());
+                    DESERIALIZER.deserialize(f, SnappyUtils.uncompress(value.getBytes(), 0, value.getLength()));
                     sourceDb.writeDirectory(f.getProject(), f.getPath());
                 }
             }
@@ -528,5 +615,13 @@ public class IndexPipeline implements Serializable {
     public void cleanUp() {
         LOG.info("Deleting temporary working directory: " + workingDir);
         FileUtils.deleteQuietly(workingDir);
+    }
+
+    private static <T extends TBase> PType<T> thriftsCompressed(Class<T> clazz) {
+        return TYPE_FAMILY.derived(
+                clazz,
+                new ThriftInputMapFn<T>(clazz),
+                new ThriftOutputMapFn<T>(),
+                TYPE_FAMILY.bytes());
     }
 }
