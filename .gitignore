@@ -4,3 +4,8 @@
 *.jar
 *.war
 *.ear
+
+# Intellij stuffs #
+*.iml
+.idea
+target
