@@ -1,6 +1,9 @@
 package com.codingstory.polaris.parser;
 
-public class MethodDeclaration implements Token {
+import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
+
+public class MethodDeclaration extends TokenBase {
 
     private final String packageName;
     private final String className;
@@ -8,9 +11,15 @@ public class MethodDeclaration implements Token {
 
     public static class Builder {
 
+        Span span;
         String packageName;
         String className;
         String methodName;
+
+        public Builder setSpan(Span span) {
+            this.span = span;
+            return this;
+        }
 
         public Builder setPackageName(String packageName) {
             this.packageName = packageName;
@@ -28,18 +37,20 @@ public class MethodDeclaration implements Token {
         }
 
         public MethodDeclaration build() {
+            Preconditions.checkNotNull(span);
             return new MethodDeclaration(this);
         }
     }
 
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
     private MethodDeclaration(Builder builder) {
+        super(Kind.METHOD_DECLARATION, builder.span);
         this.packageName = builder.packageName;
         this.className = builder.className;
         this.methodName = builder.methodName;
-    }
-
-    public static Builder newBuilder() {
-        return new Builder();
     }
 
     @Override
@@ -47,6 +58,9 @@ public class MethodDeclaration implements Token {
         return Kind.METHOD_DECLARATION;
     }
 
+    /**
+     * @return the package name or null if it does not have one
+     */
     public String getPackageName() {
         return packageName;
     }
@@ -57,5 +71,15 @@ public class MethodDeclaration implements Token {
 
     public String getMethodName() {
         return methodName;
+    }
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(MethodDeclaration.class)
+                .add("span", getSpan())
+                .add("packageName", packageName)
+                .add("className", className)
+                .add("methodName", methodName)
+                .toString();
     }
 }
