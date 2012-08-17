@@ -1,6 +1,6 @@
 package com.codingstory.polaris.parser;
 
-public class PackageDeclaration implements Term {
+public class PackageDeclaration implements Token {
 
     private final String packageName;
 

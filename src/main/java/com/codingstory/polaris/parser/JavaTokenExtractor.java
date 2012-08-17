@@ -10,34 +10,34 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-public class JavaTermExtractor {
+public class JavaTokenExtractor {
 
     private static class ASTVisitor extends VoidVisitorAdapter {
 
-        private List<Term> terms = Lists.newArrayList();
+        private List<Token> tokens = Lists.newArrayList();
 
         @Override
         public void visit(japa.parser.ast.PackageDeclaration node, Object arg) {
             super.visit(node, arg);
-            terms.add(new PackageDeclaration(node.getName().getName()));
+            tokens.add(new PackageDeclaration(node.getName().getName()));
         }
 
-        public List<Term> getTerms() { return terms; }
+        public List<Token> getTokens() { return tokens; }
     }
 
     private InputStream in;
 
-    public JavaTermExtractor setInputStream(InputStream in) {
+    public JavaTokenExtractor setInputStream(InputStream in) {
         this.in = in;
         return this;
     }
 
-    public List<Term> extractTerms() throws IOException {
+    public List<Token> extractTerms() throws IOException {
         try {
             CompilationUnit compilationUnit = JavaParser.parse(in);
             ASTVisitor visitor = new ASTVisitor();
             visitor.visit(compilationUnit, null);
-            return visitor.getTerms();
+            return visitor.getTokens();
         } catch (ParseException e) {
             throw new IOException(e);
         }

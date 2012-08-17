@@ -1,6 +1,6 @@
 package com.codingstory.polaris.parser;
 
-public interface Term {
+public interface Token {
 
     public static enum Kind {
         PACKAGE_DECLARATION,
