@@ -1,0 +1,6 @@
+#!/bin/sh
+
+class='com.codingstory.polaris.Main'
+mvn exec:java -e -q -Dexec.mainClass=$class -Dexec.classpathScope=runtime -Dexec.args="$*"
+
+# vim: ts=2 sw=2 et
