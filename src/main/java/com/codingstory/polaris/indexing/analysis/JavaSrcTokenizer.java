@@ -53,7 +53,7 @@ public class JavaSrcTokenizer extends Tokenizer {
     }
 
 
-    public JavaSrcTokenizer(Reader in) throws IOException {
+    public JavaSrcTokenizer(Reader in) throws Exception {
         super(in);
         BufferedReader reader = new BufferedReader(in);
         String line;
@@ -66,7 +66,12 @@ public class JavaSrcTokenizer extends Tokenizer {
         if (stream == null)
             throw new IOException("stream is null");
         extractor.setInputStream(new ByteArrayInputStream(builder.toString().getBytes()));
-        tokens = extractor.extractTokens();
+        try {
+            tokens = extractor.extractTokens();
+        } catch (Exception e) {
+            LOG.fatal("errors occured while parsing " + e.getStackTrace());
+            throw e;
+        }
         iterator = tokens.iterator();
     }
 

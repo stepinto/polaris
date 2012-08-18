@@ -3,7 +3,6 @@ package com.codingstory.polaris.indexing.analysis;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 
-import java.io.IOException;
 import java.io.Reader;
 
 /**
@@ -18,7 +17,7 @@ public class JavaSrcAnalyzer extends Analyzer {
     public TokenStream tokenStream(String fieldName, Reader reader) {
         try {
             return new JavaSrcTokenizer(reader);
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
         return null;
