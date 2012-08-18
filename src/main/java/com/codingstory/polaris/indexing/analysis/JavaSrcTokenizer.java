@@ -1,7 +1,6 @@
 package com.codingstory.polaris.indexing.analysis;
 
-import com.codingstory.polaris.parser.JavaTokenExtractor;
-import com.codingstory.polaris.parser.Token;
+import com.codingstory.polaris.parser.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -12,6 +11,7 @@ import org.apache.lucene.analysis.tokenattributes.PayloadAttribute;
 import org.apache.lucene.index.Payload;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -31,9 +31,9 @@ public class JavaSrcTokenizer extends Tokenizer {
 
     private final Log LOG = LogFactory.getLog(JavaSrcTokenizer.class);
 
-    private final List<Token> tokens;
+    private List<Token> tokens = new ArrayList<Token>();
 
-    private final Iterator<Token> iterator;
+    private Iterator<Token> iterator = null;
 
     private final StringBuilder builder = new StringBuilder();
 
@@ -69,8 +69,7 @@ public class JavaSrcTokenizer extends Tokenizer {
         try {
             tokens = extractor.extractTokens();
         } catch (Exception e) {
-            LOG.fatal("errors occured while parsing " + e.getStackTrace());
-            throw e;
+            LOG.fatal("errors occured while parsing " + e.getMessage());
         }
         iterator = tokens.iterator();
     }
@@ -78,21 +77,24 @@ public class JavaSrcTokenizer extends Tokenizer {
     @Override
     public boolean incrementToken() throws IOException {
         clearAttributes();
-        if (!iterator.hasNext())
+        if (iterator == null || !iterator.hasNext())
             return false;
         Token t = iterator.next();
         payloadBytes[0] = (byte) toInteger(t.getKind());
         payloadAttr.setPayload(new Payload(payloadBytes));
+        if (t.getKind() == Token.Kind.CLASS_DECLARATION) {
+            ClassDeclaration declaration = (ClassDeclaration) t;
+            termAttr.append(declaration.getClassName());
+        } else if (t.getKind() == Token.Kind.METHOD_DECLARATION) {
+            MethodDeclaration declaration = (MethodDeclaration) t;
+            termAttr.append(declaration.getMethodName());
+        } else if (t.getKind() == Token.Kind.PACKAGE_DECLARATION) {
+            PackageDeclaration declaration = (PackageDeclaration) t;
+            termAttr.append(declaration.getPackageName());
+        }
         int begin = (int) t.getSpan().getFrom();
         int end = (int) t.getSpan().getTo();
         offsetAttr.setOffset(begin, end);
-        try {
-            termAttr.append(builder.substring(begin, end).toLowerCase());
-        } catch (Exception e) {
-            LOG.fatal(String.format("out of range, len=%d, begin=%d, end=%d",
-                    builder.length(), begin, end));
-            termAttr.append("error");
-        }
         return true;
     }
 }
