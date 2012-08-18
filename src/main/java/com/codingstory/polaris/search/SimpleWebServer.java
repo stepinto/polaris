@@ -2,6 +2,10 @@ package com.codingstory.polaris.search;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
+import freemarker.template.Configuration;
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -10,10 +14,8 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
+import java.io.*;
+import java.util.Map;
 
 public class SimpleWebServer {
 
@@ -27,12 +29,12 @@ public class SimpleWebServer {
             if (Strings.isNullOrEmpty(query)) {
                 showSearchForm(resp);
             } else {
-                // TODO: Show search form and results
+                showSearchResults(resp);
             }
         }
 
         private void showSearchForm(HttpServletResponse resp) throws IOException {
-            InputStream in = SearchServlet.class.getResourceAsStream("/searchform.html");
+            InputStream in = SearchServlet.class.getResourceAsStream("/SearchForm.html");
             OutputStream out = resp.getOutputStream();
             try {
                 IOUtils.copy(in, out);
@@ -40,6 +42,24 @@ public class SimpleWebServer {
                 IOUtils.closeQuietly(in);
             }
             out.flush();
+        }
+
+        private void showSearchResults(HttpServletResponse resp) throws ServletException, IOException {
+            // TODO: Do the real search!
+            InputStream in = SearchServlet.class.getResourceAsStream("/SearchResult.ftl");
+            try {
+                Configuration conf = new Configuration();
+                conf.setClassForTemplateLoading(SearchServlet.class, "/");
+                Template template = conf.getTemplate("SearchResult.ftl");
+                Map<String, Object> root = Maps.newHashMap();
+                Writer out = resp.getWriter();
+                template.process(root, out);
+                out.flush();
+            } catch (TemplateException e) {
+                throw new ServletException(e);
+            } finally {
+                IOUtils.closeQuietly(in);
+            }
         }
 
         @Override
