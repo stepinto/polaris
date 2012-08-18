@@ -9,7 +9,7 @@ public interface Token {
         PACKAGE_DECLARATION,
         CLASS_DECLARATION,
         METHOD_DECLARATION,
-        FIELD_DECLARATION,
+        FIELD_DECLARATION, ENUM_DECLARATION,
     }
 
     public static class Span {

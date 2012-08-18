@@ -30,6 +30,7 @@ public class Main {
             File file = new File(path);
             InputStream in = null;
             try {
+                System.out.println(file);
                 in = new FileInputStream(file);
                 List<Token> tokens = new JavaTokenExtractor()
                         .setInputStream(in)
