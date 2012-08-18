@@ -21,8 +21,9 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <executable>thrift</executable>
+                    <executable>bash</executable>
                     <arguments>
+                        <argument>thrift</argument>
                         <argument>--strict</argument>
                         <argument>--gen</argument>
                         <argument>java</argument>

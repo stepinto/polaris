@@ -1,6 +1,6 @@
 package com.codingstory.polaris.indexing;
 
-import com.codingstory.polaris.indexing.analysis.SimpleClassNameAnalyzer;
+import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -25,7 +25,7 @@ import java.io.IOException;
  */
 public class DirectoryIndexer {
     public static void buildIndex(String rootdir, IndexWriter writer) throws IOException {
-        Log LOG = LogFactory.getLog(Directory.class);
+        Log LOG = LogFactory.getLog(DirectoryIndexer.class);
         DirectoryTranverser tranverser = new DirectoryTranverser(rootdir);
         File f;
         while ((f = tranverser.getNextFile()) != null) {
@@ -47,13 +47,11 @@ public class DirectoryIndexer {
             dir = args[0];
         }
         Directory directory = FSDirectory.open(new File("index"));
-        Analyzer analyzer = new SimpleClassNameAnalyzer();
+        Analyzer analyzer = new JavaSrcAnalyzer();
         IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_36, analyzer);
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
         IndexWriter writer = new IndexWriter(directory, config);
         buildIndex(dir, writer);
         writer.close();
-
-
     }
 }
