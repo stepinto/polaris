@@ -5,13 +5,14 @@
             <input type="text" name="q" />
             <input type="submit" value="search" />
         </form>
+        <hr />
         <ul>
-            <li>
-                <#list results as result>
+            <#list results as result>
+                <li>
+                    <p><font color="green">${result.filename}</font></p>
                     <p>${result.summary}</p>
-                    <p>${result.filename}</p>
-                </#list>
-            </li>
+                </li>
+            </#list>
         </ul>
     </body>
 </html>
