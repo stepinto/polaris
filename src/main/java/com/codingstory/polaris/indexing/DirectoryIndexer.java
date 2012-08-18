@@ -35,7 +35,7 @@ public class DirectoryIndexer {
             LOG.info("indexing " + f.getAbsolutePath());
             String fileContent = FileUtils.readFileToString(f);
             Document document = new Document();
-            document.add(new Field("content", fileContent, Field.Store.YES, Field.Index.ANALYZED_NO_NORMS));
+            document.add(new Field("content", fileContent, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.YES));
             document.add(new Field("filename", f.getName(), Field.Store.YES, Field.Index.NO));
             writer.addDocument(document);
         }

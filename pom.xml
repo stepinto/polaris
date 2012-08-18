@@ -83,5 +83,10 @@
             <artifactId>junit</artifactId>
             <version>4.8.2</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-highlighter</artifactId>
+            <version>3.6.0</version>
+        </dependency>
     </dependencies>
 </project>

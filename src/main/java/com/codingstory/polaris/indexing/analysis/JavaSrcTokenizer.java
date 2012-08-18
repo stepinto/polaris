@@ -39,6 +39,8 @@ public class JavaSrcTokenizer extends Tokenizer {
 
     private final byte[] payloadBytes = new byte[1];
 
+    private final Payload payload = new Payload(payloadBytes, 0, 1);
+
     public static int toInteger(Token.Kind kind) {
         if (kind == Token.Kind.PACKAGE_DECLARATION) {
             return 1;
