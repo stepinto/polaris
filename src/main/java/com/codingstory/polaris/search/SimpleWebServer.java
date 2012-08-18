@@ -7,6 +7,8 @@ import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import org.apache.commons.io.IOUtils;
+import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 
@@ -15,6 +17,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.util.List;
 import java.util.Map;
 
 public class SimpleWebServer {
@@ -29,7 +32,20 @@ public class SimpleWebServer {
             if (Strings.isNullOrEmpty(query)) {
                 showSearchForm(resp);
             } else {
-                showSearchResults(resp);
+                List<Result> results = search(query);
+                showSearchResults(results, resp);
+            }
+        }
+
+        private List<Result> search(String query) throws IOException, ServletException {
+            try {
+                SrcSearcher searcher = new SrcSearcher("index");
+                List<Result> results = searcher.search(query, 100);
+                return results;
+            } catch (ParseException e) {
+                throw new ServletException(e);
+            } catch (InvalidTokenOffsetsException e) {
+                throw new ServletException(e);
             }
         }
 
@@ -44,14 +60,14 @@ public class SimpleWebServer {
             out.flush();
         }
 
-        private void showSearchResults(HttpServletResponse resp) throws ServletException, IOException {
-            // TODO: Do the real search!
+        private void showSearchResults(List<Result> results, HttpServletResponse resp) throws ServletException, IOException {
             InputStream in = SearchServlet.class.getResourceAsStream("/SearchResult.ftl");
             try {
                 Configuration conf = new Configuration();
                 conf.setClassForTemplateLoading(SearchServlet.class, "/");
                 Template template = conf.getTemplate("SearchResult.ftl");
                 Map<String, Object> root = Maps.newHashMap();
+                root.put("results", results);
                 Writer out = resp.getWriter();
                 template.process(root, out);
                 out.flush();
