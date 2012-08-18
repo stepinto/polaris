@@ -89,9 +89,11 @@ public class SrcSearcher {
 
     public static void main(String[] args) throws Exception {
         SrcSearcher searcher = new SrcSearcher("index");
-        List<Result> results = searcher.search("toString", 3);
+        List<Result> results = searcher.search("setNextReader", 3);
         for (Result result : results) {
-            System.out.println(result);
+            System.out.println(result.getFilename());
+            System.out.println();
+            System.out.println(result.getSummary());
         }
         searcher.close();
     }
