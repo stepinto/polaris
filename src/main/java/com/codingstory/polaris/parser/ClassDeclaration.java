@@ -1,13 +1,48 @@
 package com.codingstory.polaris.parser;
 
-public class ClassDeclaration implements Token {
+import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
+
+
+public class ClassDeclaration extends TokenBase {
 
     private final String packageName;
     private final String className;
 
-    public ClassDeclaration(String packageName, String className) {
-        this.packageName = packageName;
-        this.className = className;
+    public static class Builder {
+        private Span span;
+        private String packageName;
+        private String className;
+
+        public Builder setSpan(Span span) {
+            this.span = span;
+            return this;
+        }
+
+        public Builder setPackageName(String packageName) {
+            this.packageName = packageName;
+            return this;
+        }
+
+        public Builder setClassName(String className) {
+            this.className = className;
+            return this;
+        }
+
+        public ClassDeclaration build() {
+            Preconditions.checkNotNull(span);
+            return new ClassDeclaration(this);
+        }
+    }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    private ClassDeclaration(Builder builder) {
+        super(Kind.CLASS_DECLARATION, builder.span);
+        this.packageName = builder.packageName;
+        this.className = builder.className;
     }
 
     @Override
@@ -15,11 +50,23 @@ public class ClassDeclaration implements Token {
         return Kind.CLASS_DECLARATION;
     }
 
+    /**
+     * @return the package name or null if it does not have one
+     */
     public String getPackageName() {
         return packageName;
     }
 
     public String getClassName() {
         return className;
+    }
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(ClassDeclaration.class)
+                .add("span", getSpan())
+                .add("packageName", packageName)
+                .add("className", className)
+                .toString();
     }
 }
