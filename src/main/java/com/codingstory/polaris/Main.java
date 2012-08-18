@@ -1,5 +1,6 @@
 package com.codingstory.polaris;
 
+import com.codingstory.polaris.indexing.DirectoryIndexer;
 import com.codingstory.polaris.parser.JavaTokenExtractor;
 import com.codingstory.polaris.parser.Token;
 import com.google.common.collect.ImmutableList;
@@ -20,6 +21,8 @@ public class Main {
         List<String> commandArgs = ImmutableList.copyOf(args).subList(1, args.length);
         if (command.equalsIgnoreCase("parse")) {
             runParse(commandArgs);
+        } else if (command.equalsIgnoreCase("index")) {
+            runIndex(commandArgs);
         } else {
             printHelp();
         }
@@ -42,6 +45,10 @@ public class Main {
                 IOUtils.closeQuietly(in);
             }
         }
+    }
+
+    private static void runIndex(List<String> args) throws IOException {
+        DirectoryIndexer.main(args.toArray(new String[args.size()]));
     }
 
     private static void printHelp() {
