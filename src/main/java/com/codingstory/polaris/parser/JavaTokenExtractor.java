@@ -7,7 +7,7 @@ import japa.parser.JavaParser;
 import japa.parser.ParseException;
 import japa.parser.ast.CompilationUnit;
 import japa.parser.ast.Node;
-import japa.parser.ast.body.ClassOrInterfaceDeclaration;
+import japa.parser.ast.body.*;
 import japa.parser.ast.visitor.VoidVisitorAdapter;
 
 import java.io.FilterInputStream;
@@ -23,7 +23,7 @@ public class JavaTokenExtractor {
         private final LineMonitorInputStream in;
         private final List<Token> results = Lists.newArrayList();
         private PackageDeclaration packageDeclaration;
-        private final LinkedList<ClassDeclaration> classDeclarationStack = Lists.newLinkedList();
+        private final LinkedList<TypeDeclaration> typeDeclarationStack = Lists.newLinkedList();
         private final LinkedList<MethodDeclaration> methodDeclarationStack = Lists.newLinkedList();
 
         private ASTVisitor(LineMonitorInputStream in) {
@@ -43,6 +43,7 @@ public class JavaTokenExtractor {
 
         @Override
         public void visit(ClassOrInterfaceDeclaration node, Object arg) {
+            // TODO: treat class and interface seperately
             Preconditions.checkNotNull(node);
             ClassDeclaration classDeclaration = ClassDeclaration.newBuilder()
                     .setSpan(findTokenSpan(node))
@@ -50,9 +51,23 @@ public class JavaTokenExtractor {
                     .setClassName(node.getName())
                     .build();
             results.add(classDeclaration);
-            classDeclarationStack.push(classDeclaration);
+            typeDeclarationStack.push(classDeclaration);
             super.visit(node, arg);
-            classDeclarationStack.pop();
+            typeDeclarationStack.pop();
+        }
+
+        @Override
+        public void visit(japa.parser.ast.body.EnumDeclaration node, Object arg) {
+            Preconditions.checkNotNull(node);
+            EnumDeclaration enumDeclaration = EnumDeclaration.newBuilder()
+                    .setSpan(findTokenSpan(node))
+                    .setPackageName(findPackageName())
+                    .setEnumName(node.getName())
+                    .build();
+            results.add(enumDeclaration);
+            typeDeclarationStack.push(enumDeclaration);
+            super.visit(node, arg);
+            typeDeclarationStack.pop();
         }
 
         @Override
@@ -61,7 +76,7 @@ public class JavaTokenExtractor {
             MethodDeclaration methodDeclaration = MethodDeclaration.newBuilder()
                     .setSpan(findTokenSpan(node))
                     .setPackageName(findPackageName())
-                    .setClassName(classDeclarationStack.getLast().getClassName())
+                    .setClassName(typeDeclarationStack.getLast().getTypeName())
                     .setMethodName(node.getName())
                     .build();
             results.add(methodDeclaration);

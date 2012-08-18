@@ -4,7 +4,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
 
-public class ClassDeclaration extends TokenBase {
+public class ClassDeclaration extends TokenBase implements TypeDeclaration {
 
     private final String packageName;
     private final String className;
@@ -53,11 +53,17 @@ public class ClassDeclaration extends TokenBase {
     /**
      * @return the package name or null if it does not have one
      */
+    @Override
     public String getPackageName() {
         return packageName;
     }
 
     public String getClassName() {
+        return className;
+    }
+
+    @Override
+    public String getTypeName() {
         return className;
     }
 

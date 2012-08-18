@@ -15,9 +15,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class JavaTokenExtractorTest {
 
@@ -91,17 +89,40 @@ public class JavaTokenExtractorTest {
     // TODO: testNestedClass_static
 
     @Test
+    public void testEnum() throws IOException {
+        String code = "package pkg; public enum E { /* some values */ }";
+        List<Token> tokens = extractTokensFromCode(code);
+        EnumDeclaration e = findUniqueTokenOfKind(tokens, Token.Kind.ENUM_DECLARATION);
+        assertNotNull(e);
+        assertEquals(Token.Span.of(13, 48), e.getSpan());
+        assertEquals("pkg", e.getPackageName());
+        assertEquals("E", e.getEnumName());
+    }
+
+    // TODO: testEnum_public
+    // TODO: testEnum_private
+    // TODO: testEnum_packagePrivate
+    // TODO: testEnumValues
+
+    @Test
     public void testMethod() throws IOException {
         String code = "package pkg; class A { void func() {} }";
-        List<Token> tokens = new JavaTokenExtractor()
-                .setInputStream(new ByteArrayInputStream(code.getBytes()))
-                .extractTokens();
+        List<Token> tokens = extractTokensFromCode(code);
         MethodDeclaration method = findUniqueTokenOfKind(tokens, Token.Kind.METHOD_DECLARATION);
         assertEquals(Token.Kind.METHOD_DECLARATION, method.getKind());
         assertEquals(Token.Span.of(23, 37), method.getSpan());
         assertEquals("pkg", method.getPackageName());
         assertEquals("A", method.getClassName());
         assertEquals("func", method.getMethodName());
+    }
+
+    @Test
+    public void testMethod_inEnum() throws IOException {
+        String code = "enum E { SOME_VALUE; void f() {} }";
+        List<Token> tokens = extractTokensFromCode(code);
+        MethodDeclaration method = findUniqueTokenOfKind(tokens, Token.Kind.METHOD_DECLARATION);
+        assertEquals("E", method.getClassName());
+        assertEquals("f", method.getMethodName());
     }
 
     // TODO: testMethod_public
@@ -128,6 +149,12 @@ public class JavaTokenExtractorTest {
         assertEquals(12, in.translateLineColumnToOffset(4, 1));
         assertEquals(13, in.translateLineColumnToOffset(4, 2));
         in.close();
+    }
+
+    private static List<Token> extractTokensFromCode(String code) throws IOException {
+        return new JavaTokenExtractor()
+                .setInputStream(new ByteArrayInputStream(code.getBytes()))
+                .extractTokens();
     }
 
     private static <T extends Token> T findUniqueTokenOfKind(List<Token> tokens, final Token.Kind kind) {
