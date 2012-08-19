@@ -9,7 +9,7 @@
         <ul>
             <#list results as result>
                 <li>
-                    <p><font color="green">${result.filename}</font></p>
+                    <p><a href="/source?doc=${result.documentId?c}">${result.filename}</a></p>
                     <p><pre>${result.summary}</pre></p>
                 </li>
             </#list>

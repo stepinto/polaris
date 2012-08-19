@@ -8,10 +8,19 @@ package com.codingstory.polaris.search;
  * To change this template use File | Settings | File Templates.
  */
 public class Result {
+    int documentId;
     String filename;
     String content;
 
     String summary;
+
+    public int getDocumentId() {
+        return documentId;
+    }
+
+    public void setDocumentId(int documentId) {
+        this.documentId = documentId;
+    }
 
     public String getFilename() {
         return filename;

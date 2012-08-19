@@ -7,8 +7,11 @@ import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import org.apache.commons.io.IOUtils;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
+import org.apache.lucene.store.FSDirectory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 
@@ -95,6 +98,28 @@ public class SimpleWebServer {
         }
     }
 
+    public static class SourceServlet extends HttpServlet {
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            // TODO: Use our searcher interface
+            Preconditions.checkNotNull(req);
+            Preconditions.checkNotNull(resp);
+            int docId = Integer.parseInt(req.getParameter("doc"));
+            IndexReader reader = IndexReader.open(FSDirectory.open(new File("index")));
+            PrintWriter out = resp.getWriter();
+            try {
+                Document document = reader.document(docId);
+                String content = document.getFieldable("content").stringValue();
+                out.println("<html><body><pre>");
+                out.println(content);
+                out.println("</pre></body></html>");
+                out.flush();
+            } finally {
+                IOUtils.closeQuietly(reader);
+            }
+        }
+    }
+
     private int port = 0;
 
     public void setPort(int port) {
@@ -106,6 +131,7 @@ public class SimpleWebServer {
         ServletContextHandler contextHandler = new ServletContextHandler();
         contextHandler.addServlet(SearchServlet.class, "/");
         contextHandler.addServlet(HelloServlet.class, "/hello");
+        contextHandler.addServlet(SourceServlet.class, "/source");
         server.setHandler(contextHandler);
         try {
             server.start();
