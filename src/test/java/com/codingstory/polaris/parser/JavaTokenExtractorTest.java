@@ -30,9 +30,7 @@ public class JavaTokenExtractorTest {
     @Test
     public void testPackage() throws IOException {
         String code = "package com.example.pkg;\n";
-        List<Token> tokens = new JavaTokenExtractor()
-                .setInputStream(new ByteArrayInputStream(code.getBytes()))
-                .extractTokens();
+        List<Token> tokens = extractTokensFromCode(code);
         PackageDeclaration pkg = findUniqueTokenOfKind(tokens, Token.Kind.PACKAGE_DECLARATION);
         assertEquals(Token.Kind.PACKAGE_DECLARATION, pkg.getKind());
         assertEquals(Token.Span.of(0, 24), pkg.getSpan());
@@ -42,9 +40,7 @@ public class JavaTokenExtractorTest {
     @Test
     public void testClass() throws IOException {
         String code = "package pkg;\npublic class MyClass { /* body */ }\n";
-        List<Token> tokens = new JavaTokenExtractor()
-                .setInputStream(new ByteArrayInputStream(code.getBytes()))
-                .extractTokens();
+        List<Token> tokens = extractTokensFromCode(code);
         ClassDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
         assertEquals(Token.Kind.CLASS_DECLARATION, clazz.getKind());
         assertEquals(Token.Span.of(13, 48), clazz.getSpan());
@@ -55,9 +51,7 @@ public class JavaTokenExtractorTest {
     @Test
     public void testClass_multiple() throws IOException {
         String code = "package pkg;\nclass A {}\nclass B {}\nclass C {}\n";
-        List<Token> tokens = new JavaTokenExtractor()
-                .setInputStream(new ByteArrayInputStream(code.getBytes()))
-                .extractTokens();
+        List<Token> tokens = extractTokensFromCode(code);
         List<ClassDeclaration> classes = filterTokensOfKind(tokens, Token.Kind.CLASS_DECLARATION);
         assertEquals(ImmutableList.of("A", "B", "C"), Lists.transform(classes,
                 new Function<ClassDeclaration, String>() {
@@ -72,9 +66,7 @@ public class JavaTokenExtractorTest {
     @Test
     public void testClass_noPackage() throws IOException {
         String code = "class A {}";
-        List<Token> tokens = new JavaTokenExtractor()
-                .setInputStream(new ByteArrayInputStream(code.getBytes()))
-                .extractTokens();
+        List<Token> tokens = extractTokensFromCode(code);
         ClassDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
         assertNull(clazz.getPackageName());
         assertEquals("A", clazz.getClassName());
@@ -133,6 +125,32 @@ public class JavaTokenExtractorTest {
     // TODO: testMethod_static
 
     @Test
+    public void testField() throws IOException {
+        String code = "package pkg; class A { int n; }";
+        List<Token> tokens = extractTokensFromCode(code);
+        FieldDeclaration field = findUniqueTokenOfKind(tokens, Token.Kind.FIELD_DECLARATION);
+        assertEquals(Token.Kind.FIELD_DECLARATION, field.getKind());
+        assertEquals(Token.Span.of(27, 28), field.getSpan());
+        assertEquals("pkg", field.getPackageName());
+        assertEquals("A", field.getClassName());
+        assertEquals("n", field.getVariableName());
+        assertEquals(ResolvedTypeReference.INTEGER, field.getTypeReferenece());
+    }
+
+    @Test
+    public void testField_fullyQualifiedType() throws IOException {
+        String code = "class A { java.util.List l; }";
+        List<Token> tokens = extractTokensFromCode(code);
+        FieldDeclaration field = findUniqueTokenOfKind(tokens, Token.Kind.FIELD_DECLARATION);
+        assertEquals(Token.Kind.FIELD_DECLARATION, field.getKind());
+        assertEquals("l", field.getVariableName());
+        assertEquals(new UnresolvedTypeReferenece(ImmutableList.of(FullyQualifiedName.of("java.util.List"))),
+                field.getTypeReferenece());
+    }
+
+    // TODO: testField_multiple
+
+    @Test
     public void testLineMonitorInputStream() throws IOException {
         String code = "a\nbcd\nef\ng\nhij\n";
         JavaTokenExtractor.LineMonitorInputStream in = new JavaTokenExtractor.LineMonitorInputStream(
@@ -148,7 +166,7 @@ public class JavaTokenExtractorTest {
         assertEquals(11, in.translateLineColumnToOffset(4, 0));
         assertEquals(12, in.translateLineColumnToOffset(4, 1));
         assertEquals(13, in.translateLineColumnToOffset(4, 2));
-        in.close();
+
     }
 
     private static List<Token> extractTokensFromCode(String code) throws IOException {

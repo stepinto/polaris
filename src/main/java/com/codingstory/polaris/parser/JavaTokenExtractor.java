@@ -2,13 +2,18 @@ package com.codingstory.polaris.parser;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import japa.parser.JavaParser;
 import japa.parser.ParseException;
 import japa.parser.TokenMgrError;
 import japa.parser.ast.CompilationUnit;
+import japa.parser.ast.ImportDeclaration;
 import japa.parser.ast.Node;
 import japa.parser.ast.body.ClassOrInterfaceDeclaration;
+import japa.parser.ast.body.VariableDeclarator;
+import japa.parser.ast.type.Type;
 import japa.parser.ast.visitor.VoidVisitorAdapter;
 
 import java.io.FilterInputStream;
@@ -19,6 +24,12 @@ import java.util.List;
 
 public class JavaTokenExtractor {
 
+    private static class SkipCheckingExceptionWrapper extends RuntimeException {
+        public SkipCheckingExceptionWrapper(Throwable throwable) {
+            super(throwable);
+        }
+    }
+
     private static class ASTVisitor extends VoidVisitorAdapter {
 
         private final LineMonitorInputStream in;
@@ -26,9 +37,12 @@ public class JavaTokenExtractor {
         private PackageDeclaration packageDeclaration;
         private final LinkedList<TypeDeclaration> typeDeclarationStack = Lists.newLinkedList();
         private final LinkedList<MethodDeclaration> methodDeclarationStack = Lists.newLinkedList();
+        private final LinkedList<TypeTable<TypeReference>> typeTable = Lists.newLinkedList();
+        private final List<ImportDeclaration> imports = Lists.newArrayList();
 
         private ASTVisitor(LineMonitorInputStream in) {
             this.in = in;
+            typeTable.push(new TypeTable<TypeReference>()); // To hold imports
         }
 
         @Override
@@ -43,8 +57,22 @@ public class JavaTokenExtractor {
         }
 
         @Override
+        public void visit(ImportDeclaration node, Object arg) {
+            Preconditions.checkNotNull(node);
+            if (node.isAsterisk()) {
+                imports.add(node);
+            } else {
+                TypeTable<TypeReference> symbolTable = Iterables.getOnlyElement(typeTable);
+                FullyQualifiedName name = FullyQualifiedName.of(node.getName().getName());
+                TypeReference typeReference = new UnresolvedTypeReferenece(ImmutableList.of(name));
+                symbolTable.put(name, typeReference);
+            }
+            super.visit(node, arg);    //To change body of overridden methods use File | Settings | File Templates.
+        }
+
+        @Override
         public void visit(ClassOrInterfaceDeclaration node, Object arg) {
-            // TODO: treat class and interface seperately
+            // TODO: treat class and interface differently
             Preconditions.checkNotNull(node);
             ClassDeclaration classDeclaration = ClassDeclaration.newBuilder()
                     .setSpan(findTokenSpan(node))
@@ -77,13 +105,67 @@ public class JavaTokenExtractor {
             MethodDeclaration methodDeclaration = MethodDeclaration.newBuilder()
                     .setSpan(findTokenSpan(node))
                     .setPackageName(findPackageName())
-                    .setClassName(typeDeclarationStack.getLast().getTypeName())
+                    .setClassName(findClassName())
                     .setMethodName(node.getName())
                     .build();
             results.add(methodDeclaration);
             methodDeclarationStack.push(methodDeclaration);
             super.visit(node, arg);
             methodDeclarationStack.pop();
+        }
+
+        @Override
+        public void visit(japa.parser.ast.body.FieldDeclaration node, Object arg) {
+            Preconditions.checkNotNull(node);
+            TypeReference type = resolveType(node.getType());
+            for (VariableDeclarator var : node.getVariables()) {
+                FieldDeclaration field = FieldDeclaration.newBuilder()
+                        .setSpan(findTokenSpan(var.getId()))
+                        .setTypeReference(type)
+                        .setPackageName(findPackageName())
+                        .setClassName(findClassName())
+                        .setVariableName(var.getId().getName())
+                        .build();
+                results.add(field);
+            }
+            super.visit(node, arg);
+        }
+
+        private String findClassName() {
+            return typeDeclarationStack.getLast().getTypeName();
+        }
+
+        private TypeReference resolveType(Type type) {
+            String name = type.toString();
+            TypeReference typeReference = PrimitiveTypeResolver.resolve(name);
+            if (typeReference != null) {
+                return typeReference;
+            }
+            typeReference = typeTable.getLast().resolve(name);
+            if (typeReference != null) {
+                return typeReference;
+            }
+            FullyQualifiedName qualifiedName = FullyQualifiedName.of(name);
+            if (qualifiedName.hasPackageName()) {
+                return new UnresolvedTypeReferenece(ImmutableList.of(qualifiedName));
+            } else {
+                // Assume the type is "Type", the package is "mypkg" and "import pkg1.*" and "import pkg2.*".
+                // We will generate the following candidates:
+                //   mypkg.Type
+                //   Type
+                //   pkg1.Type
+                //   pkg2.Type
+                List<FullyQualifiedName> candidates = Lists.newArrayList();
+                candidates.add(FullyQualifiedName.of(findPackageName(), name));
+                candidates.add(FullyQualifiedName.of(null, name));
+                for (ImportDeclaration imp : imports) {
+                    if (imp.isAsterisk()) {
+                        String packageName = imp.getName().getName();
+                        candidates.add(FullyQualifiedName.of(packageName, name));
+                    }
+                }
+                return new UnresolvedTypeReferenece(candidates);
+            }
         }
 
         private Token.Span findTokenSpan(Node node) {
@@ -183,6 +265,8 @@ public class JavaTokenExtractor {
         } catch (Error e) {
             // The parser may throw java.lang.Error, e.g. at JavaCharStream.java:347.
             throw new IOException(e);
+        } catch (SkipCheckingExceptionWrapper e) {
+            throw (IOException) e.getCause();
         }
     }
 }
