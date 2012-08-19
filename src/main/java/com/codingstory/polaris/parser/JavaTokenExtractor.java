@@ -5,9 +5,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import japa.parser.JavaParser;
 import japa.parser.ParseException;
+import japa.parser.TokenMgrError;
 import japa.parser.ast.CompilationUnit;
 import japa.parser.ast.Node;
-import japa.parser.ast.body.*;
+import japa.parser.ast.body.ClassOrInterfaceDeclaration;
 import japa.parser.ast.visitor.VoidVisitorAdapter;
 
 import java.io.FilterInputStream;
@@ -173,6 +174,14 @@ public class JavaTokenExtractor {
             visitor.visit(compilationUnit, null);
             return visitor.getResults();
         } catch (ParseException e) {
+            throw new IOException(e);
+        } catch (TokenMgrError e) {
+            // Don't know why this error may be raised when parsing Eclipse code.
+            throw new IOException(e);
+        } catch (StackOverflowError e) {
+            throw new IOException(e); // See issue #2.
+        } catch (Error e) {
+            // The parser may throw java.lang.Error, e.g. at JavaCharStream.java:347.
             throw new IOException(e);
         }
     }
