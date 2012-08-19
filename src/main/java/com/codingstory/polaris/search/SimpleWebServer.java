@@ -36,7 +36,7 @@ public class SimpleWebServer {
                 showSearchForm(resp);
             } else {
                 List<Result> results = search(query);
-                showSearchResults(results, resp);
+                showSearchResults(query, results, resp);
             }
         }
 
@@ -63,7 +63,8 @@ public class SimpleWebServer {
             out.flush();
         }
 
-        private void showSearchResults(List<Result> results, HttpServletResponse resp) throws ServletException, IOException {
+        private void showSearchResults(String query, List<Result> results, HttpServletResponse resp)
+                throws ServletException, IOException {
             InputStream in = SearchServlet.class.getResourceAsStream("/SearchResult.ftl");
             try {
                 Configuration conf = new Configuration();
@@ -71,6 +72,7 @@ public class SimpleWebServer {
                 Template template = conf.getTemplate("SearchResult.ftl");
                 Map<String, Object> root = Maps.newHashMap();
                 root.put("results", results);
+                root.put("query", query);
                 Writer out = resp.getWriter();
                 template.process(root, out);
                 out.flush();

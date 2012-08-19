@@ -2,7 +2,7 @@
     <body>
         <h1>Polaris Code Search</h1>
         <form>
-            <input type="text" name="q" />
+            <input type="text" name="q" value="${query}" />
             <input type="submit" value="search" />
         </form>
         <hr />
