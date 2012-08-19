@@ -1,6 +1,6 @@
 package com.codingstory.polaris;
 
-import com.codingstory.polaris.indexing.DirectoryIndexer;
+import com.codingstory.polaris.indexing.JavaIndexer;
 import com.codingstory.polaris.parser.JavaTokenExtractor;
 import com.codingstory.polaris.parser.Token;
 import com.codingstory.polaris.search.SimpleWebServer;
@@ -57,7 +57,18 @@ public class Main {
     }
 
     private static void runIndex(List<String> args) throws IOException {
-        DirectoryIndexer.main(args.toArray(new String[args.size()]));
+        JavaIndexer indexer = new JavaIndexer(new File("index"));
+        try {
+            if (args.isEmpty()) {
+                printHelp();
+                System.exit(1);
+            }
+            for (String path : args) {
+                indexer.indexDirectory(new File(path));
+            }
+        } finally {
+            IOUtils.closeQuietly(indexer);
+        }
     }
 
     private static void runSearchUI(List<String> args) throws InterruptedException, IOException {
@@ -70,7 +81,8 @@ public class Main {
 
     private static void printHelp() {
         System.out.println("Usage:");
-        System.out.println("  polaris parse files...");
+        System.out.println("  polaris parse dir/files...");
+        System.out.println("  polaris index dir/files...");
         System.out.println("  polaris searchui");
         System.out.println();
     }
