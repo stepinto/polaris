@@ -88,7 +88,6 @@ public class JavaSrcTokenizer extends Tokenizer {
             ClassDeclaration declaration = (ClassDeclaration) t;
             FullyQualifiedName name = declaration.getName();
             termAttr.append(name.getTypeName());
-            termAttr.append(name.toString());
         } else if (t.getKind() == Token.Kind.METHOD_DECLARATION) {
             MethodDeclaration declaration = (MethodDeclaration) t;
             termAttr.append(declaration.getMethodName());
