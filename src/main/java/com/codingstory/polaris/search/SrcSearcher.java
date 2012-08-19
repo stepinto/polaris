@@ -58,6 +58,7 @@ public class SrcSearcher {
             Document document = reader.document(docid);
             result.setFilename(document.getFieldable("filename").stringValue());
             String content = document.getFieldable("content").stringValue();
+            result.setDocumentId(docid);
             result.setContent(content);
             result.setSummary(getSummary(content, queryString));
             results.add(result);
