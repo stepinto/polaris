@@ -9,28 +9,29 @@ import java.util.List;
 
 public class UnresolvedTypeReferenece implements TypeReference {
 
+    private final String unqualifiedName;
     private final List<FullyQualifiedName> candidates;
 
     public UnresolvedTypeReferenece(List<FullyQualifiedName> candidates) {
         Preconditions.checkNotNull(candidates);
+        Preconditions.checkArgument(!candidates.isEmpty());
         this.candidates = candidates;
+        this.unqualifiedName = candidates.get(0).getTypeName();
+        Preconditions.checkArgument(Iterables.all(candidates, new Predicate<FullyQualifiedName>() {
+            @Override
+            public boolean apply(FullyQualifiedName fullyQualifiedName) {
+                return Objects.equal(unqualifiedName, fullyQualifiedName.getTypeName());
+            }
+        }));
     }
 
     public List<FullyQualifiedName> getCandidates() {
         return candidates;
     }
 
-    private static boolean checkTypeNamesAreSame(List<FullyQualifiedName> candidates) {
-        if (candidates.isEmpty()) {
-            return true;
-        }
-        final String typeName = candidates.get(0).getTypeName();
-        return Iterables.any(candidates, new Predicate<FullyQualifiedName>() {
-            @Override
-            public boolean apply(FullyQualifiedName fullyQualifiedName) {
-                return !Objects.equal(typeName, fullyQualifiedName.getTypeName());
-            }
-        });
+    @Override
+    public String getUnqualifiedName() {
+        return unqualifiedName;
     }
 
     @Override

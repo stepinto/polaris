@@ -5,7 +5,7 @@ import com.google.common.collect.Maps;
 
 import java.util.Map;
 
-public class PrimitiveTypeResolver {
+public class PrimitiveTypeResolver implements TypeResolver {
 
     private static final Map<String, ResolvedTypeReference> TABLE = Maps.uniqueIndex(ResolvedTypeReference.PRIMITIVES,
             new Function<ResolvedTypeReference, String>() {
@@ -15,8 +15,12 @@ public class PrimitiveTypeResolver {
                 }
             });
 
-    public static TypeReference resolve(String symbol) {
+    public static ResolvedTypeReference resolve(String symbol) {
         return TABLE.get(symbol);
     }
 
+    @Override
+    public ResolvedTypeReference resolve(UnresolvedTypeReferenece typeReferenece) {
+        return resolve(typeReferenece.getUnqualifiedName());
+    }
 }

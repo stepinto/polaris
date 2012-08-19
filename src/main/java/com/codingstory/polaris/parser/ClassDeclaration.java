@@ -6,26 +6,19 @@ import com.google.common.base.Preconditions;
 
 public class ClassDeclaration extends TokenBase implements TypeDeclaration {
 
-    private final String packageName;
-    private final String className;
+    private FullyQualifiedName name;
 
     public static class Builder {
         private Span span;
-        private String packageName;
-        private String className;
+        private FullyQualifiedName name;
 
         public Builder setSpan(Span span) {
             this.span = span;
             return this;
         }
 
-        public Builder setPackageName(String packageName) {
-            this.packageName = packageName;
-            return this;
-        }
-
-        public Builder setClassName(String className) {
-            this.className = className;
+        public Builder setName(FullyQualifiedName name) {
+            this.name = name;
             return this;
         }
 
@@ -41,8 +34,7 @@ public class ClassDeclaration extends TokenBase implements TypeDeclaration {
 
     private ClassDeclaration(Builder builder) {
         super(Kind.CLASS_DECLARATION, builder.span);
-        this.packageName = builder.packageName;
-        this.className = builder.className;
+        this.name = builder.name;
     }
 
     @Override
@@ -50,29 +42,16 @@ public class ClassDeclaration extends TokenBase implements TypeDeclaration {
         return Kind.CLASS_DECLARATION;
     }
 
-    /**
-     * @return the package name or null if it does not have one
-     */
     @Override
-    public String getPackageName() {
-        return packageName;
-    }
-
-    public String getClassName() {
-        return className;
-    }
-
-    @Override
-    public String getTypeName() {
-        return className;
+    public FullyQualifiedName getName() {
+        return name;
     }
 
     @Override
     public String toString() {
         return Objects.toStringHelper(ClassDeclaration.class)
                 .add("span", getSpan())
-                .add("packageName", packageName)
-                .add("className", className)
+                .add("name", name)
                 .toString();
     }
 }

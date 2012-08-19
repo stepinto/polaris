@@ -76,8 +76,7 @@ public class JavaTokenExtractor {
             Preconditions.checkNotNull(node);
             ClassDeclaration classDeclaration = ClassDeclaration.newBuilder()
                     .setSpan(findTokenSpan(node))
-                    .setPackageName(findPackageName())
-                    .setClassName(node.getName())
+                    .setName(FullyQualifiedName.of(findPackageName(), node.getName()))
                     .build();
             results.add(classDeclaration);
             typeDeclarationStack.push(classDeclaration);
@@ -90,8 +89,7 @@ public class JavaTokenExtractor {
             Preconditions.checkNotNull(node);
             EnumDeclaration enumDeclaration = EnumDeclaration.newBuilder()
                     .setSpan(findTokenSpan(node))
-                    .setPackageName(findPackageName())
-                    .setEnumName(node.getName())
+                    .setName(FullyQualifiedName.of(findPackageName(), node.getName()))
                     .build();
             results.add(enumDeclaration);
             typeDeclarationStack.push(enumDeclaration);
@@ -132,7 +130,7 @@ public class JavaTokenExtractor {
         }
 
         private String findClassName() {
-            return typeDeclarationStack.getLast().getTypeName();
+            return typeDeclarationStack.getLast().getName().getTypeName();
         }
 
         private TypeReference resolveType(Type type) {

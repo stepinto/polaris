@@ -33,6 +33,11 @@ public class ResolvedTypeReference implements TypeReference {
     }
 
     @Override
+    public String getUnqualifiedName() {
+        return name.getTypeName();
+    }
+
+    @Override
     public boolean isResoleved() {
         return true;
     }

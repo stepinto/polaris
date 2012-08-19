@@ -3,6 +3,10 @@ package com.codingstory.polaris.parser;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
+/**
+ * Represents a fully qualified type name, which is consists of an optional package
+ * name and a class/interface/enum name.
+ */
 public class FullyQualifiedName {
 
     private final String packageName;
@@ -18,9 +22,6 @@ public class FullyQualifiedName {
         return new FullyQualifiedName(packageName, typeName);
     }
 
-    /**
-     * @return the fully qualified name or null if it is unqualified
-     */
     public static FullyQualifiedName of(String name) {
         Preconditions.checkNotNull(name);
         int lastDot = name.lastIndexOf('.');

@@ -8,7 +8,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.NullOutputStream;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.input.NullInputStream;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -21,9 +20,7 @@ public class JavaTokenExtractorTest {
 
     @Test
     public void testEmpty() throws IOException {
-        List<Token> tokens = new JavaTokenExtractor()
-                .setInputStream(new NullInputStream(0))
-                .extractTokens();
+        List<Token> tokens = extractTokensFromCode("");
         assertTrue(tokens.isEmpty());
     }
 
@@ -44,8 +41,7 @@ public class JavaTokenExtractorTest {
         ClassDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
         assertEquals(Token.Kind.CLASS_DECLARATION, clazz.getKind());
         assertEquals(Token.Span.of(13, 48), clazz.getSpan());
-        assertEquals("pkg", clazz.getPackageName());
-        assertEquals("MyClass", clazz.getClassName());
+        assertEquals(FullyQualifiedName.of("pkg.MyClass"), clazz.getName());
     }
 
     @Test
@@ -53,14 +49,15 @@ public class JavaTokenExtractorTest {
         String code = "package pkg;\nclass A {}\nclass B {}\nclass C {}\n";
         List<Token> tokens = extractTokensFromCode(code);
         List<ClassDeclaration> classes = filterTokensOfKind(tokens, Token.Kind.CLASS_DECLARATION);
-        assertEquals(ImmutableList.of("A", "B", "C"), Lists.transform(classes,
-                new Function<ClassDeclaration, String>() {
-                    @Override
-                    public String apply(ClassDeclaration clazz) {
-                        Preconditions.checkNotNull(clazz);
-                        return clazz.getClassName();
-                    }
-                }));
+        assertEquals(ImmutableList.of("pkg.A", "pkg.B", "pkg.C"),
+                Lists.transform(classes,
+                        new Function<ClassDeclaration, String>() {
+                            @Override
+                            public String apply(ClassDeclaration clazz) {
+                                Preconditions.checkNotNull(clazz);
+                                return clazz.getName().toString();
+                            }
+                        }));
     }
 
     @Test
@@ -68,8 +65,7 @@ public class JavaTokenExtractorTest {
         String code = "class A {}";
         List<Token> tokens = extractTokensFromCode(code);
         ClassDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
-        assertNull(clazz.getPackageName());
-        assertEquals("A", clazz.getClassName());
+        assertEquals(FullyQualifiedName.of("A"), clazz.getName());
     }
 
     // TODO: testClass_public
@@ -87,8 +83,7 @@ public class JavaTokenExtractorTest {
         EnumDeclaration e = findUniqueTokenOfKind(tokens, Token.Kind.ENUM_DECLARATION);
         assertNotNull(e);
         assertEquals(Token.Span.of(13, 48), e.getSpan());
-        assertEquals("pkg", e.getPackageName());
-        assertEquals("E", e.getEnumName());
+        assertEquals(FullyQualifiedName.of("pkg.E"), e.getName());
     }
 
     // TODO: testEnum_public
@@ -166,7 +161,6 @@ public class JavaTokenExtractorTest {
         assertEquals(11, in.translateLineColumnToOffset(4, 0));
         assertEquals(12, in.translateLineColumnToOffset(4, 1));
         assertEquals(13, in.translateLineColumnToOffset(4, 2));
-
     }
 
     private static List<Token> extractTokensFromCode(String code) throws IOException {

@@ -4,26 +4,19 @@ import com.google.common.base.Preconditions;
 
 public class EnumDeclaration extends TokenBase implements TypeDeclaration {
 
-    private final String packageName;
-    private final String enumName;
+    private final FullyQualifiedName name;
 
     public static class Builder {
         private Span span;
-        private String packageName;
-        private String enumName;
+        private FullyQualifiedName name;
 
         public Builder setSpan(Span span) {
             this.span = span;
             return this;
         }
 
-        public Builder setEnumName(String enumName) {
-            this.enumName = enumName;
-            return this;
-        }
-
-        public Builder setPackageName(String packageName) {
-            this.packageName = packageName;
+        public Builder setName(FullyQualifiedName name) {
+            this.name = name;
             return this;
         }
 
@@ -35,8 +28,7 @@ public class EnumDeclaration extends TokenBase implements TypeDeclaration {
 
     private EnumDeclaration(Builder builder) {
         super(Token.Kind.ENUM_DECLARATION, builder.span);
-        this.packageName = builder.packageName;
-        this.enumName = builder.enumName;
+        this.name = builder.name;
     }
 
     public static Builder newBuilder() {
@@ -44,16 +36,7 @@ public class EnumDeclaration extends TokenBase implements TypeDeclaration {
     }
 
     @Override
-    public String getPackageName() {
-        return packageName;
-    }
-
-    @Override
-    public String getTypeName() {
-        return enumName;
-    }
-
-    public String getEnumName() {
-        return enumName;
+    public FullyQualifiedName getName() {
+        return name;
     }
 }
