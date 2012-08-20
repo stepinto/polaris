@@ -6,6 +6,7 @@
             <input type="submit" value="search" />
         </form>
         <hr />
+        <p>Took ${seconds_str}s</p>
         <ul>
             <#list results as result>
                 <li>

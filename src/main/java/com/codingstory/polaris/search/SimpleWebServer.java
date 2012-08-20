@@ -7,6 +7,7 @@ import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.time.StopWatch;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryParser.ParseException;
@@ -38,8 +39,11 @@ public class SimpleWebServer {
             if (Strings.isNullOrEmpty(query)) {
                 showSearchForm(resp);
             } else {
+                StopWatch watch = new StopWatch();
+                watch.start();
                 List<Result> results = search(query);
-                showSearchResults(query, results, resp);
+                watch.stop();
+                showSearchResults(query, results, resp, watch.getTime());
             }
         }
 
@@ -66,7 +70,7 @@ public class SimpleWebServer {
             out.flush();
         }
 
-        private void showSearchResults(String query, List<Result> results, HttpServletResponse resp)
+        private void showSearchResults(String query, List<Result> results, HttpServletResponse resp, long ms)
                 throws ServletException, IOException {
             InputStream in = SearchServlet.class.getResourceAsStream("/SearchResult.ftl");
             try {
@@ -76,6 +80,7 @@ public class SimpleWebServer {
                 Map<String, Object> root = Maps.newHashMap();
                 root.put("results", results);
                 root.put("query", query);
+                root.put("seconds_str", String.format("%.2f", ms / 1000.0));
                 Writer out = resp.getWriter();
                 template.process(root, out);
                 out.flush();
