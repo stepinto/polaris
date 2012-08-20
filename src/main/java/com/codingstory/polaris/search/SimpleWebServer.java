@@ -7,6 +7,7 @@ import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
@@ -131,6 +132,24 @@ public class SimpleWebServer {
         }
     }
 
+    public static class StaticServlet extends HttpServlet {
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            Preconditions.checkNotNull(req);
+            Preconditions.checkNotNull(resp);
+            String path = req.getRequestURI();
+            path = StringUtils.removeStart(path, "/static");
+            InputStream in = StaticServlet.class.getResourceAsStream(path);
+            OutputStream out = resp.getOutputStream();
+            try {
+                IOUtils.copy(in, out);
+                out.flush();
+            } finally {
+                IOUtils.closeQuietly(in);
+            }
+        }
+    }
+
     private int port = 0;
 
     public void setPort(int port) {
@@ -143,6 +162,7 @@ public class SimpleWebServer {
         contextHandler.addServlet(SearchServlet.class, "/");
         contextHandler.addServlet(HelloServlet.class, "/hello");
         contextHandler.addServlet(SourceServlet.class, "/source");
+        contextHandler.addServlet(StaticServlet.class, "/static/main.css");
         server.setHandler(contextHandler);
         try {
             server.start();
