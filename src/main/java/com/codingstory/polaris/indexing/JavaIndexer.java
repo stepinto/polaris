@@ -95,6 +95,24 @@ public class JavaIndexer implements Closeable {
             } else if (t.getKind() == Token.Kind.PACKAGE_DECLARATION) {
                 PackageDeclaration declaration = (PackageDeclaration) t;
                 addIndexFieldToDocument(document, "packagename", declaration.getPackageName());
+            } else if (t.getKind() == Token.Kind.FIELD_DECLARATION) {
+                FieldDeclaration declaration = (FieldDeclaration) t;
+                addIndexFieldToDocument(document, "fieldname", declaration.getVariableName());
+                String fullName = declaration.getPackageName() + "." + declaration.getClassName() + "."
+                        + declaration.getVariableName();
+                addIndexFieldToDocument(document, "fieldname", declaration.getVariableName());
+                addIndexFieldToDocument(document, "fieldfullname", fullName);
+                TypeReference type = declaration.getTypeReferenece();
+                addIndexFieldToDocument(document, "fieldtype", type.getUnqualifiedName());
+                if (type.isResoleved()) {
+                    ResolvedTypeReference resolved = (ResolvedTypeReference) type;
+                    addIndexFieldToDocument(document, "fieldtypefullname", resolved.getName().toString());
+                } else {
+                    UnresolvedTypeReferenece unresolved = (UnresolvedTypeReferenece) type;
+                    for (FullyQualifiedName candidate : unresolved.getCandidates()) {
+                        addIndexFieldToDocument(document, "fieldtypefullname", candidate.toString());
+                    }
+                }
             }
             writer.addDocument(document);
         }
