@@ -22,7 +22,7 @@ public class TypeTable<T> {
     public T resolve(String symbol) {
         Preconditions.checkNotNull(symbol);
         FullyQualifiedName qualified = FullyQualifiedName.of(symbol);
-        if (qualified.getPackageName() != null) {
+        if (qualified.hasPackageName()) {
             return resolveFullyQualified(qualified);
         } else {
             T result = resolveUnqualified(symbol);

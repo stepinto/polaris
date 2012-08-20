@@ -39,7 +39,8 @@ public class SrcSearcher {
     public SrcSearcher(String indexDirectory) throws IOException {
         reader = IndexReader.open(FSDirectory.open(new File(indexDirectory)));
         searcher = new IndexSearcher(reader);
-        String[] fields = {"classname", "methodname", "classfullname", "methodfullname", "packagename"};
+        String[] fields = {"classname", "methodname", "classfullname", "methodfullname", "packagename",
+                "fieldname", "fieldtypename", "fieldtypefullname"};
         Map<String, Float> boostMap = new TreeMap<String, Float>();
         boostMap.put("classname", 4.0f);
         boostMap.put("methodname", 3.0f);

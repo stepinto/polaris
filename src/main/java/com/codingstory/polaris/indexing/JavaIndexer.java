@@ -61,7 +61,6 @@ public class JavaIndexer implements Closeable {
                 Field.TermVector.WITH_POSITIONS_OFFSETS);
         f.setBoost(2.0f);
         document.add(f);
-
     }
 
     public void indexFile(File file) throws IOException {
@@ -103,14 +102,16 @@ public class JavaIndexer implements Closeable {
                 addIndexFieldToDocument(document, "fieldname", declaration.getVariableName());
                 addIndexFieldToDocument(document, "fieldfullname", fullName);
                 TypeReference type = declaration.getTypeReferenece();
-                addIndexFieldToDocument(document, "fieldtype", type.getUnqualifiedName());
+                addIndexFieldToDocument(document, "fieldtypename", type.getUnqualifiedName());
                 if (type.isResoleved()) {
                     ResolvedTypeReference resolved = (ResolvedTypeReference) type;
-                    addIndexFieldToDocument(document, "fieldtypefullname", resolved.getName().toString());
+                    document.add(new Field("fieldtypefullname", resolved.getName().toString(),
+                            Field.Store.YES, Field.Index.NOT_ANALYZED));
                 } else {
                     UnresolvedTypeReferenece unresolved = (UnresolvedTypeReferenece) type;
                     for (FullyQualifiedName candidate : unresolved.getCandidates()) {
-                        addIndexFieldToDocument(document, "fieldtypefullname", candidate.toString());
+                        document.add(new Field("fieldtypefullname", candidate.toString(),
+                                Field.Store.YES, Field.Index.NOT_ANALYZED));
                     }
                 }
             }

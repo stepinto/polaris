@@ -137,10 +137,29 @@ public class JavaTokenExtractorTest {
         String code = "class A { java.util.List l; }";
         List<Token> tokens = extractTokensFromCode(code);
         FieldDeclaration field = findUniqueTokenOfKind(tokens, Token.Kind.FIELD_DECLARATION);
-        assertEquals(Token.Kind.FIELD_DECLARATION, field.getKind());
         assertEquals("l", field.getVariableName());
         assertEquals(new UnresolvedTypeReferenece(ImmutableList.of(FullyQualifiedName.of("java.util.List"))),
                 field.getTypeReferenece());
+    }
+
+    @Test
+    public void testField_unqualifiedType() throws IOException {
+        String code = "import java.util.List; class A { List l; }";
+        List<Token> tokens = extractTokensFromCode(code);
+        FieldDeclaration field = findUniqueTokenOfKind(tokens, Token.Kind.FIELD_DECLARATION);
+        assertEquals("l", field.getVariableName());
+        TypeReference typeReference = field.getTypeReferenece();
+        assertFalse(typeReference.isResoleved());
+        UnresolvedTypeReferenece unresolved = (UnresolvedTypeReferenece) typeReference;
+        List<String> candidateFullNames = Lists.transform(unresolved.getCandidates(),
+                new Function<FullyQualifiedName, String>() {
+
+                    @Override
+                    public String apply(FullyQualifiedName name) {
+                        return name.toString();
+                    }
+                });
+        assertEquals(ImmutableList.of("java.util.List"), candidateFullNames);
     }
 
     // TODO: testField_multiple

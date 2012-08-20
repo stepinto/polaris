@@ -64,7 +64,7 @@ public class JavaTokenExtractor {
                 imports.add(node);
             } else {
                 TypeTable<TypeReference> symbolTable = Iterables.getOnlyElement(typeTable);
-                FullyQualifiedName name = FullyQualifiedName.of(node.getName().getName());
+                FullyQualifiedName name = FullyQualifiedName.of(node.getName().toString());
                 TypeReference typeReference = new UnresolvedTypeReferenece(ImmutableList.of(name));
                 symbolTable.put(name, typeReference);
             }
