@@ -11,6 +11,7 @@ import japa.parser.TokenMgrError;
 import japa.parser.ast.CompilationUnit;
 import japa.parser.ast.ImportDeclaration;
 import japa.parser.ast.Node;
+import japa.parser.ast.body.AnnotationDeclaration;
 import japa.parser.ast.body.ClassOrInterfaceDeclaration;
 import japa.parser.ast.body.VariableDeclarator;
 import japa.parser.ast.type.Type;
@@ -80,6 +81,21 @@ public class JavaTokenExtractor {
                     .build();
             results.add(classDeclaration);
             typeDeclarationStack.push(classDeclaration);
+            super.visit(node, arg);
+            typeDeclarationStack.pop();
+        }
+
+        @Override
+        public void visit(AnnotationDeclaration node, Object arg) {
+            // TODO: We temporarily treat annotations as classes
+            Preconditions.checkNotNull(node);
+            ClassDeclaration classDeclaration = ClassDeclaration.newBuilder()
+                    .setSpan(findTokenSpan(node))
+                    .setName(FullyQualifiedName.of(findPackageName(), node.getName()))
+                    .build();
+            results.add(classDeclaration);
+            typeDeclarationStack.push(classDeclaration);
+            Preconditions.checkNotNull(node);
             super.visit(node, arg);
             typeDeclarationStack.pop();
         }
