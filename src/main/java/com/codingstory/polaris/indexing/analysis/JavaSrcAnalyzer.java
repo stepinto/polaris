@@ -3,7 +3,9 @@ package com.codingstory.polaris.indexing.analysis;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 
+import java.io.IOException;
 import java.io.Reader;
+import java.io.StringReader;
 
 /**
  * Created with IntelliJ IDEA.
@@ -21,5 +23,17 @@ public class JavaSrcAnalyzer extends Analyzer {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
         return null;
+    }
+
+    public static void main(String[] args) throws IOException {
+        Analyzer analyzer = new JavaSrcAnalyzer();
+        TokenStream stream = analyzer.tokenStream("test", new StringReader("package java.util.ArrayList"));
+        while (stream.incrementToken()) {
+            String[] parts = stream.reflectAsString(false).split("#");
+            for (String s : parts) {
+                System.out.println(s);
+            }
+            System.out.println();
+        }
     }
 }

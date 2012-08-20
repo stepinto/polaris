@@ -7,9 +7,12 @@ import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import org.apache.commons.io.IOUtils;
-import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 import org.apache.lucene.store.FSDirectory;
 import org.eclipse.jetty.server.Server;
@@ -106,12 +109,13 @@ public class SimpleWebServer {
             // TODO: Use our searcher interface
             Preconditions.checkNotNull(req);
             Preconditions.checkNotNull(resp);
-            int docId = Integer.parseInt(req.getParameter("doc"));
+            String filename = req.getParameter("filename");
             IndexReader reader = IndexReader.open(FSDirectory.open(new File("index")));
             PrintWriter out = resp.getWriter();
             try {
-                Document document = reader.document(docId);
-                String content = document.getFieldable("content").stringValue();
+                Query query = new TermQuery(new Term("filename", filename));
+                int docid = new IndexSearcher(reader).search(query, 1).scoreDocs[0].doc;
+                String content = reader.document(docid).get("content");
                 out.println("<html><body><pre>");
                 out.println(content);
                 out.println("</pre></body></html>");

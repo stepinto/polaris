@@ -1,18 +1,15 @@
 package com.codingstory.polaris.indexing.analysis;
 
-import com.codingstory.polaris.parser.*;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
-import org.apache.lucene.analysis.tokenattributes.PayloadAttribute;
-import org.apache.lucene.index.Payload;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.Reader;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -27,77 +24,72 @@ public class JavaSrcTokenizer extends Tokenizer {
 
     private final OffsetAttribute offsetAttr = addAttribute(OffsetAttribute.class);
 
-    private final PayloadAttribute payloadAttr = addAttribute(PayloadAttribute.class);
-
     private final Log LOG = LogFactory.getLog(JavaSrcTokenizer.class);
-
-    private List<Token> tokens = new ArrayList<Token>();
-
-    private Iterator<Token> iterator = null;
 
     private final StringBuilder builder = new StringBuilder();
 
-    private final byte[] payloadBytes = new byte[1];
+    private final List<String> tokens = new ArrayList<String>();
 
-    private final Payload payload = new Payload(payloadBytes, 0, 1);
+    private final List<Integer> offsets = new ArrayList<Integer>();
 
-    public static int toInteger(Token.Kind kind) {
-        if (kind == Token.Kind.PACKAGE_DECLARATION) {
-            return 1;
-        } else if (kind == Token.Kind.CLASS_DECLARATION) {
-            return 2;
-        } else if (kind == Token.Kind.FIELD_DECLARATION) {
-            return 3;
-        } else if (kind == Token.Kind.METHOD_DECLARATION) {
-            return 4;
-        }
-        return 0;
-    }
-
+    private int index = 0;
 
     public JavaSrcTokenizer(Reader in) throws Exception {
         super(in);
         BufferedReader reader = new BufferedReader(in);
-        String line;
-        while ((line = reader.readLine()) != null) {
-            builder.append(line);
-            builder.append('\n');
+        String content = reader.readLine();
+        String[] partsBySpace = content.split("\\s+");
+        int offset = 0;
+        for (String partBySpace : partsBySpace) {
+            String[] partsByDot = partBySpace.split("\\.");
+            if (partsByDot.length > 1) {
+                tokens.add(partBySpace);
+                offsets.add(offset);
+            }
+            int inOffset = offset;
+            for (String partByDot : partsByDot) {
+                boolean flag = false;
+                for (char ch : partByDot.toCharArray()) {
+                    if (Character.isUpperCase(ch))
+                        flag = true;
+                }
+                if (!flag) {
+                    tokens.add(partByDot);
+                    offsets.add(inOffset);
+                    continue;
+                }
+                StringBuilder builder = new StringBuilder();
+                int inOffset1 = inOffset;
+                for (char ch : partByDot.toCharArray()) {
+                    if (Character.isUpperCase(ch)) {
+                        if (builder.length() > 0) {
+                            tokens.add(builder.toString());
+                            offsets.add(inOffset1);
+                            builder = new StringBuilder();
+                        }
+                    }
+                    builder.append(ch);
+                    ++inOffset1;
+                }
+                if (builder.length() > 0) {
+                    tokens.add(builder.toString());
+                    offsets.add(inOffset1);
+                    builder = new StringBuilder();
+                }
+                inOffset += partByDot.length() + 1;
+            }
+            offset += partBySpace.length() + 1;
         }
-        JavaTokenExtractor extractor = new JavaTokenExtractor();
-        InputStream stream = IOUtils.toInputStream(builder);
-        if (stream == null)
-            throw new IOException("stream is null");
-        extractor.setInputStream(new ByteArrayInputStream(builder.toString().getBytes()));
-        try {
-            tokens = extractor.extractTokens();
-        } catch (Exception e) {
-            LOG.fatal("errors occured while parsing " + e.getMessage());
-        }
-        iterator = tokens.iterator();
     }
 
     @Override
     public boolean incrementToken() throws IOException {
         clearAttributes();
-        if (iterator == null || !iterator.hasNext())
+        if (index >= tokens.size())
             return false;
-        Token t = iterator.next();
-        payloadBytes[0] = (byte) toInteger(t.getKind());
-        payloadAttr.setPayload(new Payload(payloadBytes));
-        if (t.getKind() == Token.Kind.CLASS_DECLARATION) {
-            ClassDeclaration declaration = (ClassDeclaration) t;
-            FullyQualifiedName name = declaration.getName();
-            termAttr.append(name.getTypeName());
-        } else if (t.getKind() == Token.Kind.METHOD_DECLARATION) {
-            MethodDeclaration declaration = (MethodDeclaration) t;
-            termAttr.append(declaration.getMethodName());
-        } else if (t.getKind() == Token.Kind.PACKAGE_DECLARATION) {
-            PackageDeclaration declaration = (PackageDeclaration) t;
-            termAttr.append(declaration.getPackageName());
-        }
-        int begin = (int) t.getSpan().getFrom();
-        int end = (int) t.getSpan().getTo();
-        offsetAttr.setOffset(begin, end);
+        termAttr.append(tokens.get(index).toLowerCase());
+        offsetAttr.setOffset(offsets.get(index), offsets.get(index) + tokens.get(index).length());
+        ++index;
         return true;
     }
 }

@@ -1,15 +1,15 @@
 package com.codingstory.polaris.search;
 
+import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.WhitespaceAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.queryParser.MultiFieldQueryParser;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.*;
 import org.apache.lucene.search.highlight.Highlighter;
 import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 import org.apache.lucene.search.highlight.QueryScorer;
@@ -21,6 +21,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Created with IntelliJ IDEA.
@@ -37,12 +39,25 @@ public class SrcSearcher {
     public SrcSearcher(String indexDirectory) throws IOException {
         reader = IndexReader.open(FSDirectory.open(new File(indexDirectory)));
         searcher = new IndexSearcher(reader);
-        parser = new QueryParser(Version.LUCENE_36, "content", new WhitespaceAnalyzer(Version.LUCENE_36));
+        String[] fields = {"classname", "methodname", "classfullname", "methodfullname", "packagename"};
+        Map<String, Float> boostMap = new TreeMap<String, Float>();
+        boostMap.put("classname", 4.0f);
+        boostMap.put("methodname", 3.0f);
+        boostMap.put("classfullname", 2.0f);
+        boostMap.put("methodfullname", 1.0f);
+        boostMap.put("packagename", 1.0f);
+        parser = new MultiFieldQueryParser(Version.LUCENE_36, fields, new JavaSrcAnalyzer(), boostMap);
     }
 
     public void close() throws IOException {
         searcher.close();
         reader.close();
+    }
+
+    public String getContent(String filename) throws IOException {
+        Query query = new TermQuery(new Term("filename", filename));
+        int docid = searcher.search(query, 1).scoreDocs[0].doc;
+        return reader.document(docid).get("content");
     }
 
     public List<Result> search(String queryString, int limit) throws ParseException, IOException, InvalidTokenOffsetsException {
@@ -57,26 +72,25 @@ public class SrcSearcher {
             int docid = doc.doc;
             Document document = reader.document(docid);
             result.setFilename(document.getFieldable("filename").stringValue());
-            String content = document.getFieldable("content").stringValue();
+            String content = getContent(document.get("filename"));
             result.setDocumentId(docid);
             result.setContent(content);
-            result.setSummary(getSummary(content, queryString));
+            int offset = Integer.parseInt(document.get("offset"));
+            result.setSummary(getSummary(content, offset));
             results.add(result);
         }
         return results;
     }
 
-    public String getSummary(String content, String query) {
-        String[] queryParts = query.split("\\s+");
+    public String getSummary(String content, int offset) {
         String[] lines = content.split("\n");
         int i = 0;
-        outer:
+        int lengthTillNow = 0;
         for (; i < lines.length; ++i) {
-            for (String term : queryParts) {
-                if (lines[i].contains(term)) {
-                    break outer;
-                }
+            if (lengthTillNow > offset) {
+                break;
             }
+            lengthTillNow += lines[i].length() + 1;
         }
         StringBuilder builder = new StringBuilder();
         for (int j = i - 2; j < i + 3; ++j) {
@@ -90,7 +104,7 @@ public class SrcSearcher {
 
     public static void main(String[] args) throws Exception {
         SrcSearcher searcher = new SrcSearcher("index");
-        List<Result> results = searcher.search("setNextReader", 3);
+        List<Result> results = searcher.search("directory", 3);
         for (Result result : results) {
             System.out.println(result.getFilename());
             System.out.println();
