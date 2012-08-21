@@ -85,6 +85,9 @@ public class JavaIndexer implements Closeable {
                 if (name.hasPackageName())
                     fullName = name.getPackageName() + "." + fullName;
                 addIndexFieldToDocument(document, "classfullname", fullName);
+                if (declaration.hasJavaDocComment()) {
+                    addIndexFieldToDocument(document, "javadoc", declaration.getJavaDocComment());
+                }
             } else if (t.getKind() == Token.Kind.METHOD_DECLARATION) {
                 MethodDeclaration declaration = (MethodDeclaration) t;
                 String name = declaration.getMethodName();

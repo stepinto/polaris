@@ -75,9 +75,14 @@ public class JavaTokenExtractor {
         public void visit(ClassOrInterfaceDeclaration node, Object arg) {
             // TODO: treat class and interface differently
             Preconditions.checkNotNull(node);
+            String javaDoc = null;
+            if (node.getJavaDoc() != null) {
+                javaDoc = node.getJavaDoc().toString();
+            }
             ClassDeclaration classDeclaration = ClassDeclaration.newBuilder()
                     .setSpan(findTokenSpan(node))
                     .setName(FullyQualifiedName.of(findPackageName(), node.getName()))
+                    .setJavaDocComment(javaDoc)
                     .build();
             results.add(classDeclaration);
             typeDeclarationStack.push(classDeclaration);

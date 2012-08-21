@@ -68,6 +68,16 @@ public class JavaTokenExtractorTest {
         assertEquals(FullyQualifiedName.of("A"), clazz.getName());
     }
 
+    @Test
+    public void testClass_javaDoc() throws IOException {
+        String code = "/** doc */ class A {}";
+        List<Token> tokens = extractTokensFromCode(code);
+        ClassDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
+        assertEquals(FullyQualifiedName.of("A"), clazz.getName());
+        assertTrue(clazz.hasJavaDocComment());
+        assertEquals("/** doc */", clazz.getJavaDocComment().trim());
+    }
+
     // TODO: testClass_public
     // TODO: testClass_private
     // TODO: testClass_packagePrivate
