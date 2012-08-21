@@ -6,6 +6,7 @@
         <h1>Polaris Code Search</h1>
         <form>
             <input type="text" name="q" value="${query}" />
+            <input type="checkbox" name="debug" ${debug_checked_str}/>debug
             <input type="submit" value="search" />
         </form>
         <hr />
@@ -16,6 +17,9 @@
                     <li>
                         <p><a href="/source?filename=${result.filename}">${result.filename}</a></p>
                         <p><pre>${result.summary}</pre></p>
+                        <#if (debug) >
+                            <p><pre style="color:gray; font-size:small">${result.explanation}</pre></p>
+                        </#if>
                     </li>
                 </#list>
             </ul>

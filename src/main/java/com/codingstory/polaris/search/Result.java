@@ -1,5 +1,7 @@
 package com.codingstory.polaris.search;
 
+import org.apache.lucene.search.Explanation;
+
 /**
  * Created with IntelliJ IDEA.
  * User: Zhou Yunqing
@@ -11,8 +13,8 @@ public class Result {
     int documentId;
     String filename;
     String content;
-
     String summary;
+    Explanation explanation;
 
     public int getDocumentId() {
         return documentId;
@@ -44,6 +46,14 @@ public class Result {
 
     public void setSummary(String summary) {
         this.summary = summary;
+    }
+
+    public Explanation getExplanation() {
+        return explanation;
+    }
+
+    public void setExplanation(Explanation explanation) {
+        this.explanation = explanation;
     }
 
     @Override

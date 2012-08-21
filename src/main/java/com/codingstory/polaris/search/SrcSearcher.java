@@ -1,6 +1,8 @@
 package com.codingstory.polaris.search;
 
 import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.WhitespaceAnalyzer;
 import org.apache.lucene.document.Document;
@@ -32,6 +34,7 @@ import java.util.TreeMap;
  * To change this template use File | Settings | File Templates.
  */
 public class SrcSearcher {
+    private static final Log LOGGER = LogFactory.getLog(SrcSearcher.class);
     final IndexReader reader;
     final IndexSearcher searcher;
     final QueryParser parser;
@@ -62,6 +65,7 @@ public class SrcSearcher {
     }
 
     public List<Result> search(String queryString, int limit) throws ParseException, IOException, InvalidTokenOffsetsException {
+        LOGGER.debug("Query: " + queryString);
         Query query = parser.parse(queryString);
         TopDocs topDocs = searcher.search(query, limit);
         ScoreDoc[] scoreDocs = topDocs.scoreDocs;
@@ -76,6 +80,8 @@ public class SrcSearcher {
             String content = getContent(document.get("filename"));
             result.setDocumentId(docid);
             result.setContent(content);
+            result.setExplanation(searcher.explain(query, docid));
+            LOGGER.debug(result.getExplanation());
             int offset = Integer.parseInt(document.get("offset"));
             result.setSummary(getSummary(content, offset));
             results.add(result);

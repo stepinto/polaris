@@ -1,5 +1,6 @@
 package com.codingstory.polaris.search;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
@@ -36,6 +37,7 @@ public class SimpleWebServer {
             Preconditions.checkNotNull(req);
             Preconditions.checkNotNull(resp);
             String query = req.getParameter("q");
+            boolean debug = Objects.equal(req.getParameter("debug"), "on");
 
             if (Strings.isNullOrEmpty(query)) {
                 showSearchForm(resp);
@@ -44,7 +46,7 @@ public class SimpleWebServer {
                 watch.start();
                 List<Result> results = search(query);
                 watch.stop();
-                showSearchResults(query, results, resp, watch.getTime());
+                showSearchResults(query, debug, results, resp, watch.getTime());
             }
         }
 
@@ -71,7 +73,8 @@ public class SimpleWebServer {
             out.flush();
         }
 
-        private void showSearchResults(String query, List<Result> results, HttpServletResponse resp, long ms)
+        private void showSearchResults(String query, boolean debug, List<Result> results,
+                                       HttpServletResponse resp, long ms)
                 throws ServletException, IOException {
             InputStream in = SearchServlet.class.getResourceAsStream("/SearchResult.ftl");
             try {
@@ -81,6 +84,8 @@ public class SimpleWebServer {
                 Map<String, Object> root = Maps.newHashMap();
                 root.put("results", results);
                 root.put("query", query);
+                root.put("debug", debug);
+                root.put("debug_checked_str", debug ? "checked" : "");
                 root.put("seconds_str", String.format("%.2f", ms / 1000.0));
                 Writer out = resp.getWriter();
                 template.process(root, out);
