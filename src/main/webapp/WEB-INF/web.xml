@@ -4,21 +4,27 @@
     "http://java.sun.com/dtd/web-app_2_3.dtd">
 
 <web-app>
+    <!-- Servlets -->
+    <servlet>
+        <servlet-name>search</servlet-name>
+        <servlet-class>com.codingstory.polaris.searchui.server.CodeSearchServiceImpl</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>greet</servlet-name>
+        <servlet-class>com.codingstory.polaris.searchui.server.GreetingServiceImpl</servlet-class>
+    </servlet>
 
-  <!-- Servlets -->
-  <servlet>
-    <servlet-name>greetServlet</servlet-name>
-    <servlet-class>com.codingstory.polaris.searchui.server.GreetingServiceImpl</servlet-class>
-  </servlet>
+    <servlet-mapping>
+        <servlet-name>search</servlet-name>
+        <url-pattern>/searchui/search</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>greet</servlet-name>
+        <url-pattern>/searchui/greet</url-pattern>
+    </servlet-mapping>
 
-  <servlet-mapping>
-    <servlet-name>greetServlet</servlet-name>
-    <url-pattern>/searchui/greet</url-pattern>
-  </servlet-mapping>
-
-  <!-- Default page to serve -->
-  <welcome-file-list>
-    <welcome-file>searchui.html</welcome-file>
-  </welcome-file-list>
-
+    <!-- Default page to serve -->
+    <welcome-file-list>
+        <welcome-file>searchui.html</welcome-file>
+    </welcome-file-list>
 </web-app>

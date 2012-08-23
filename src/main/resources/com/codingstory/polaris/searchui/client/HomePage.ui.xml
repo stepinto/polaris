@@ -1,0 +1,25 @@
+<ui:UiBinder
+        xmlns:ui="urn:ui:com.google.gwt.uibinder"
+        xmlns:g='urn:import:com.google.gwt.user.client.ui'>
+    <ui:style>
+        .logo {
+        }
+        .searchPanel {
+            text-align: center;
+        }
+        .searchBox {
+            width: 300px;
+            height: 18px;
+            margin: 5px;
+        }
+    </ui:style>
+    <g:HTMLPanel>
+        <div class="{style.logo}">
+            <h1>Polaris Code Search</h1>
+        </div>
+        <g:FlowPanel styleName="{style.searchPanel}">
+            <g:TextBox ui:field="searchBox" styleName="{style.searchBox}"/>
+            <g:Button ui:field="searchButton">Search</g:Button>
+        </g:FlowPanel>
+    </g:HTMLPanel>
+</ui:UiBinder>
