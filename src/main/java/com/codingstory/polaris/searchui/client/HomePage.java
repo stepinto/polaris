@@ -6,10 +6,7 @@ import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
 import com.google.gwt.user.client.rpc.AsyncCallback;
-import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.HTMLPanel;
-import com.google.gwt.user.client.ui.TextBox;
+import com.google.gwt.user.client.ui.*;
 
 import java.util.List;
 
@@ -29,17 +26,16 @@ public class HomePage extends Composite {
     }
 
     @UiHandler("searchButton")
-    public void onSearchButton(ClickEvent event) {
+    void onSearchButton(ClickEvent event) {
         String query = searchBox.getText();
-        RPC_SERVICE.search(query, new AsyncCallback<List>() {
+        RPC_SERVICE.search(query, new AsyncCallback<List<SearchResultTransfer>>() {
             @Override
             public void onFailure(Throwable caught) {
                 PageController.switchToErrorPage(caught);
             }
 
             @Override
-            @SuppressWarnings("unchecked")
-            public void onSuccess(List result) {
+            public void onSuccess(List<SearchResultTransfer> result) {
                 PageController.switchToSearchResult(result);
             }
         });

@@ -2,10 +2,36 @@
         xmlns:ui="urn:ui:com.google.gwt.uibinder"
         xmlns:g='urn:import:com.google.gwt.user.client.ui'>
     <ui:style>
+        .top {
+            margin: 10px;
+        }
+        .logo {
+            margin-top: 5px;
+            margin-bottom: 5px;
+            float: left;
+        }
+        .searchPanel {
+            clear: both;
+        }
+        .searchBox {
+            width: 200px;
+            height: 17px;
+        }
+        .searchResult {
+            margin: 10px;
+        }
     </ui:style>
     <g:HTMLPanel>
         <div>
-            <ul ui:field="searchResultListElement" />
+            <div class="{style.top}">
+                <h1 class="{style.logo}">Polaris Code Search</h1>
+                <div class="{style.searchPanel}">
+                    <g:TextBox ui:field="searchBox" styleName="{style.searchBox}" />
+                    <g:Button ui:field="searchButton">Search</g:Button>
+                </div>
+            </div>
+            <hr />
+            <g:FlowPanel styleName="{style.searchResult}" ui:field="searchResultListPanel" />
         </div>
     </g:HTMLPanel>
 </ui:UiBinder>

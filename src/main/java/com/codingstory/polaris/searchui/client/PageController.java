@@ -1,6 +1,5 @@
 package com.codingstory.polaris.searchui.client;
 
-import com.codingstory.polaris.search.Result;
 import com.google.gwt.user.client.ui.RootPanel;
 
 import java.util.List;
@@ -15,5 +14,12 @@ public class PageController {
         RootPanel rootPanel = RootPanel.get();
         rootPanel.clear();
         rootPanel.add(searchResultPage);
+    }
+
+    public static void switchToViewSource(String fileName) {
+        ViewSourcePage viewSourcePage = new ViewSourcePage(fileName);
+        RootPanel rootPanel = RootPanel.get();
+        rootPanel.clear();
+        rootPanel.add(viewSourcePage);
     }
 }

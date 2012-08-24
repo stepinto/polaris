@@ -2,9 +2,17 @@
         xmlns:ui="urn:ui:com.google.gwt.uibinder"
         xmlns:g='urn:import:com.google.gwt.user.client.ui'>
     <ui:style>
+        .searchResultItem {
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
     </ui:style>
-    <g:VerticalPanel>
-        <g:Label ui:field="fileNameLabel" />
-        <g:Label ui:field="summaryLabel" />
-    </g:VerticalPanel>
+    <g:HTMLPanel>
+        <div class="{style.searchResultItem}">
+            <g:SimplePanel>
+                <g:Anchor ui:field="fileNameAnchor" />
+            </g:SimplePanel>
+            <pre ui:field="summaryElement" />
+        </div>
+    </g:HTMLPanel>
 </ui:UiBinder>

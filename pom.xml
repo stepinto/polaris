@@ -52,7 +52,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <runTarget>searchui.html</runTarget>
+                    <runTarget>index.html</runTarget>
                     <hostedWebapp>${webappDirectory}</hostedWebapp>
                     <i18nMessagesBundle>com.codingstory.polaris.searchui.client.Messages</i18nMessagesBundle>
                 </configuration>

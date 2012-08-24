@@ -25,6 +25,7 @@
 
     <!-- Default page to serve -->
     <welcome-file-list>
-        <welcome-file>searchui.html</welcome-file>
+        <welcome-file>index.html</welcome-file>
+        <welcome-file>source.html</welcome-file>
     </welcome-file-list>
 </web-app>
