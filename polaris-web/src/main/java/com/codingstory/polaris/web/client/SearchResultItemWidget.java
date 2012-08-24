@@ -1,5 +1,6 @@
 package com.codingstory.polaris.web.client;
 
+import com.codingstory.polaris.web.shared.SearchResultDto;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -32,7 +33,7 @@ public class SearchResultItemWidget extends Composite {
         initWidget(UI_BINDER.createAndBindUi(this));
     }
 
-    public void bind(SearchResultTransfer result) {
+    public void bind(SearchResultDto result) {
         this.fileName = result.getFileName();
         fileNameAnchor.setText(result.getFileName());
         summaryElement.setInnerText(result.getSummary());

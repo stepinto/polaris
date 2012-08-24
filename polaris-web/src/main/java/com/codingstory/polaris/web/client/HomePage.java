@@ -1,5 +1,6 @@
 package com.codingstory.polaris.web.client;
 
+import com.codingstory.polaris.web.shared.SearchResultDto;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.uibinder.client.UiBinder;
@@ -28,14 +29,14 @@ public class HomePage extends Composite {
     @UiHandler("searchButton")
     void onSearchButton(ClickEvent event) {
         String query = searchBox.getText();
-        RPC_SERVICE.search(query, new AsyncCallback<List<SearchResultTransfer>>() {
+        RPC_SERVICE.search(query, new AsyncCallback<List<SearchResultDto>>() {
             @Override
             public void onFailure(Throwable caught) {
                 PageController.switchToErrorPage(caught);
             }
 
             @Override
-            public void onSuccess(List<SearchResultTransfer> result) {
+            public void onSuccess(List<SearchResultDto> result) {
                 PageController.switchToSearchResult(result);
             }
         });

@@ -1,5 +1,6 @@
 package com.codingstory.polaris.web.client;
 
+import com.codingstory.polaris.web.shared.SearchResultDto;
 import com.google.gwt.user.client.ui.RootPanel;
 
 import java.util.List;
@@ -8,7 +9,7 @@ public class PageController {
     public static void switchToErrorPage(Throwable e) {
     }
 
-    public static void switchToSearchResult(List<SearchResultTransfer> results) {
+    public static void switchToSearchResult(List<SearchResultDto> results) {
         SearchResultPage searchResultPage = new SearchResultPage();
         searchResultPage.bind(results);
         RootPanel rootPanel = RootPanel.get();

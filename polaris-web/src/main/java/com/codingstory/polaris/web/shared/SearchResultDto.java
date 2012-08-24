@@ -1,8 +1,8 @@
-package com.codingstory.polaris.web.client;
+package com.codingstory.polaris.web.shared;
 
 import com.google.gwt.user.client.rpc.IsSerializable;
 
-public class SearchResultTransfer implements IsSerializable {
+public class SearchResultDto implements IsSerializable {
 
     public String fileName;
     public String summary;
