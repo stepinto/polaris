@@ -5,6 +5,7 @@ import com.codingstory.polaris.search.SrcSearcher;
 import com.codingstory.polaris.web.client.CodeSearchService;
 import com.codingstory.polaris.web.shared.SearchResultDto;
 import com.google.common.base.Function;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
@@ -19,16 +20,21 @@ public class CodeSearchServiceImpl extends RemoteServiceServlet implements CodeS
     private static final Log LOG = LogFactory.getLog(CodeSearchServiceImpl.class);
 
     @Override
-    public List<SearchResultDto> search(String query) {
+    public SearchResultDto search(String query) {
         try {
+            Stopwatch stopwatch = new Stopwatch().start();
             SrcSearcher search = new SrcSearcher("index");
             List<Result> results = search.search(query, 100);
-            return ImmutableList.copyOf(Lists.transform(results, new Function<Result, SearchResultDto>() {
-                @Override
-                public SearchResultDto apply(Result result) {
-                    return convertSearchResultToDto(result);
-                }
-            }));
+            SearchResultDto searchResultDto = new SearchResultDto();
+            searchResultDto.setEntries(ImmutableList.copyOf(
+                    Lists.transform(results, new Function<Result, SearchResultDto.Entry>() {
+                        @Override
+                        public SearchResultDto.Entry apply(Result result) {
+                            return convertSearchResultToDtoEntry(result);
+                        }
+                    })));
+            searchResultDto.setLatency(stopwatch.elapsedMillis());
+            return searchResultDto;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -39,11 +45,11 @@ public class CodeSearchServiceImpl extends RemoteServiceServlet implements CodeS
         return CODE;
     }
 
-    private SearchResultDto convertSearchResultToDto(Result result) {
-        SearchResultDto dto = new SearchResultDto();
-        dto.setFileName(result.getFilename());
-        dto.setSummary(result.getSummary());
-        return dto;
+    private SearchResultDto.Entry convertSearchResultToDtoEntry(Result result) {
+        SearchResultDto.Entry e = new SearchResultDto.Entry();
+        e.setFileName(result.getFilename());
+        e.setSummary(result.getSummary());
+        return e;
     }
 }
 

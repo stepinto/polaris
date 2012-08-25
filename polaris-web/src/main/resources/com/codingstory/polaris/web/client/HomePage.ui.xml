@@ -20,9 +20,11 @@
         <div class="{style.logo}">
             <h1>Polaris Code Search</h1>
         </div>
-        <g:FlowPanel styleName="{style.searchPanel}">
-            <g:TextBox ui:field="searchBox" styleName="{style.searchBox}"/>
-            <g:Button ui:field="searchButton">Search</g:Button>
-        </g:FlowPanel>
+        <g:FormPanel styleName="{style.searchPanel}">
+            <g:FlowPanel>
+                <g:TextBox ui:field="searchBox" styleName="{style.searchBox}"/>
+                <g:SubmitButton ui:field="searchButton">Search</g:SubmitButton>
+            </g:FlowPanel>
+        </g:FormPanel>
     </g:HTMLPanel>
 </ui:UiBinder>

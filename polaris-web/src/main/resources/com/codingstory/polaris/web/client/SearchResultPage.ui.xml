@@ -10,6 +10,9 @@
             margin-bottom: 5px;
             float: left;
         }
+        .center {
+            margin: 10px;
+        }
         .searchPanel {
             clear: both;
         }
@@ -25,13 +28,18 @@
         <div>
             <div class="{style.top}">
                 <h1 class="{style.logo}">Polaris Code Search</h1>
-                <div class="{style.searchPanel}">
-                    <g:TextBox ui:field="searchBox" styleName="{style.searchBox}" />
-                    <g:Button ui:field="searchButton">Search</g:Button>
-                </div>
+                <g:FormPanel>
+                    <g:FlowPanel styleName="{style.searchPanel}">
+                        <g:TextBox ui:field="searchBox" styleName="{style.searchBox}" />
+                        <g:SubmitButton ui:field="searchButton">Search</g:SubmitButton>
+                    </g:FlowPanel>
+                </g:FormPanel>
             </div>
             <hr />
-            <g:FlowPanel styleName="{style.searchResult}" ui:field="searchResultListPanel" />
+            <div class="{style.center}">
+                <g:Label ui:field="latencyLabel" />
+                <g:FlowPanel styleName="{style.searchResult}" ui:field="searchResultListPanel" />
+            </div>
         </div>
     </g:HTMLPanel>
 </ui:UiBinder>

@@ -37,6 +37,7 @@
                     <runTarget>index.html</runTarget>
                     <hostedWebapp>${webappDirectory}</hostedWebapp>
                     <i18nMessagesBundle>com.codingstory.polaris.web.client.Messages</i18nMessagesBundle>
+                    <style>PRETTY</style> <!-- set to OBFUSTICATED for production -->
                 </configuration>
             </plugin>
             <!-- Copy static web files before executing gwt:run -->

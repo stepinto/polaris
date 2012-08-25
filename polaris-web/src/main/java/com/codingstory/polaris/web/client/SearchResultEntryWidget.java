@@ -1,10 +1,10 @@
 package com.codingstory.polaris.web.client;
 
 import com.codingstory.polaris.web.shared.SearchResultDto;
+import com.google.common.base.Preconditions;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.event.dom.client.ClickEvent;
-import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
@@ -12,8 +12,8 @@ import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTMLPanel;
 
-public class SearchResultItemWidget extends Composite {
-    interface MyUiBinder extends UiBinder<HTMLPanel, SearchResultItemWidget> {
+public class SearchResultEntryWidget extends Composite {
+    interface MyUiBinder extends UiBinder<HTMLPanel, SearchResultEntryWidget> {
     }
 
     public interface Listener {
@@ -26,32 +26,21 @@ public class SearchResultItemWidget extends Composite {
     Anchor fileNameAnchor;
     @UiField
     Element summaryElement;
-    private String fileName;
-    private Listener listener;
+    private final String fileName;
+    private final Listener listener;
 
-    public SearchResultItemWidget() {
+    public SearchResultEntryWidget(SearchResultDto.Entry entry, Listener listener) {
+        Preconditions.checkNotNull(entry);
+        Preconditions.checkNotNull(listener);
         initWidget(UI_BINDER.createAndBindUi(this));
-    }
-
-    public void bind(SearchResultDto result) {
-        this.fileName = result.getFileName();
-        fileNameAnchor.setText(result.getFileName());
-        summaryElement.setInnerText(result.getSummary());
-        fileNameAnchor.addClickHandler(new ClickHandler() {
-            @Override
-            public void onClick(ClickEvent event) {
-            }
-        });
-    }
-
-    public void setListener(Listener listener) {
+        this.fileName = entry.getFileName();
+        this.fileNameAnchor.setText(fileName);
+        this.summaryElement.setInnerText(entry.getSummary());
         this.listener = listener;
     }
 
     @UiHandler("fileNameAnchor")
     void onSearchResultClicked(ClickEvent event) {
-        if (listener != null) {
-            listener.onViewSource(fileName);
-        }
+        listener.onViewSource(fileName);
     }
 }
