@@ -1,6 +1,7 @@
 package com.codingstory.polaris.web.client;
 
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
@@ -22,6 +23,12 @@ public class HomePage extends Composite {
 
     public HomePage() {
         initWidget(UI_BINDER.createAndBindUi(this));
+        Scheduler.get().scheduleDeferred(new Scheduler.ScheduledCommand() {
+            @Override
+            public void execute() {
+                searchBox.setFocus(true);
+            }
+        });
     }
 
     @UiHandler("searchButton")

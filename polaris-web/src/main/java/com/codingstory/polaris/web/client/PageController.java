@@ -39,10 +39,10 @@ public class PageController {
         for (String part : Splitter.on("&").omitEmptyStrings().split(token)) {
             int eq = part.indexOf('=');
             if (eq >= part.length()) {
-                builder.put(part, "");
+                builder.put(URL.decode(part), "");
             } else {
-                String key = part.substring(0, eq);
-                String value = part.substring(eq + 1);
+                String key = URL.decode(part.substring(0, eq));
+                String value = URL.decode(part.substring(eq + 1));
                 builder.put(key, value);
             }
         }

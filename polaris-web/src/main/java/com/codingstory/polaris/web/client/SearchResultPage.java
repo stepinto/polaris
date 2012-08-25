@@ -2,6 +2,7 @@ package com.codingstory.polaris.web.client;
 
 import com.codingstory.polaris.web.shared.SearchResultDto;
 import com.google.common.base.Stopwatch;
+import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.core.shared.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.uibinder.client.UiBinder;
@@ -30,6 +31,12 @@ public class SearchResultPage extends Composite {
 
     public SearchResultPage(String query) {
         initWidget(UI_BINDER.createAndBindUi(this));
+        Scheduler.get().scheduleDeferred(new Scheduler.ScheduledCommand() {
+            @Override
+            public void execute() {
+                searchBox.setFocus(true);
+            }
+        });
         executeSearch(query);
     }
 
