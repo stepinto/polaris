@@ -8,21 +8,9 @@
         <servlet-name>search</servlet-name>
         <servlet-class>com.codingstory.polaris.web.server.CodeSearchServiceImpl</servlet-class>
     </servlet>
-    <servlet>
-        <servlet-name>welcome</servlet-name>
-        <servlet-class>com.codingstory.polaris.web.server.WelcomeServlet</servlet-class>
-    </servlet>
 
     <servlet-mapping>
         <servlet-name>search</servlet-name>
         <url-pattern>/searchui/search</url-pattern>
     </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>welcome</servlet-name>
-        <url-patterh>/*</url-patterh>
-    </servlet-mapping>
-
-    <welcome-file-list>
-        <welcome-file>index.html</welcome-file>
-    </welcome-file-list>
 </web-app>

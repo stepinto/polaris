@@ -23,8 +23,6 @@ import java.io.File;
 import java.util.List;
 
 public class CodeSearchServiceImpl extends RemoteServiceServlet implements CodeSearchService {
-
-    private static final String CODE = "main() {\n    printf(\"Hello, world!\\n\");\n}";
     private static final Log LOG = LogFactory.getLog(CodeSearchServiceImpl.class);
 
     @Override
@@ -44,6 +42,7 @@ public class CodeSearchServiceImpl extends RemoteServiceServlet implements CodeS
             searchResultDto.setLatency(stopwatch.elapsedMillis());
             return searchResultDto;
         } catch (Exception e) {
+            LOG.error("Caught exception", e);
             throw new RuntimeException(e);
         }
     }
@@ -58,6 +57,7 @@ public class CodeSearchServiceImpl extends RemoteServiceServlet implements CodeS
             int docid = new IndexSearcher(reader).search(query, 1).scoreDocs[0].doc;
             return reader.document(docid).get("content");
         } catch (Exception e) {
+            LOG.error("Caught exception", e);
             throw new RuntimeException(e);
         } finally {
             IOUtils.closeQuietly(reader);
