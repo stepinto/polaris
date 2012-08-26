@@ -3,7 +3,6 @@ package com.codingstory.polaris.web.client;
 import com.codingstory.polaris.web.shared.SearchResultDto;
 import com.google.common.base.Preconditions;
 import com.google.gwt.core.client.GWT;
-import com.google.gwt.dom.client.Element;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
@@ -25,7 +24,7 @@ public class SearchResultEntryWidget extends Composite {
     @UiField
     Anchor fileNameAnchor;
     @UiField
-    Element summaryElement;
+    CodeSnippetWidget summaryCodeSnippet;
     private final String fileName;
     private final Listener listener;
 
@@ -35,7 +34,7 @@ public class SearchResultEntryWidget extends Composite {
         initWidget(UI_BINDER.createAndBindUi(this));
         this.fileName = entry.getFileName();
         this.fileNameAnchor.setText(fileName);
-        this.summaryElement.setInnerText(entry.getSummary());
+        this.summaryCodeSnippet.setText(entry.getSummary());
         this.listener = listener;
     }
 

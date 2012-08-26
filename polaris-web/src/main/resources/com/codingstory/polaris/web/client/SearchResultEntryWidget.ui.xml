@@ -1,6 +1,7 @@
 <ui:UiBinder
         xmlns:ui="urn:ui:com.google.gwt.uibinder"
-        xmlns:g='urn:import:com.google.gwt.user.client.ui'>
+        xmlns:g='urn:import:com.google.gwt.user.client.ui'
+        xmlns:p='urn:import:com.codingstory.polaris.web.client'>
     <ui:style>
         .searchResultItem {
             margin-top: 5px;
@@ -16,7 +17,7 @@
             <g:SimplePanel>
                 <g:Anchor ui:field="fileNameAnchor" styleName="{style.searchResultItemAnchor}"/>
             </g:SimplePanel>
-            <pre ui:field="summaryElement" />
+            <p:CodeSnippetWidget ui:field="summaryCodeSnippet" />
         </div>
     </g:HTMLPanel>
 </ui:UiBinder>
