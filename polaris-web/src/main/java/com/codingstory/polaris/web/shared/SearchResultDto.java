@@ -9,7 +9,7 @@ public class SearchResultDto implements IsSerializable {
     public static class Entry implements IsSerializable {
         public String fileName;
         public String summary;
-        private String explaination;
+        private String explanation;
         private double score;
         private Token.Kind kind;
 
@@ -29,12 +29,12 @@ public class SearchResultDto implements IsSerializable {
             this.summary = summary;
         }
 
-        public String getExplaination() {
-            return explaination;
+        public String getExplanation() {
+            return explanation;
         }
 
-        public void setExplaination(String explaination) {
-            this.explaination = explaination;
+        public void setExplanation(String explanation) {
+            this.explanation = explanation;
         }
 
         public double getScore() {

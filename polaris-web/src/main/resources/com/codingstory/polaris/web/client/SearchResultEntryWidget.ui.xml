@@ -12,6 +12,14 @@
         <div class="{style.searchResultItem}">
             <g:Hyperlink ui:field="fileNameAnchor" />
             <g:Label ui:field="kindLabel" />
+            <g:DisclosurePanel>
+                <g:customHeader>
+                    <g:Label ui:field="rankingScoreLabel" />
+                </g:customHeader>
+                <g:HTMLPanel>
+                    <div ui:field="rankingExplanationDivElement" />
+                </g:HTMLPanel>
+            </g:DisclosurePanel>
             <p:CodeSnippetWidget ui:field="summaryCodeSnippet" />
         </div>
     </g:HTMLPanel>

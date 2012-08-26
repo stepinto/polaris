@@ -21,8 +21,7 @@
     <entry-point class='com.codingstory.polaris.web.client.AppEntryPoint' />
 
     <!-- Specify the paths for translatable code                    -->
+    <source path='parser' />
     <source path='web/client' />
     <source path='web/shared' />
-    <source path='parser' />
-    <source path='SampleRecord.java' />
 </module>

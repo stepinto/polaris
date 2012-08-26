@@ -1,4 +1,4 @@
-namespace java com.codingstory.polaris
+namespace java com.codingstory.polaris.sandbox
 
 struct SampleRecord {
     1: optional i32 field1;

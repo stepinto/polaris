@@ -1,4 +1,4 @@
-package com.codingstory.polaris;
+package com.codingstory.polaris.sandbox;
 
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -10,8 +10,6 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-
-import static org.junit.Assert.assertEquals;
 
 public class SampleThriftTest {
 

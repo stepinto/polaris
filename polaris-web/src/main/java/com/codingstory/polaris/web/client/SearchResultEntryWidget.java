@@ -4,12 +4,10 @@ import com.codingstory.polaris.parser.Token;
 import com.codingstory.polaris.web.shared.SearchResultDto;
 import com.google.common.base.Preconditions;
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.dom.client.DivElement;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
-import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.HTMLPanel;
-import com.google.gwt.user.client.ui.Hyperlink;
-import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.*;
 
 public class SearchResultEntryWidget extends Composite {
     static interface MyUiBinder extends UiBinder<HTMLPanel, SearchResultEntryWidget> {
@@ -20,6 +18,10 @@ public class SearchResultEntryWidget extends Composite {
     Hyperlink fileNameAnchor;
     @UiField
     Label kindLabel;
+    @UiField
+    Label rankingScoreLabel;
+    @UiField
+    DivElement rankingExplanationDivElement;
     @UiField
     CodeSnippetWidget summaryCodeSnippet;
 
@@ -37,5 +39,7 @@ public class SearchResultEntryWidget extends Composite {
         } else {
             kindLabel.setVisible(false);
         }
+        rankingScoreLabel.setText("Score: " + entry.getScore());
+        rankingExplanationDivElement.setInnerHTML(entry.getExplanation());
     }
 }
