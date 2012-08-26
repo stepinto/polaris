@@ -36,7 +36,7 @@ public class HomePage extends Composite {
     @UiHandler("searchBox")
     void onSearchBoxKeyDown(KeyDownEvent event) {
         if (event.getNativeEvent().getKeyCode() == KeyCodes.KEY_ENTER) {
-            NativeEventHelper.click(searchButton.getElement());
+            NativeHelper.click(searchButton.getElement());
         }
     }
 

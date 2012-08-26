@@ -32,7 +32,7 @@ public class ViewSourcePage extends Composite {
 
             @Override
             public void onSuccess(String result) {
-                codeElement.setInnerText(result);
+                codeElement.setInnerHTML(NativeHelper.prettyPrint(result));
             }
         });
     }

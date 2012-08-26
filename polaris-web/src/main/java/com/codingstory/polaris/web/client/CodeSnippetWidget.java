@@ -26,10 +26,6 @@ public class CodeSnippetWidget extends Composite {
 
     public void setText(String text) {
         Preconditions.checkNotNull(text);
-        codeSnippetPreElement.setInnerHTML(prettyPrint(text));
+        codeSnippetPreElement.setInnerHTML(NativeHelper.prettyPrint(text));
     }
-
-    private static native String prettyPrint(String code) /*-{
-        return $wnd.prettyPrintOne(code);
-    }-*/;
 }
