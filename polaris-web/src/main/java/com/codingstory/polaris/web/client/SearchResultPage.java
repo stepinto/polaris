@@ -70,13 +70,8 @@ public class SearchResultPage extends Composite {
             public void onSuccess(SearchResultDto searchResults) {
                 searchResultListPanel.clear();
                 for (SearchResultDto.Entry result : searchResults.getEntries()) {
-                    SearchResultEntryWidget entryWidget = new SearchResultEntryWidget(
-                            result, new SearchResultEntryWidget.Listener() {
-                        @Override
-                        public void onViewSource(String fileName) {
-                            PageController.switchToViewSource(fileName);
-                        }
-                    });
+                    String href = "p=source&file=" + result.getFileName();
+                    SearchResultEntryWidget entryWidget = new SearchResultEntryWidget(result, href);
                     searchResultListPanel.add(entryWidget);
                 }
                 latencyLabel.setText("Latency: " + String.valueOf(searchResults.getLatency()) + " ms");

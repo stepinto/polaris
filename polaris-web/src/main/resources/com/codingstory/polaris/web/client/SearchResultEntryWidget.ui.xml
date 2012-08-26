@@ -7,15 +7,11 @@
             margin-top: 5px;
             margin-bottom: 5px;
         }
-        .searchResultItemAnchor {
-            cursor: pointer;
-            text-decoration: underline;
-        }
     </ui:style>
     <g:HTMLPanel>
         <div class="{style.searchResultItem}">
             <g:SimplePanel>
-                <g:Anchor ui:field="fileNameAnchor" styleName="{style.searchResultItemAnchor}"/>
+                <g:Hyperlink ui:field="fileNameAnchor" />
             </g:SimplePanel>
             <p:CodeSnippetWidget ui:field="summaryCodeSnippet" />
         </div>
