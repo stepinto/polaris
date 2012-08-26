@@ -1,5 +1,6 @@
 package com.codingstory.polaris.search;
 
+import com.codingstory.polaris.parser.Token;
 import org.apache.lucene.search.Explanation;
 
 /**
@@ -15,6 +16,7 @@ public class Result {
     String content;
     String summary;
     Explanation explanation;
+    Token.Kind kind;
 
     public int getDocumentId() {
         return documentId;
@@ -54,6 +56,14 @@ public class Result {
 
     public void setExplanation(Explanation explanation) {
         this.explanation = explanation;
+    }
+
+    public Token.Kind getKind() {
+        return kind;
+    }
+
+    public void setKind(Token.Kind kind) {
+        this.kind = kind;
     }
 
     @Override

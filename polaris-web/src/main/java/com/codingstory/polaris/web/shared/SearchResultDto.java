@@ -1,5 +1,6 @@
 package com.codingstory.polaris.web.shared;
 
+import com.codingstory.polaris.parser.Token;
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 import java.util.List;
@@ -8,6 +9,9 @@ public class SearchResultDto implements IsSerializable {
     public static class Entry implements IsSerializable {
         public String fileName;
         public String summary;
+        private String explaination;
+        private double score;
+        private Token.Kind kind;
 
         public String getFileName() {
             return fileName;
@@ -23,6 +27,30 @@ public class SearchResultDto implements IsSerializable {
 
         public void setSummary(String summary) {
             this.summary = summary;
+        }
+
+        public String getExplaination() {
+            return explaination;
+        }
+
+        public void setExplaination(String explaination) {
+            this.explaination = explaination;
+        }
+
+        public double getScore() {
+            return score;
+        }
+
+        public void setScore(double score) {
+            this.score = score;
+        }
+
+        public Token.Kind getKind() {
+            return kind;
+        }
+
+        public void setKind(Token.Kind kind) {
+            this.kind = kind;
         }
     }
 

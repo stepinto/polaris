@@ -66,5 +66,11 @@
             <artifactId>polaris-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.codingstory.polaris</groupId>
+            <artifactId>polaris-core</artifactId>
+            <version>${project.version}</version>
+            <classifier>sources</classifier>
+        </dependency>
     </dependencies>
 </project>

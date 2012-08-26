@@ -77,6 +77,7 @@ public class JavaIndexer implements Closeable {
             document.add(new Field("filename", file.getName(), Field.Store.YES, Field.Index.NO));
             String offset = Long.toString(t.getSpan().getFrom());
             document.add(new Field("offset", offset, Field.Store.YES, Field.Index.NO));
+            document.add(new Field("kind", t.getKind().toString(), Field.Store.YES, Field.Index.NO));
             if (t.getKind() == Token.Kind.CLASS_DECLARATION) {
                 ClassDeclaration declaration = (ClassDeclaration) t;
                 FullyQualifiedName name = declaration.getName();

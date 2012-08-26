@@ -1,6 +1,7 @@
 package com.codingstory.polaris.search;
 
 import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
+import com.codingstory.polaris.parser.Token;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.analysis.Analyzer;
@@ -81,6 +82,7 @@ public class SrcSearcher {
             result.setDocumentId(docid);
             result.setContent(content);
             result.setExplanation(searcher.explain(query, docid));
+            result.setKind(Token.Kind.valueOf(document.get("kind")));
             LOGGER.debug(result.getExplanation());
             int offset = Integer.parseInt(document.get("offset"));
             result.setSummary(getSummary(content, offset));

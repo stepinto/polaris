@@ -10,9 +10,8 @@
     </ui:style>
     <g:HTMLPanel>
         <div class="{style.searchResultItem}">
-            <g:SimplePanel>
-                <g:Hyperlink ui:field="fileNameAnchor" />
-            </g:SimplePanel>
+            <g:Hyperlink ui:field="fileNameAnchor" />
+            <g:Label ui:field="kindLabel" />
             <p:CodeSnippetWidget ui:field="summaryCodeSnippet" />
         </div>
     </g:HTMLPanel>
