@@ -5,6 +5,8 @@ import com.google.common.base.Stopwatch;
 import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.core.shared.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.KeyCodes;
+import com.google.gwt.event.dom.client.KeyDownEvent;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
@@ -37,6 +39,7 @@ public class SearchResultPage extends Composite {
                 searchBox.setFocus(true);
             }
         });
+        enableSearchPanel(false);
         executeSearch(query);
     }
 
@@ -46,12 +49,20 @@ public class SearchResultPage extends Composite {
         PageController.switchToSearchResult(query);
     }
 
+    @UiHandler("searchBox")
+    void onSearchBoxKeyDown(KeyDownEvent event) {
+        if (event.getNativeEvent().getKeyCode() == KeyCodes.KEY_ENTER) {
+            NativeEventHelper.click(searchButton.getElement());
+        }
+    }
+
     private void executeSearch(String query) {
         final Stopwatch stopwatch = new Stopwatch().start();
         searchBox.setText(query);
         RPC_SERVICE.search(query, new AsyncCallback<SearchResultDto>() {
             @Override
             public void onFailure(Throwable caught) {
+                enableSearchPanel(true);
                 LOGGER.warning(caught.toString());
             }
 
@@ -69,7 +80,13 @@ public class SearchResultPage extends Composite {
                     searchResultListPanel.add(entryWidget);
                 }
                 latencyLabel.setText("Latency: " + String.valueOf(searchResults.getLatency()) + " ms");
+                enableSearchPanel(true);
             }
         });
+    }
+
+    private void enableSearchPanel(boolean enabled) {
+        searchBox.setEnabled(enabled);
+        searchButton.setEnabled(enabled);
     }
 }
