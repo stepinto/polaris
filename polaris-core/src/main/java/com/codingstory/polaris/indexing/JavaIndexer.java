@@ -22,6 +22,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import static com.codingstory.polaris.indexing.FieldName.*;
+
 /**
  * Created with IntelliJ IDEA.
  * User: Zhou Yunqing
@@ -67,59 +69,69 @@ public class JavaIndexer implements Closeable {
         LOG.debug("Indexing " + file);
         String fileContent = FileUtils.readFileToString(file);
         Document contentDocument = new Document();
-        contentDocument.add(new Field("content", fileContent, Field.Store.YES, Field.Index.NO));
-        contentDocument.add(new Field("filename", file.getName(), Field.Store.YES, Field.Index.NOT_ANALYZED));
+        contentDocument.add(new Field(FILE_CONTENT, fileContent, Field.Store.YES, Field.Index.NO));
+        contentDocument.add(new Field(FILE_NAME, file.getName(), Field.Store.YES, Field.Index.NOT_ANALYZED));
         writer.addDocument(contentDocument);
         extracter.setInputStream(IOUtils.toInputStream(fileContent));
         List<Token> tokens = extracter.extractTokens();
         for (Token t : tokens) {
             Document document = new Document();
-            document.add(new Field("filename", file.getName(), Field.Store.YES, Field.Index.NO));
+            document.add(new Field(FILE_NAME, file.getName(), Field.Store.YES, Field.Index.NO));
             String offset = Long.toString(t.getSpan().getFrom());
-            document.add(new Field("offset", offset, Field.Store.YES, Field.Index.NO));
-            document.add(new Field("kind", t.getKind().toString(), Field.Store.YES, Field.Index.NO));
+            document.add(new Field(OFFSET, offset, Field.Store.YES, Field.Index.NO));
+            document.add(new Field(KIND, t.getKind().toString(), Field.Store.YES, Field.Index.NO));
             if (t.getKind() == Token.Kind.CLASS_DECLARATION) {
                 ClassDeclaration declaration = (ClassDeclaration) t;
-                FullyQualifiedName name = declaration.getName();
-                addIndexFieldToDocument(document, "classname", name.getTypeName());
-                String fullName = name.getTypeName();
-                if (name.hasPackageName())
-                    fullName = name.getPackageName() + "." + fullName;
-                addIndexFieldToDocument(document, "classfullname", fullName);
-                if (declaration.hasJavaDocComment()) {
-                    addIndexFieldToDocument(document, "javadoc", declaration.getJavaDocComment());
-                }
+                processClass(document, declaration);
             } else if (t.getKind() == Token.Kind.METHOD_DECLARATION) {
                 MethodDeclaration declaration = (MethodDeclaration) t;
-                String name = declaration.getMethodName();
-                addIndexFieldToDocument(document, "methodname", name);
-                String fullName = declaration.getPackageName() + "." + declaration.getClassName() + "." + name;
-                addIndexFieldToDocument(document, "methodfullname", fullName);
+                processMethod(document, declaration);
             } else if (t.getKind() == Token.Kind.PACKAGE_DECLARATION) {
                 PackageDeclaration declaration = (PackageDeclaration) t;
-                addIndexFieldToDocument(document, "packagename", declaration.getPackageName());
+                addIndexFieldToDocument(document, PACKAGE_NAME, declaration.getPackageName());
             } else if (t.getKind() == Token.Kind.FIELD_DECLARATION) {
                 FieldDeclaration declaration = (FieldDeclaration) t;
-                addIndexFieldToDocument(document, "fieldname", declaration.getVariableName());
-                String fullName = declaration.getPackageName() + "." + declaration.getClassName() + "."
-                        + declaration.getVariableName();
-                addIndexFieldToDocument(document, "fieldname", declaration.getVariableName());
-                addIndexFieldToDocument(document, "fieldfullname", fullName);
-                TypeReference type = declaration.getTypeReferenece();
-                addIndexFieldToDocument(document, "fieldtypename", type.getUnqualifiedName());
-                if (type.isResoleved()) {
-                    ResolvedTypeReference resolved = (ResolvedTypeReference) type;
-                    document.add(new Field("fieldtypefullname", resolved.getName().toString(),
-                            Field.Store.YES, Field.Index.NOT_ANALYZED));
-                } else {
-                    UnresolvedTypeReferenece unresolved = (UnresolvedTypeReferenece) type;
-                    for (FullyQualifiedName candidate : unresolved.getCandidates()) {
-                        document.add(new Field("fieldtypefullname", candidate.toString(),
-                                Field.Store.YES, Field.Index.NOT_ANALYZED));
-                    }
-                }
+                processField(document, declaration);
             }
             writer.addDocument(document);
+        }
+    }
+
+    private void processField(Document document, FieldDeclaration declaration) {
+        addIndexFieldToDocument(document, FIELD_NAME, declaration.getVariableName());
+        String fullName = declaration.getPackageName() + "." + declaration.getClassName() + "."
+                + declaration.getVariableName();
+        addIndexFieldToDocument(document, FIELD_NAME, fullName);
+        TypeReference type = declaration.getTypeReferenece();
+        addIndexFieldToDocument(document, FIELD_TYPE_NAME, type.getUnqualifiedName());
+        if (type.isResoleved()) {
+            ResolvedTypeReference resolved = (ResolvedTypeReference) type;
+            addIndexFieldToDocument(document, FIELD_TYPE_NAME, resolved.getName().toString());
+        } else {
+            // TODO: Bug? The following lines result in bad ranking.
+//            UnresolvedTypeReferenece unresolved = (UnresolvedTypeReferenece) type;
+//            for (FullyQualifiedName candidate : unresolved.getCandidates()) {
+//                addIndexFieldToDocument(document, FIELD_TYPE_NAME, candidate.toString());
+//            }
+        }
+    }
+
+    private void processMethod(Document document, MethodDeclaration declaration) {
+        String name = declaration.getMethodName();
+        addIndexFieldToDocument(document, METHOD_NAME, name);
+        String fullName = declaration.getPackageName() + "." + declaration.getClassName() + "." + name;
+        addIndexFieldToDocument(document, METHOD_NAME, fullName);
+    }
+
+    private void processClass(Document document, ClassDeclaration declaration) {
+        FullyQualifiedName name = declaration.getName();
+        addIndexFieldToDocument(document, TYPE_NAME, name.getTypeName());
+        String fullName = name.getTypeName();
+        if (name.hasPackageName())
+            fullName = name.getPackageName() + "." + fullName;
+        addIndexFieldToDocument(document, TYPE_NAME, fullName);
+        if (declaration.hasJavaDocComment()) {
+            addIndexFieldToDocument(document, JAVA_DOC, declaration.getJavaDocComment());
         }
     }
 

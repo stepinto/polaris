@@ -1,7 +1,9 @@
 package com.codingstory.polaris.search;
 
+import com.codingstory.polaris.indexing.FieldName;
 import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
 import com.codingstory.polaris.parser.Token;
+import com.google.common.collect.Maps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.analysis.Analyzer;
@@ -25,7 +27,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
+
+import static com.codingstory.polaris.indexing.FieldName.*;
 
 /**
  * Created with IntelliJ IDEA.
@@ -43,14 +46,11 @@ public class SrcSearcher {
     public SrcSearcher(String indexDirectory) throws IOException {
         reader = IndexReader.open(FSDirectory.open(new File(indexDirectory)));
         searcher = new IndexSearcher(reader);
-        String[] fields = {"classname", "methodname", "classfullname", "methodfullname", "packagename",
-                "fieldname", "fieldtypename", "fieldtypefullname", "javadoc"};
-        Map<String, Float> boostMap = new TreeMap<String, Float>();
-        boostMap.put("classname", 4.0f);
-        boostMap.put("methodname", 3.0f);
-        boostMap.put("classfullname", 2.0f);
-        boostMap.put("methodfullname", 1.0f);
-        boostMap.put("packagename", 1.0f);
+        String[] fields = FieldName.ALL_FIELDS.toArray(new String[FieldName.ALL_FIELDS.size()]);
+        Map<String, Float> boostMap = Maps.newHashMap();
+        boostMap.put(FieldName.TYPE_NAME, 4.0f);
+        boostMap.put(FieldName.METHOD_NAME, 3.0f);
+        boostMap.put(FieldName.PACKAGE_NAME, 1.0f);
         parser = new MultiFieldQueryParser(Version.LUCENE_36, fields, new JavaSrcAnalyzer(), boostMap);
     }
 
@@ -60,9 +60,9 @@ public class SrcSearcher {
     }
 
     public String getContent(String filename) throws IOException {
-        Query query = new TermQuery(new Term("filename", filename));
+        Query query = new TermQuery(new Term(FILE_NAME, filename));
         int docid = searcher.search(query, 1).scoreDocs[0].doc;
-        return reader.document(docid).get("content");
+        return reader.document(docid).get(FILE_CONTENT);
     }
 
     public List<Result> search(String queryString, int limit) throws ParseException, IOException, InvalidTokenOffsetsException {
@@ -77,14 +77,14 @@ public class SrcSearcher {
             Result result = new Result();
             int docid = doc.doc;
             Document document = reader.document(docid);
-            result.setFilename(document.getFieldable("filename").stringValue());
-            String content = getContent(document.get("filename"));
+            result.setFilename(document.getFieldable(FILE_NAME).stringValue());
+            String content = getContent(document.get(FILE_NAME));
             result.setDocumentId(docid);
             result.setContent(content);
             result.setExplanation(searcher.explain(query, docid));
-            result.setKind(Token.Kind.valueOf(document.get("kind")));
+            result.setKind(Token.Kind.valueOf(document.get(KIND)));
             LOGGER.debug(result.getExplanation());
-            int offset = Integer.parseInt(document.get("offset"));
+            int offset = Integer.parseInt(document.get(OFFSET));
             result.setSummary(getSummary(content, offset));
             results.add(result);
         }
