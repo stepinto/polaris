@@ -3,7 +3,9 @@ package com.codingstory.polaris.search;
 import com.codingstory.polaris.indexing.FieldName;
 import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
 import com.codingstory.polaris.parser.Token;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.logging.Log;
@@ -113,12 +115,13 @@ public class SrcSearcher {
         return builder.toString();
     }
 
-    public List<String> completeQuery(String queryString, int limit) throws IOException {
+    public List<String> completeQuery(final String queryString, int limit) throws IOException {
         LOGGER.debug("Complete query: " + queryString);
         BooleanQuery q = new BooleanQuery();
         q.add(new PrefixQuery(new Term(FieldName.PACKAGE_NAME, queryString)), BooleanClause.Occur.SHOULD);
         q.add(new PrefixQuery(new Term(FieldName.TYPE_NAME, queryString)), BooleanClause.Occur.SHOULD);
-        TopDocs topDocs = searcher.search(q, 20);
+        q.add(new PrefixQuery(new Term(FieldName.FILE_NAME, queryString)), BooleanClause.Occur.SHOULD);
+        TopDocs topDocs = searcher.search(q, limit);
         ScoreDoc[] scoreDocs = topDocs.scoreDocs;
         List<String> results = Lists.newArrayList();
         for (ScoreDoc scoreDoc : scoreDocs) {
@@ -126,6 +129,16 @@ public class SrcSearcher {
             Document document = reader.document(docid);
             results.addAll(ImmutableList.copyOf(document.getValues(FieldName.PACKAGE_NAME)));
             results.addAll(ImmutableList.copyOf(document.getValues(FieldName.TYPE_NAME)));
+            results.addAll(ImmutableList.copyOf(document.getValues(FieldName.FILE_NAME)));
+        }
+        results = ImmutableList.copyOf(Iterables.filter(results, new Predicate<String>() {
+            @Override
+            public boolean apply(String s) {
+                return s.startsWith(queryString);
+            }
+        }));
+        if (results.size() > limit) {
+            results = results.subList(0, limit);
         }
         LOGGER.debug("Candidates: " + results);
         return results;

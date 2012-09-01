@@ -23,7 +23,7 @@ public class SearchResultPage extends Composite {
     private static final Logger LOGGER = Logger.getLogger(SearchResultPage.class.getName());
 
     @UiField
-    TextBox searchBox;
+    SearchBox searchBox;
     @UiField
     Button searchButton;
     @UiField

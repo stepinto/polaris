@@ -10,5 +10,5 @@ import java.util.List;
 public interface CodeSearchService extends RemoteService {
     public SearchResultDto search(String query);
     public String readFile(String fileName);
-    public List<String> completeQuery(String query);
+    public List<String> completeQuery(String query, int liimt);
 }

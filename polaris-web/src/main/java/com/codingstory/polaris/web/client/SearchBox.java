@@ -13,7 +13,7 @@ import com.google.gwt.user.client.ui.*;
 
 import java.util.List;
 
-public class SearchBox extends Composite implements HasAllKeyHandlers, Focusable, HasText {
+public class SearchBox extends Composite implements HasAllKeyHandlers, Focusable, HasText, HasEnabled {
 
     private static final CodeSearchServiceAsync RPC_SERVICE = GWT.create(CodeSearchService.class);
 
@@ -38,7 +38,7 @@ public class SearchBox extends Composite implements HasAllKeyHandlers, Focusable
     private static class QueryCompletionSuggestOracle extends SuggestOracle {
         @Override
         public void requestSuggestions(final Request req, final Callback callback) {
-            RPC_SERVICE.completeQuery(req.getQuery(), new AsyncCallback<List<String>>() {
+            RPC_SERVICE.completeQuery(req.getQuery(), req.getLimit(), new AsyncCallback<List<String>>() {
                 @Override
                 public void onFailure(Throwable caught) {
                 }
@@ -108,4 +108,15 @@ public class SearchBox extends Composite implements HasAllKeyHandlers, Focusable
     public void setText(String text) {
         searchBox.setText(text);
     }
+
+    @Override
+    public boolean isEnabled() {
+        return searchBox.isEnabled();
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        searchBox.setEnabled(enabled);
+    }
+
 }

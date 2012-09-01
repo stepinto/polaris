@@ -51,10 +51,10 @@ public class CodeSearchServiceImpl extends RemoteServiceServlet implements CodeS
     }
 
     @Override
-    public List<String> completeQuery(String query) {
+    public List<String> completeQuery(String query, int limit) {
         try {
             SrcSearcher searcher = new SrcSearcher("index");
-            return searcher.completeQuery(query, 20);
+            return searcher.completeQuery(query, limit);
         } catch (Exception e) {
             LOG.error("Caught exception", e);
             throw new RuntimeException(e);
