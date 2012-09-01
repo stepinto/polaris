@@ -3,6 +3,8 @@ package com.codingstory.polaris.search;
 import com.codingstory.polaris.indexing.FieldName;
 import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
 import com.codingstory.polaris.parser.Token;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -109,6 +111,24 @@ public class SrcSearcher {
             }
         }
         return builder.toString();
+    }
+
+    public List<String> completeQuery(String queryString, int limit) throws IOException {
+        LOGGER.debug("Complete query: " + queryString);
+        BooleanQuery q = new BooleanQuery();
+        q.add(new PrefixQuery(new Term(FieldName.PACKAGE_NAME, queryString)), BooleanClause.Occur.SHOULD);
+        q.add(new PrefixQuery(new Term(FieldName.TYPE_NAME, queryString)), BooleanClause.Occur.SHOULD);
+        TopDocs topDocs = searcher.search(q, 20);
+        ScoreDoc[] scoreDocs = topDocs.scoreDocs;
+        List<String> results = Lists.newArrayList();
+        for (ScoreDoc scoreDoc : scoreDocs) {
+            int docid = scoreDoc.doc;
+            Document document = reader.document(docid);
+            results.addAll(ImmutableList.copyOf(document.getValues(FieldName.PACKAGE_NAME)));
+            results.addAll(ImmutableList.copyOf(document.getValues(FieldName.TYPE_NAME)));
+        }
+        LOGGER.debug("Candidates: " + results);
+        return results;
     }
 
     public static void main(String[] args) throws Exception {

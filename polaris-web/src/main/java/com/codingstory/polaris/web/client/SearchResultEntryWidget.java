@@ -36,6 +36,8 @@ public class SearchResultEntryWidget extends Composite {
             kindLabel.setText("[class]");
         } else if (entry.getKind() == Token.Kind.METHOD_DECLARATION) {
             kindLabel.setText("[method]");
+        } else if (entry.getKind() == Token.Kind.FIELD_DECLARATION) {
+            kindLabel.setText("[field]");
         } else {
             kindLabel.setVisible(false);
         }

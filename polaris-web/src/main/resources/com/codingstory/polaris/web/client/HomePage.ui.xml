@@ -1,6 +1,7 @@
 <ui:UiBinder
         xmlns:ui="urn:ui:com.google.gwt.uibinder"
-        xmlns:g='urn:import:com.google.gwt.user.client.ui'>
+        xmlns:g='urn:import:com.google.gwt.user.client.ui'
+        xmlns:p='urn:import:com.codingstory.polaris.web.client'>
     <ui:style>
         .logo {
         }
@@ -21,7 +22,7 @@
             <h1>Polaris Code Search</h1>
         </div>
         <g:FlowPanel styleName="{style.searchPanel}">
-            <g:TextBox ui:field="searchBox" styleName="{style.searchBox}"/>
+            <p:SearchBox ui:field="searchBox" styleName="{style.searchBox}"/>
             <g:Button ui:field="searchButton">Search</g:Button>
         </g:FlowPanel>
     </g:HTMLPanel>

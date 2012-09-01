@@ -11,7 +11,6 @@ import com.google.gwt.uibinder.client.UiHandler;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTMLPanel;
-import com.google.gwt.user.client.ui.TextBox;
 
 public class HomePage extends Composite {
     interface MyUiBinder extends UiBinder<HTMLPanel, HomePage> {
@@ -19,7 +18,7 @@ public class HomePage extends Composite {
     private static final MyUiBinder UI_BINDER = GWT.create(MyUiBinder.class);
 
     @UiField
-    TextBox searchBox;
+    SearchBox searchBox;
     @UiField
     Button searchButton;
 

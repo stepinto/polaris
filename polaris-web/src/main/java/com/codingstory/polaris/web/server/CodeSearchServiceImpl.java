@@ -50,6 +50,17 @@ public class CodeSearchServiceImpl extends RemoteServiceServlet implements CodeS
         }
     }
 
+    @Override
+    public List<String> completeQuery(String query) {
+        try {
+            SrcSearcher searcher = new SrcSearcher("index");
+            return searcher.completeQuery(query, 20);
+        } catch (Exception e) {
+            LOG.error("Caught exception", e);
+            throw new RuntimeException(e);
+        }
+    }
+
     private SearchResultDto.Entry convertSearchResultToDtoEntry(Result result) {
         SearchResultDto.Entry e = new SearchResultDto.Entry();
         e.setFileName(result.getFilename());
