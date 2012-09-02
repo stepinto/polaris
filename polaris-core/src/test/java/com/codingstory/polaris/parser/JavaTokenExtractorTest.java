@@ -38,7 +38,7 @@ public class JavaTokenExtractorTest {
     public void testClass() throws IOException {
         String code = "package pkg;\npublic class MyClass { /* body */ }\n";
         List<Token> tokens = extractTokensFromCode(code);
-        ClassDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
+        TypeDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
         assertEquals(Token.Kind.CLASS_DECLARATION, clazz.getKind());
         assertEquals(Token.Span.of(13, 48), clazz.getSpan());
         assertEquals(FullyQualifiedName.of("pkg.MyClass"), clazz.getName());
@@ -48,12 +48,12 @@ public class JavaTokenExtractorTest {
     public void testClass_multiple() throws IOException {
         String code = "package pkg;\nclass A {}\nclass B {}\nclass C {}\n";
         List<Token> tokens = extractTokensFromCode(code);
-        List<ClassDeclaration> classes = filterTokensOfKind(tokens, Token.Kind.CLASS_DECLARATION);
+        List<TypeDeclaration> classes = filterTokensOfKind(tokens, Token.Kind.CLASS_DECLARATION);
         assertEquals(ImmutableList.of("pkg.A", "pkg.B", "pkg.C"),
                 Lists.transform(classes,
-                        new Function<ClassDeclaration, String>() {
+                        new Function<TypeDeclaration, String>() {
                             @Override
-                            public String apply(ClassDeclaration clazz) {
+                            public String apply(TypeDeclaration clazz) {
                                 Preconditions.checkNotNull(clazz);
                                 return clazz.getName().toString();
                             }
@@ -64,7 +64,7 @@ public class JavaTokenExtractorTest {
     public void testClass_noPackage() throws IOException {
         String code = "class A {}";
         List<Token> tokens = extractTokensFromCode(code);
-        ClassDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
+        TypeDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
         assertEquals(FullyQualifiedName.of("A"), clazz.getName());
     }
 
@@ -72,11 +72,23 @@ public class JavaTokenExtractorTest {
     public void testClass_javaDoc() throws IOException {
         String code = "/** doc */ class A {}";
         List<Token> tokens = extractTokensFromCode(code);
-        ClassDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
+        TypeDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
         assertEquals(FullyQualifiedName.of("A"), clazz.getName());
         assertTrue(clazz.hasJavaDocComment());
         assertEquals("/** doc */", clazz.getJavaDocComment().trim());
     }
+
+    @Test
+    public void testInterface() throws IOException {
+        String code = "package pkg; public interface I {};";
+        List<Token> tokens = extractTokensFromCode(code);
+        // TODO: We currently treat interface as class
+        TypeDeclaration c = findUniqueTokenOfKind(tokens, Token.Kind.INTERFACE_DECLARATION);
+        assertNotNull(c);
+        assertEquals(Token.Kind.INTERFACE_DECLARATION, c.getKind());
+        assertEquals(FullyQualifiedName.of("pkg.I"), c.getName());
+    }
+
 
     // TODO: testClass_public
     // TODO: testClass_private
@@ -90,8 +102,9 @@ public class JavaTokenExtractorTest {
     public void testEnum() throws IOException {
         String code = "package pkg; public enum E { /* some values */ }";
         List<Token> tokens = extractTokensFromCode(code);
-        EnumDeclaration e = findUniqueTokenOfKind(tokens, Token.Kind.ENUM_DECLARATION);
+        TypeDeclaration e = findUniqueTokenOfKind(tokens, Token.Kind.ENUM_DECLARATION);
         assertNotNull(e);
+        assertEquals(Token.Kind.ENUM_DECLARATION, e.getKind());
         assertEquals(Token.Span.of(13, 48), e.getSpan());
         assertEquals(FullyQualifiedName.of("pkg.E"), e.getName());
     }
@@ -100,16 +113,6 @@ public class JavaTokenExtractorTest {
     // TODO: testEnum_private
     // TODO: testEnum_packagePrivate
     // TODO: testEnumValues
-
-    @Test
-    public void testInterface() throws IOException {
-        String code = "package pkg; public interface I {};";
-        List<Token> tokens = extractTokensFromCode(code);
-        // TODO: We currently treat interface as class
-        ClassDeclaration c = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
-        assertNotNull(c);
-        assertEquals(FullyQualifiedName.of("pkg.I"), c.getName());
-    }
 
     @Test
     public void testMethod() throws IOException {

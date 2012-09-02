@@ -73,19 +73,19 @@ public class JavaTokenExtractor {
 
         @Override
         public void visit(ClassOrInterfaceDeclaration node, Object arg) {
-            // TODO: treat class and interface differently
             Preconditions.checkNotNull(node);
             String javaDoc = null;
             if (node.getJavaDoc() != null) {
                 javaDoc = node.getJavaDoc().toString();
             }
-            ClassDeclaration classDeclaration = ClassDeclaration.newBuilder()
+            TypeDeclaration typeDeclaration = TypeDeclaration.newBuilder()
+                    .setKind(node.isInterface() ? Token.Kind.INTERFACE_DECLARATION : Token.Kind.CLASS_DECLARATION)
                     .setSpan(findTokenSpan(node))
                     .setName(FullyQualifiedName.of(findPackageName(), node.getName()))
                     .setJavaDocComment(javaDoc)
                     .build();
-            results.add(classDeclaration);
-            typeDeclarationStack.push(classDeclaration);
+            results.add(typeDeclaration);
+            typeDeclarationStack.push(typeDeclaration);
             super.visit(node, arg);
             typeDeclarationStack.pop();
         }
@@ -94,7 +94,8 @@ public class JavaTokenExtractor {
         public void visit(AnnotationDeclaration node, Object arg) {
             // TODO: We temporarily treat annotations as classes
             Preconditions.checkNotNull(node);
-            ClassDeclaration classDeclaration = ClassDeclaration.newBuilder()
+            TypeDeclaration classDeclaration = TypeDeclaration.newBuilder()
+                    .setKind(Token.Kind.ANNOTATION_DECLARATION)
                     .setSpan(findTokenSpan(node))
                     .setName(FullyQualifiedName.of(findPackageName(), node.getName()))
                     .build();
@@ -108,7 +109,8 @@ public class JavaTokenExtractor {
         @Override
         public void visit(japa.parser.ast.body.EnumDeclaration node, Object arg) {
             Preconditions.checkNotNull(node);
-            EnumDeclaration enumDeclaration = EnumDeclaration.newBuilder()
+            TypeDeclaration enumDeclaration = TypeDeclaration.newBuilder()
+                    .setKind(Token.Kind.ENUM_DECLARATION)
                     .setSpan(findTokenSpan(node))
                     .setName(FullyQualifiedName.of(findPackageName(), node.getName()))
                     .build();

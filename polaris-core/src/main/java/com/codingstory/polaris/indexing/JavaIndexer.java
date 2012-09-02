@@ -20,6 +20,7 @@ import org.apache.lucene.util.Version;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.List;
 
 import static com.codingstory.polaris.indexing.FieldName.*;
@@ -80,9 +81,12 @@ public class JavaIndexer implements Closeable {
             String offset = Long.toString(t.getSpan().getFrom());
             document.add(new Field(OFFSET, offset, Field.Store.YES, Field.Index.NO));
             document.add(new Field(KIND, t.getKind().toString(), Field.Store.YES, Field.Index.NO));
-            if (t.getKind() == Token.Kind.CLASS_DECLARATION) {
-                ClassDeclaration declaration = (ClassDeclaration) t;
-                processClass(document, declaration);
+            if (EnumSet.of(Token.Kind.CLASS_DECLARATION,
+                    Token.Kind.INTERFACE_DECLARATION,
+                    Token.Kind.ENUM_DECLARATION,
+                    Token.Kind.ANNOTATION_DECLARATION).contains(t.getKind())) {
+                TypeDeclaration declaration = (TypeDeclaration) t;
+                processType(document, declaration);
             } else if (t.getKind() == Token.Kind.METHOD_DECLARATION) {
                 MethodDeclaration declaration = (MethodDeclaration) t;
                 processMethod(document, declaration);
@@ -123,7 +127,7 @@ public class JavaIndexer implements Closeable {
         addIndexFieldToDocument(document, METHOD_NAME, fullName);
     }
 
-    private void processClass(Document document, ClassDeclaration declaration) {
+    private void processType(Document document, TypeDeclaration declaration) {
         FullyQualifiedName name = declaration.getName();
         addIndexFieldToDocument(document, TYPE_NAME, name.getTypeName());
         String fullName = name.getTypeName();

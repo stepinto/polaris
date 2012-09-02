@@ -8,8 +8,11 @@ public interface Token {
     public static enum Kind {
         PACKAGE_DECLARATION,
         CLASS_DECLARATION,
+        ENUM_DECLARATION,
+        ANNOTATION_DECLARATION,
+        INTERFACE_DECLARATION,
         METHOD_DECLARATION,
-        FIELD_DECLARATION, ENUM_DECLARATION,
+        FIELD_DECLARATION,
     }
 
     public static class Span {
