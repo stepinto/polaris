@@ -102,6 +102,16 @@ public class JavaTokenExtractorTest {
     // TODO: testEnumValues
 
     @Test
+    public void testInterface() throws IOException {
+        String code = "package pkg; public interface I {};";
+        List<Token> tokens = extractTokensFromCode(code);
+        // TODO: We currently treat interface as class
+        ClassDeclaration c = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
+        assertNotNull(c);
+        assertEquals(FullyQualifiedName.of("pkg.I"), c.getName());
+    }
+
+    @Test
     public void testMethod() throws IOException {
         String code = "package pkg; class A { void func() {} }";
         List<Token> tokens = extractTokensFromCode(code);
