@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableSet;
 
 public class FieldName {
     public static final String FIELD_NAME = "FieldName";
-    public static final String FIELD_TYPE_NAME = "FieldNameType";
+    public static final String FIELD_TYPE_NAME = "FieldTypeName";
     public static final String FILE_CONTENT = "FileContent";
     public static final String FILE_NAME = "FileName";
     public static final String JAVA_DOC = "JavaDoc";
