@@ -2,8 +2,9 @@ package com.codingstory.polaris;
 
 import com.codingstory.polaris.indexing.JavaFileFilters;
 import com.codingstory.polaris.indexing.JavaIndexer;
-import com.codingstory.polaris.parser.TokenExtractor;
+import com.codingstory.polaris.parser.ProjectParser;
 import com.codingstory.polaris.parser.Token;
+import com.codingstory.polaris.parser.TokenExtractor;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -76,7 +77,7 @@ public class Main {
     }
 
     private static void runIndex(List<String> args) throws IOException {
-        JavaIndexer indexer = new JavaIndexer(new File("index"));
+        final JavaIndexer indexer = new JavaIndexer(new File("index"));
         int successCount = 0;
         int failureCount = 0;
         StopWatch watch = new StopWatch();
@@ -98,15 +99,37 @@ public class Main {
                     LOG.warn(String.format("Expect file or directory, but %s was found. Ignore it!", file));
                     sourceFiles = ImmutableList.of();
                 }
+
+                // Pass 0: index file content
                 for (File sourceFile : sourceFiles) {
-                    try {
-                        indexer.indexFile(sourceFile);
-                        successCount++;
-                    } catch (IOException e) {
-                        LOG.error(String.format("Caught exception when indexing", file), e);
-                        failureCount++;
-                    }
+                    indexer.indexFile(sourceFile);
                 }
+
+                // Pass 1/2: index tokens
+                ProjectParser parser = new ProjectParser();
+                try {
+                    parser.setProjectName("untitled");
+                    parser.setIgnoreErrors(true);
+                    for (File sourceFile : sourceFiles) {
+                        parser.addSourceFile(sourceFile);
+                    }
+                    parser.setTokenCollector(new ProjectParser.TokenCollector() {
+                        @Override
+                        public void collect(File file, Token token) {
+                            try {
+                                indexer.indexToken(file, token);
+                            } catch (IOException e) {
+                                throw new SkipCheckingExceptionWrapper(e);
+                            }
+                        }
+                    });
+                    parser.run();
+                } catch (SkipCheckingExceptionWrapper e) {
+                    throw (IOException) e.getCause();
+                }
+                ProjectParser.Stats stats = parser.getStats();
+                successCount += stats.successFiles;
+                failureCount += stats.failedFiles;
             }
         } finally {
             IOUtils.closeQuietly(indexer);

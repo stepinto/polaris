@@ -3,9 +3,6 @@ package com.codingstory.polaris.indexing;
 import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
 import com.codingstory.polaris.parser.*;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.filefilter.HiddenFileFilter;
-import org.apache.commons.io.filefilter.SuffixFileFilter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.document.Document;
@@ -21,7 +18,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.EnumSet;
-import java.util.List;
 
 import static com.codingstory.polaris.indexing.FieldName.*;
 
@@ -40,19 +36,11 @@ public class JavaIndexer implements Closeable {
     private final IndexWriterConfig config;
     private final IndexWriter writer;
 
-    private final TokenExtractor extracter = new TokenExtractor();
-
     public JavaIndexer(File indexDir) throws IOException {
         this.indexDir = FSDirectory.open(indexDir);
         config = new IndexWriterConfig(Version.LUCENE_36, new JavaSrcAnalyzer());
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
         writer = new IndexWriter(this.indexDir, config);
-    }
-
-    public void indexDirectory(File dir) throws IOException {
-        for (File file : FileUtils.listFiles(dir, new SuffixFileFilter(".java"), HiddenFileFilter.VISIBLE)) {
-            indexFile(file);
-        }
     }
 
     private void addIndexFieldToDocument(Document document, String fieldName, String content) {
@@ -66,39 +54,41 @@ public class JavaIndexer implements Closeable {
         document.add(f);
     }
 
+    /**
+     * Indexes file content.
+     */
     public void indexFile(File file) throws IOException {
-        LOG.debug("Indexing " + file);
+        LOG.debug("Indexing file content: " + file);
         String fileContent = FileUtils.readFileToString(file);
         Document contentDocument = new Document();
         contentDocument.add(new Field(FILE_CONTENT, fileContent, Field.Store.YES, Field.Index.NO));
         contentDocument.add(new Field(FILE_NAME, file.getName(), Field.Store.YES, Field.Index.NOT_ANALYZED));
         writer.addDocument(contentDocument);
-        extracter.setInputStream(IOUtils.toInputStream(fileContent));
-        List<Token> tokens = extracter.extractTokens();
-        for (Token t : tokens) {
-            Document document = new Document();
-            document.add(new Field(FILE_NAME, file.getName(), Field.Store.YES, Field.Index.NO));
-            String offset = Long.toString(t.getSpan().getFrom());
-            document.add(new Field(OFFSET, offset, Field.Store.YES, Field.Index.NO));
-            document.add(new Field(KIND, t.getKind().toString(), Field.Store.YES, Field.Index.NO));
-            if (EnumSet.of(Token.Kind.CLASS_DECLARATION,
-                    Token.Kind.INTERFACE_DECLARATION,
-                    Token.Kind.ENUM_DECLARATION,
-                    Token.Kind.ANNOTATION_DECLARATION).contains(t.getKind())) {
-                TypeDeclaration declaration = (TypeDeclaration) t;
-                processType(document, declaration);
-            } else if (t.getKind() == Token.Kind.METHOD_DECLARATION) {
-                MethodDeclaration declaration = (MethodDeclaration) t;
-                processMethod(document, declaration);
-            } else if (t.getKind() == Token.Kind.PACKAGE_DECLARATION) {
-                PackageDeclaration declaration = (PackageDeclaration) t;
-                addIndexFieldToDocument(document, PACKAGE_NAME, declaration.getPackageName());
-            } else if (t.getKind() == Token.Kind.FIELD_DECLARATION) {
-                FieldDeclaration declaration = (FieldDeclaration) t;
-                processField(document, declaration);
-            }
-            writer.addDocument(document);
+    }
+
+    public void indexToken(File file, Token t) throws IOException {
+        Document document = new Document();
+        document.add(new Field(FILE_NAME, file.getName(), Field.Store.YES, Field.Index.NO));
+        String offset = Long.toString(t.getSpan().getFrom());
+        document.add(new Field(OFFSET, offset, Field.Store.YES, Field.Index.NO));
+        document.add(new Field(KIND, t.getKind().toString(), Field.Store.YES, Field.Index.NO));
+        if (EnumSet.of(Token.Kind.CLASS_DECLARATION,
+                Token.Kind.INTERFACE_DECLARATION,
+                Token.Kind.ENUM_DECLARATION,
+                Token.Kind.ANNOTATION_DECLARATION).contains(t.getKind())) {
+            TypeDeclaration declaration = (TypeDeclaration) t;
+            processType(document, declaration);
+        } else if (t.getKind() == Token.Kind.METHOD_DECLARATION) {
+            MethodDeclaration declaration = (MethodDeclaration) t;
+            processMethod(document, declaration);
+        } else if (t.getKind() == Token.Kind.PACKAGE_DECLARATION) {
+            PackageDeclaration declaration = (PackageDeclaration) t;
+            addIndexFieldToDocument(document, PACKAGE_NAME, declaration.getPackageName());
+        } else if (t.getKind() == Token.Kind.FIELD_DECLARATION) {
+            FieldDeclaration declaration = (FieldDeclaration) t;
+            processField(document, declaration);
         }
+        writer.addDocument(document);
     }
 
     private void processField(Document document, FieldDeclaration declaration) {
@@ -142,11 +132,5 @@ public class JavaIndexer implements Closeable {
     @Override
     public void close() throws IOException {
         writer.close();
-    }
-
-    public static void main(String[] args) throws Exception {
-        JavaIndexer indexer = new JavaIndexer(new File("index"));
-        indexer.indexDirectory(new File("d:/tddownload/lucene-3.6.1-src"));
-        indexer.close();
     }
 }
