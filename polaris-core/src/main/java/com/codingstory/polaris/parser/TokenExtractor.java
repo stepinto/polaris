@@ -23,7 +23,7 @@ import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 
-public class JavaTokenExtractor {
+public class TokenExtractor {
 
     private static class SkipCheckingExceptionWrapper extends RuntimeException {
         public SkipCheckingExceptionWrapper(Throwable throwable) {
@@ -263,7 +263,7 @@ public class JavaTokenExtractor {
 
     private InputStream in;
 
-    public JavaTokenExtractor setInputStream(InputStream in) {
+    public TokenExtractor setInputStream(InputStream in) {
         Preconditions.checkNotNull(in);
         this.in = in;
         return this;

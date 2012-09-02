@@ -2,7 +2,7 @@ package com.codingstory.polaris;
 
 import com.codingstory.polaris.indexing.JavaFileFilters;
 import com.codingstory.polaris.indexing.JavaIndexer;
-import com.codingstory.polaris.parser.JavaTokenExtractor;
+import com.codingstory.polaris.parser.TokenExtractor;
 import com.codingstory.polaris.parser.Token;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -62,7 +62,7 @@ public class Main {
             try {
                 System.out.println(file);
                 in = new FileInputStream(file);
-                List<Token> tokens = new JavaTokenExtractor()
+                List<Token> tokens = new TokenExtractor()
                         .setInputStream(in)
                         .extractTokens();
                 for (Token token : tokens) {

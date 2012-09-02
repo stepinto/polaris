@@ -16,7 +16,7 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class JavaTokenExtractorTest {
+public class TokenExtractorTest {
 
     @Test
     public void testEmpty() throws IOException {
@@ -190,7 +190,7 @@ public class JavaTokenExtractorTest {
     @Test
     public void testLineMonitorInputStream() throws IOException {
         String code = "a\nbcd\nef\ng\nhij\n";
-        JavaTokenExtractor.LineMonitorInputStream in = new JavaTokenExtractor.LineMonitorInputStream(
+        TokenExtractor.LineMonitorInputStream in = new TokenExtractor.LineMonitorInputStream(
                 new ByteArrayInputStream(code.getBytes()));
         IOUtils.copy(in, new NullOutputStream());
         assertEquals(0, in.translateLineColumnToOffset(0, 0));
@@ -206,7 +206,7 @@ public class JavaTokenExtractorTest {
     }
 
     private static List<Token> extractTokensFromCode(String code) throws IOException {
-        return new JavaTokenExtractor()
+        return new TokenExtractor()
                 .setInputStream(new ByteArrayInputStream(code.getBytes()))
                 .extractTokens();
     }

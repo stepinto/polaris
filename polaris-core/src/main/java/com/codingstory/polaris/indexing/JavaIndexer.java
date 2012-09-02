@@ -40,7 +40,7 @@ public class JavaIndexer implements Closeable {
     private final IndexWriterConfig config;
     private final IndexWriter writer;
 
-    private final JavaTokenExtractor extracter = new JavaTokenExtractor();
+    private final TokenExtractor extracter = new TokenExtractor();
 
     public JavaIndexer(File indexDir) throws IOException {
         this.indexDir = FSDirectory.open(indexDir);
