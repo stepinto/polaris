@@ -3,6 +3,7 @@ package com.codingstory.polaris.indexing;
 import com.google.common.collect.ImmutableSet;
 
 public class FieldName {
+    public static final String PROJECT_NAME = "ProjectName";
     public static final String FIELD_NAME = "FieldName";
     public static final String FIELD_TYPE_NAME = "FieldTypeName";
     public static final String FILE_CONTENT = "FileContent";

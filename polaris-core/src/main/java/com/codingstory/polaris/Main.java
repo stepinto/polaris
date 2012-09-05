@@ -13,6 +13,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.HiddenFileFilter;
 import org.apache.commons.io.filefilter.SuffixFileFilter;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.FastDateFormat;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
@@ -88,21 +89,24 @@ public class Main {
                 System.exit(1);
             }
             for (String path : args) {
-                File file = new File(path);
-                Iterable<File> sourceFiles;
-                if (file.isDirectory()) {
-                    sourceFiles = FileUtils.listFiles(file,
-                            JavaFileFilters.JAVA_SOURCE_FILETER, HiddenFileFilter.VISIBLE);
-                } else if (file.isFile()) {
-                    sourceFiles = ImmutableList.of(file);
-                } else {
-                    LOG.warn(String.format("Expect file or directory, but %s was found. Ignore it!", file));
-                    sourceFiles = ImmutableList.of();
+                final File projectBaseDir = new File(path);
+                if (!projectBaseDir.isDirectory()) {
+                    LOG.error("Expect directory, but file was found: " + projectBaseDir);
+                    System.exit(1);
                 }
+                Iterable<File> sourceFiles = FileUtils.listFiles(projectBaseDir,
+                        JavaFileFilters.JAVA_SOURCE_FILETER, HiddenFileFilter.VISIBLE);
 
                 // Pass 0: index file content
+                final String projectName = projectBaseDir.getName();
                 for (File sourceFile : sourceFiles) {
-                    indexer.indexFile(sourceFile);
+                    String filePath = findSourceFilePath(projectBaseDir, sourceFile);
+                    InputStream in = new FileInputStream(sourceFile);
+                    try {
+                        indexer.indexFile(projectName, filePath, in);
+                    } finally {
+                        IOUtils.closeQuietly(in);
+                    }
                 }
 
                 // Pass 1/2: index tokens
@@ -117,7 +121,10 @@ public class Main {
                         @Override
                         public void collect(File file, Token token) {
                             try {
-                                indexer.indexToken(file, token);
+                                String filePath = StringUtils.removeStart(
+                                        file.getAbsolutePath(),
+                                        projectBaseDir.getAbsolutePath());
+                                indexer.indexToken(projectName, filePath, token);
                             } catch (IOException e) {
                                 throw new SkipCheckingExceptionWrapper(e);
                             }
@@ -139,6 +146,12 @@ public class Main {
         LOG.info(String.format("Indexed source files: %d", successCount));
         LOG.info(String.format("Failed: %d", failureCount));
         LOG.info(String.format("Time elapsed: %.2fs", watch.getTime() / 1000.0));
+    }
+
+    private static String findSourceFilePath(File projectBaseDir, File sourceFile) {
+        return StringUtils.removeStart(
+                sourceFile.getAbsolutePath(),
+                projectBaseDir.getAbsolutePath());
     }
 
     private static void runSearchUI(List<String> args) throws Exception {

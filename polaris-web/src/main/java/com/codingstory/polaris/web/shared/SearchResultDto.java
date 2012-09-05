@@ -7,11 +7,20 @@ import java.util.List;
 
 public class SearchResultDto implements IsSerializable {
     public static class Entry implements IsSerializable {
-        public String fileName;
-        public String summary;
+        private String projectName;
+        private String fileName;
+        private String summary;
         private String explanation;
         private double score;
         private Token.Kind kind;
+
+        public String getProjectName() {
+            return projectName;
+        }
+
+        public void setProjectName(String projectName) {
+            this.projectName = projectName;
+        }
 
         public String getFileName() {
             return fileName;

@@ -12,6 +12,7 @@ import org.apache.lucene.search.Explanation;
  */
 public class Result {
     int documentId;
+    String projectName;
     String filename;
     String content;
     String summary;
@@ -24,6 +25,14 @@ public class Result {
 
     public void setDocumentId(int documentId) {
         this.documentId = documentId;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
     }
 
     public String getFilename() {

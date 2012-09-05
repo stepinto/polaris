@@ -63,6 +63,7 @@ public class CodeSearchServiceImpl extends RemoteServiceServlet implements CodeS
 
     private SearchResultDto.Entry convertSearchResultToDtoEntry(Result result) {
         SearchResultDto.Entry e = new SearchResultDto.Entry();
+        e.setProjectName(result.getProjectName());
         e.setFileName(result.getFilename());
         e.setSummary(result.getSummary());
         e.setExplanation(result.getExplanation().toHtml());

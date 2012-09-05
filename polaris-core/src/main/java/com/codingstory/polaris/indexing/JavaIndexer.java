@@ -2,7 +2,8 @@ package com.codingstory.polaris.indexing;
 
 import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
 import com.codingstory.polaris.parser.*;
-import org.apache.commons.io.FileUtils;
+import com.google.common.base.Preconditions;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.document.Document;
@@ -14,9 +15,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.EnumSet;
 
 import static com.codingstory.polaris.indexing.FieldName.*;
@@ -57,18 +56,27 @@ public class JavaIndexer implements Closeable {
     /**
      * Indexes file content.
      */
-    public void indexFile(File file) throws IOException {
-        LOG.debug("Indexing file content: " + file);
-        String fileContent = FileUtils.readFileToString(file);
+    public void indexFile(String projectName, String filePath, InputStream in) throws IOException {
+        Preconditions.checkNotNull(projectName);
+        Preconditions.checkNotNull(filePath);
+        Preconditions.checkNotNull(in);
+        LOG.debug("Indexing file content: " + projectName + "/" + filePath);
+        StringWriter sw = new StringWriter();
+        IOUtils.copy(in, sw);
         Document contentDocument = new Document();
-        contentDocument.add(new Field(FILE_CONTENT, fileContent, Field.Store.YES, Field.Index.NO));
-        contentDocument.add(new Field(FILE_NAME, file.getName(), Field.Store.YES, Field.Index.NOT_ANALYZED));
+        contentDocument.add(new Field(FILE_CONTENT, sw.toString(), Field.Store.YES, Field.Index.NO));
+        contentDocument.add(new Field(PROJECT_NAME, projectName, Field.Store.YES, Field.Index.NOT_ANALYZED));
+        contentDocument.add(new Field(FILE_NAME, filePath, Field.Store.YES, Field.Index.NOT_ANALYZED));
         writer.addDocument(contentDocument);
     }
 
-    public void indexToken(File file, Token t) throws IOException {
+    public void indexToken(String projectName, String filePath, Token t) throws IOException {
+        Preconditions.checkNotNull(projectName);
+        Preconditions.checkNotNull(filePath);
+        Preconditions.checkNotNull(t);
         Document document = new Document();
-        document.add(new Field(FILE_NAME, file.getName(), Field.Store.YES, Field.Index.NO));
+        document.add(new Field(PROJECT_NAME, projectName, Field.Store.YES, Field.Index.NO));
+        document.add(new Field(FILE_NAME, filePath, Field.Store.YES, Field.Index.NO));
         String offset = Long.toString(t.getSpan().getFrom());
         document.add(new Field(OFFSET, offset, Field.Store.YES, Field.Index.NO));
         document.add(new Field(KIND, t.getKind().toString(), Field.Store.YES, Field.Index.NO));

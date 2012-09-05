@@ -43,7 +43,7 @@ public class SearchResultEntryWidget extends Composite {
         Preconditions.checkNotNull(entry);
         Preconditions.checkNotNull(href);
         initWidget(UI_BINDER.createAndBindUi(this));
-        this.fileNameAnchor.setText(entry.getFileName());
+        this.fileNameAnchor.setText(entry.getProjectName() + entry.getFileName());
         this.fileNameAnchor.setTargetHistoryToken(href);
         this.summaryCodeSnippet.setText(entry.getSummary());
         String label = TOKEN_KIND_LABELS.get(entry.getKind());
