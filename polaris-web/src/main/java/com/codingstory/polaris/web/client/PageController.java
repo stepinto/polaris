@@ -68,9 +68,9 @@ public class PageController {
         attachWidgetToRootPanel(new SearchResultPage(query));
     }
 
-    private static void doSwitchToSourcePage(String fileName) {
-        ViewSourcePage viewSourcePage = new ViewSourcePage(fileName);
-        attachWidgetToRootPanel(new ViewSourcePage(fileName));
+    private static void doSwitchToSourcePage(String fileId) {
+        ViewSourcePage viewSourcePage = new ViewSourcePage(fileId);
+        attachWidgetToRootPanel(new ViewSourcePage(fileId));
     }
 
     private static void attachWidgetToRootPanel(Widget widget) {

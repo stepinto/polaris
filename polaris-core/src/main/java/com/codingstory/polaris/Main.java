@@ -9,6 +9,8 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.HiddenFileFilter;
@@ -21,13 +23,11 @@ import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.webapp.WebAppContext;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.text.Format;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 public class Main {
 
@@ -99,11 +99,16 @@ public class Main {
 
                 // Pass 0: index file content
                 final String projectName = projectBaseDir.getName();
+                final Map<File, byte[]> fileSha1Sums = Maps.newHashMap();
                 for (File sourceFile : sourceFiles) {
                     String filePath = findSourceFilePath(projectBaseDir, sourceFile);
                     InputStream in = new FileInputStream(sourceFile);
                     try {
-                        indexer.indexFile(projectName, filePath, in);
+                        ByteArrayOutputStream out = new ByteArrayOutputStream();
+                        byte[] content = FileUtils.readFileToByteArray(sourceFile);
+                        byte[] sha1sum = DigestUtils.sha(content);
+                        indexer.indexFile(projectName, filePath, sha1sum, content);
+                        fileSha1Sums.put(sourceFile, sha1sum);
                     } finally {
                         IOUtils.closeQuietly(in);
                     }
@@ -124,7 +129,7 @@ public class Main {
                                 String filePath = StringUtils.removeStart(
                                         file.getAbsolutePath(),
                                         projectBaseDir.getAbsolutePath());
-                                indexer.indexToken(projectName, filePath, token);
+                                indexer.indexToken(projectName, filePath, fileSha1Sums.get(file), token);
                             } catch (IOException e) {
                                 throw new SkipCheckingExceptionWrapper(e);
                             }

@@ -9,6 +9,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -40,10 +41,10 @@ public class CodeSearchServiceImpl extends RemoteServiceServlet implements CodeS
     }
 
     @Override
-    public String readFile(String fileName) {
+    public String readFile(String fileId) {
         try {
             SrcSearcher searcher = new SrcSearcher("index");
-            return searcher.getContent(fileName);
+            return searcher.getContent(Hex.decodeHex(fileId.toCharArray()));
         } catch (Exception e) {
             LOG.error("Caught exception", e);
             throw new RuntimeException(e);
@@ -65,6 +66,7 @@ public class CodeSearchServiceImpl extends RemoteServiceServlet implements CodeS
         SearchResultDto.Entry e = new SearchResultDto.Entry();
         e.setProjectName(result.getProjectName());
         e.setFileName(result.getFilename());
+        e.setFileId(Hex.encodeHexString(result.getFileId()));
         e.setSummary(result.getSummary());
         e.setExplanation(result.getExplanation().toHtml());
         e.setScore(result.getExplanation().getValue());

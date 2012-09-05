@@ -9,6 +9,6 @@ import java.util.List;
 @RemoteServiceRelativePath("search")
 public interface CodeSearchService extends RemoteService {
     public SearchResultDto search(String query);
-    public String readFile(String fileName);
-    public List<String> completeQuery(String query, int liimt);
+    public String readFile(String fileId);
+    public List<String> completeQuery(String query, int limit);
 }

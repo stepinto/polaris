@@ -22,9 +22,9 @@ public class ViewSourcePage extends Composite {
     @UiField
     Element codeElement;
 
-    public ViewSourcePage(String fileName) {
+    public ViewSourcePage(String fileId) {
         initWidget(UI_BINDER.createAndBindUi(this));
-        RPC_SERVICE.readFile(fileName, new AsyncCallback<String>() {
+        RPC_SERVICE.readFile(fileId, new AsyncCallback<String>() {
             @Override
             public void onFailure(Throwable caught) {
                 LOGGER.warning(caught.toString());

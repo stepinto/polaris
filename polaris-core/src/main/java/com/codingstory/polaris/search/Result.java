@@ -14,6 +14,7 @@ public class Result {
     int documentId;
     String projectName;
     String filename;
+    byte[] fileId;
     String content;
     String summary;
     Explanation explanation;
@@ -41,6 +42,14 @@ public class Result {
 
     public void setFilename(String filename) {
         this.filename = filename;
+    }
+
+    public byte[] getFileId() {
+        return fileId;
+    }
+
+    public void setFileId(byte[] fileId) {
+        this.fileId = fileId;
     }
 
     public String getContent() {

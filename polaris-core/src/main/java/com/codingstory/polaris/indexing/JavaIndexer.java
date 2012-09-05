@@ -3,7 +3,7 @@ package com.codingstory.polaris.indexing;
 import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
 import com.codingstory.polaris.parser.*;
 import com.google.common.base.Preconditions;
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.document.Document;
@@ -15,7 +15,9 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
-import java.io.*;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
 import java.util.EnumSet;
 
 import static com.codingstory.polaris.indexing.FieldName.*;
@@ -56,27 +58,28 @@ public class JavaIndexer implements Closeable {
     /**
      * Indexes file content.
      */
-    public void indexFile(String projectName, String filePath, InputStream in) throws IOException {
+    public void indexFile(String projectName, String filePath, byte[] sha1sum, byte[] content) throws IOException {
         Preconditions.checkNotNull(projectName);
         Preconditions.checkNotNull(filePath);
-        Preconditions.checkNotNull(in);
-        LOG.debug("Indexing file content: " + projectName + "/" + filePath);
-        StringWriter sw = new StringWriter();
-        IOUtils.copy(in, sw);
-        Document contentDocument = new Document();
-        contentDocument.add(new Field(FILE_CONTENT, sw.toString(), Field.Store.YES, Field.Index.NO));
-        contentDocument.add(new Field(PROJECT_NAME, projectName, Field.Store.YES, Field.Index.NOT_ANALYZED));
-        contentDocument.add(new Field(FILE_NAME, filePath, Field.Store.YES, Field.Index.NOT_ANALYZED));
-        writer.addDocument(contentDocument);
+        Preconditions.checkNotNull(sha1sum);
+        Preconditions.checkNotNull(content);
+        LOG.debug("Indexing file content: " + projectName + filePath);
+        Document document = new Document();
+        document.add(new Field(FILE_ID, Hex.encodeHexString(sha1sum), Field.Store.YES, Field.Index.NOT_ANALYZED));
+        document.add(new Field(FILE_CONTENT, content));
+        document.add(new Field(PROJECT_NAME, projectName, Field.Store.YES, Field.Index.NOT_ANALYZED));
+        document.add(new Field(FILE_NAME, filePath, Field.Store.YES, Field.Index.NOT_ANALYZED));
+        writer.addDocument(document);
     }
 
-    public void indexToken(String projectName, String filePath, Token t) throws IOException {
+    public void indexToken(String projectName, String filePath, byte[] sha1sum, Token t) throws IOException {
         Preconditions.checkNotNull(projectName);
         Preconditions.checkNotNull(filePath);
         Preconditions.checkNotNull(t);
         Document document = new Document();
         document.add(new Field(PROJECT_NAME, projectName, Field.Store.YES, Field.Index.NO));
         document.add(new Field(FILE_NAME, filePath, Field.Store.YES, Field.Index.NO));
+        document.add(new Field(FILE_ID, Hex.encodeHexString(sha1sum), Field.Store.YES, Field.Index.NO));
         String offset = Long.toString(t.getSpan().getFrom());
         document.add(new Field(OFFSET, offset, Field.Store.YES, Field.Index.NO));
         document.add(new Field(KIND, t.getKind().toString(), Field.Store.YES, Field.Index.NO));

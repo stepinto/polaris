@@ -76,7 +76,7 @@ public class SearchResultPage extends Composite {
             public void onSuccess(SearchResultDto searchResults) {
                 searchResultListPanel.clear();
                 for (SearchResultDto.Entry result : searchResults.getEntries()) {
-                    String href = "p=source&file=" + result.getFileName();
+                    String href = "p=source&file=" + result.getFileId();
                     SearchResultEntryWidget entryWidget = new SearchResultEntryWidget(result, href);
                     searchResultListPanel.add(entryWidget);
                 }

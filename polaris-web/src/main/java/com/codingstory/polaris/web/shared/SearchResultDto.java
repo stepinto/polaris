@@ -9,6 +9,7 @@ public class SearchResultDto implements IsSerializable {
     public static class Entry implements IsSerializable {
         private String projectName;
         private String fileName;
+        private String fileId; // Use string because it's not easy to convert hex bytes in GWT.
         private String summary;
         private String explanation;
         private double score;
@@ -28,6 +29,14 @@ public class SearchResultDto implements IsSerializable {
 
         public void setFileName(String fileName) {
             this.fileName = fileName;
+        }
+
+        public String getFileId() {
+            return fileId;
+        }
+
+        public void setFileId(String fileId) {
+            this.fileId = fileId;
         }
 
         public String getSummary() {

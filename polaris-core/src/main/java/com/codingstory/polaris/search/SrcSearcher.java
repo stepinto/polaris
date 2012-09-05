@@ -8,6 +8,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.analysis.Analyzer;
@@ -63,10 +65,10 @@ public class SrcSearcher {
         reader.close();
     }
 
-    public String getContent(String filename) throws IOException {
-        Query query = new TermQuery(new Term(FILE_NAME, filename));
+    public String getContent(byte[] fileId) throws IOException {
+        Query query = new TermQuery(new Term(FILE_ID, Hex.encodeHexString(fileId)));
         int docid = searcher.search(query, 1).scoreDocs[0].doc;
-        return reader.document(docid).get(FILE_CONTENT);
+        return new String(reader.document(docid).getFieldable(FILE_CONTENT).getBinaryValue());
     }
 
     public List<Result> search(String queryString, int limit) throws ParseException, IOException, InvalidTokenOffsetsException {
@@ -83,7 +85,14 @@ public class SrcSearcher {
             Document document = reader.document(docid);
             result.setProjectName(document.getFieldable(PROJECT_NAME).stringValue());
             result.setFilename(document.getFieldable(FILE_NAME).stringValue());
-            String content = getContent(document.get(FILE_NAME));
+            byte[] fileId = null;
+            try {
+                fileId = Hex.decodeHex(document.getFieldable(FILE_ID).stringValue().toCharArray());
+            } catch (DecoderException e) {
+                throw new AssertionError(e);
+            }
+            result.setFileId(fileId);
+            String content = getContent(fileId);
             result.setDocumentId(docid);
             result.setContent(content);
             result.setExplanation(searcher.explain(query, docid));
