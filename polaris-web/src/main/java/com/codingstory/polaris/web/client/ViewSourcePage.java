@@ -1,7 +1,6 @@
 package com.codingstory.polaris.web.client;
 
 import com.google.gwt.core.shared.GWT;
-import com.google.gwt.dom.client.Element;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -18,9 +17,7 @@ public class ViewSourcePage extends Composite {
     private static final CodeSearchServiceAsync RPC_SERVICE = GWT.create(CodeSearchService.class);
     private static final Logger LOGGER = Logger.getLogger("");
     @UiField
-    HTMLPanel htmlPanel;
-    @UiField
-    Element codeElement;
+    CodeHighlightWidget code;
 
     public ViewSourcePage(String fileId) {
         initWidget(UI_BINDER.createAndBindUi(this));
@@ -32,7 +29,7 @@ public class ViewSourcePage extends Composite {
 
             @Override
             public void onSuccess(String result) {
-                codeElement.setInnerHTML(NativeHelper.prettyPrint(result));
+                code.setText(result);
             }
         });
     }
