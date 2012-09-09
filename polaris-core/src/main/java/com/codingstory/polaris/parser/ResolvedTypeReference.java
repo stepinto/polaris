@@ -18,18 +18,18 @@ public class ResolvedTypeReference implements TypeReference {
     public static final List<ResolvedTypeReference> PRIMITIVES = ImmutableList.of(
             BYTE, SHORT, INTEGER, LONG, FLOAT, DOUBLE, CHAR, BOOLEAN);
 
-    private final FullyQualifiedName name;
+    private final FullyQualifiedTypeName name;
 
-    public ResolvedTypeReference(FullyQualifiedName name) {
+    public ResolvedTypeReference(FullyQualifiedTypeName name) {
         this.name = name;
     }
 
-    public FullyQualifiedName getName() {
+    public FullyQualifiedTypeName getName() {
         return name;
     }
 
     private static ResolvedTypeReference initPrimitive(String name) {
-        return new ResolvedTypeReference(FullyQualifiedName.of(name));
+        return new ResolvedTypeReference(FullyQualifiedTypeName.of(name));
     }
 
     @Override

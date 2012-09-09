@@ -15,13 +15,13 @@ public class TypeDeclaration extends TokenBase implements JavaDocable {
             Kind.INTERFACE_DECLARATION,
             Kind.ENUM_DECLARATION,
             Kind.ANNOTATION_DECLARATION);
-    private final FullyQualifiedName name;
+    private final FullyQualifiedTypeName name;
     private final String javaDocComment;
 
     public static class Builder {
         private Kind kind;
         private Span span;
-        private FullyQualifiedName name;
+        private FullyQualifiedTypeName name;
         private String javaDocComment;
 
         public Builder setKind(@NotNull Kind kind) {
@@ -35,7 +35,7 @@ public class TypeDeclaration extends TokenBase implements JavaDocable {
             return this;
         }
 
-        public Builder setName(@NotNull FullyQualifiedName name) {
+        public Builder setName(@NotNull FullyQualifiedTypeName name) {
             Preconditions.checkNotNull(name);
             this.name = name;
             return this;
@@ -63,7 +63,7 @@ public class TypeDeclaration extends TokenBase implements JavaDocable {
         this.javaDocComment = builder.javaDocComment;
     }
 
-    public FullyQualifiedName getName() {
+    public FullyQualifiedTypeName getName() {
         return name;
     }
 

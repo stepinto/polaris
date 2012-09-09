@@ -7,31 +7,31 @@ import com.google.common.base.Preconditions;
  * Represents a fully qualified type name, which is consists of an optional package
  * name and a class/interface/enum name.
  */
-public class FullyQualifiedName {
+public class FullyQualifiedTypeName {
 
     private final String packageName;
     private final String typeName;
 
-    private FullyQualifiedName(String packageName, String typeName) {
+    private FullyQualifiedTypeName(String packageName, String typeName) {
         this.packageName = packageName;
         this.typeName = typeName;
     }
 
-    public static FullyQualifiedName of(String packageName, String typeName) {
+    public static FullyQualifiedTypeName of(String packageName, String typeName) {
         Preconditions.checkNotNull(typeName);
-        return new FullyQualifiedName(packageName, typeName);
+        return new FullyQualifiedTypeName(packageName, typeName);
     }
 
-    public static FullyQualifiedName of(String name) {
+    public static FullyQualifiedTypeName of(String name) {
         Preconditions.checkNotNull(name);
         int lastDot = name.lastIndexOf('.');
         if (lastDot == -1) {
-            return new FullyQualifiedName(null, name);
+            return new FullyQualifiedTypeName(null, name);
         }
         String packageName = name.substring(0, lastDot);
         String typeName = name.substring(lastDot + 1);
         // TODO: Check for empty packageName/typeName.
-        return new FullyQualifiedName(packageName, typeName);
+        return new FullyQualifiedTypeName(packageName, typeName);
     }
 
     public boolean hasPackageName() {
@@ -51,11 +51,11 @@ public class FullyQualifiedName {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof FullyQualifiedName)) {
+        if (!(o instanceof FullyQualifiedTypeName)) {
             return false;
         }
 
-        FullyQualifiedName that = (FullyQualifiedName) o;
+        FullyQualifiedTypeName that = (FullyQualifiedTypeName) o;
         return Objects.equal(this.packageName, that.packageName)
                 && Objects.equal(this.typeName, that.typeName);
     }

@@ -28,8 +28,9 @@ public class ProjectParser {
         public int lines;
     }
 
+    /** Resolves type references at project level. */
     private static class ProjectTypeResolver implements TypeResolver {
-        private Map<FullyQualifiedName, TypeDeclaration> types = Maps.newHashMap();
+        private Map<FullyQualifiedTypeName, TypeDeclaration> types = Maps.newHashMap();
 
         public void register(TypeDeclaration typeDeclaration) {
             Preconditions.checkNotNull(typeDeclaration);
@@ -37,11 +38,16 @@ public class ProjectParser {
         }
 
         @Override
-        public ResolvedTypeReference resolve(UnresolvedTypeReferenece typeReferenece) {
-            for (FullyQualifiedName name : typeReferenece.getCandidates()) {
+        public ResolvedTypeReference resolve(UnresolvedTypeReferenece unresolved) {
+            Preconditions.checkNotNull(unresolved);
+            for (FullyQualifiedTypeName name : unresolved.getCandidates()) {
                 TypeDeclaration typeDeclaration = types.get(name);
                 if (typeDeclaration != null) {
-                    return new ResolvedTypeReference(name);
+                    ResolvedTypeReference resolved = new ResolvedTypeReference(name);
+                    LOGGER.debug(String.format("Resolved %s as %s",
+                            unresolved.getUnqualifiedName(),
+                            resolved.getName()));
+                    return resolved;
                 }
             }
             return null;
@@ -113,10 +119,9 @@ public class ProjectParser {
 
     private void runFirstPass(File sourceFile) throws IOException {
         LOGGER.debug("Parsing " + sourceFile + " (1st pass)");
-        TokenExtractor extractor = new TokenExtractor();
         InputStream in = new FileInputStream(sourceFile);
         try {
-            List<Token> tokens = TokenExtractor.extract(in);
+            List<Token> tokens = TokenExtractor.extract(in, TypeResolver.NO_OP_RESOLVER);
             for (Token token : tokens) {
                 if (token instanceof TypeDeclaration) {
                     TypeDeclaration typeDeclaration = (TypeDeclaration) token;
@@ -132,40 +137,10 @@ public class ProjectParser {
     private void runSecondPass(File sourceFile) throws IOException {
         LOGGER.debug("Parsing " + sourceFile + " (2nd pass)");
         byte[] content = FileUtils.readFileToByteArray(sourceFile);
-        List<Token> tokens = TokenExtractor.extract(new ByteArrayInputStream(content));
-        List<Token> results = Lists.newArrayList();
-        for (Token token : tokens) {
-            Token result = token;
-            if (token instanceof TypeDeclaration) {
-                stats.types++;
-            } else if (token instanceof FieldDeclaration) {
-                FieldDeclaration fieldDeclaration = (FieldDeclaration) token;
-                TypeReference typeReference = fieldDeclaration.getTypeReferenece();
-                if (!typeReference.isResoleved()) {
-                    UnresolvedTypeReferenece unresolved = (UnresolvedTypeReferenece) typeReference;
-                    ResolvedTypeReference resolved = typeResolver.resolve(unresolved);
-                    if (resolved != null) {
-                        result = FieldDeclaration.newBuilder()
-                                .setClassName(fieldDeclaration.getClassName())
-                                .setPackageName(fieldDeclaration.getPackageName())
-                                .setSpan(fieldDeclaration.getSpan())
-                                .setTypeReference(resolved)
-                                .setVariableName(fieldDeclaration.getPackageName())
-                                .build();
-                        LOGGER.debug(String.format("Resolved %s as %s at field %s.%s.%s",
-                                unresolved.getUnqualifiedName(),
-                                resolved.getName(),
-                                fieldDeclaration.getPackageName(),
-                                fieldDeclaration.getClassName(),
-                                fieldDeclaration.getVariableName()));
-                    }
-                }
-                // TODO: Resolve method signature.
-            }
-            results.add(result);
-        }
+        List<Token> tokens = TokenExtractor.extract(
+                new ByteArrayInputStream(content), typeResolver);
         LOGGER.debug("Found " + tokens.size() + " token(s)");
-        tokenCollector.collect(sourceFile, content, results);
+        tokenCollector.collect(sourceFile, content, tokens);
     }
 
     public Stats getStats() {

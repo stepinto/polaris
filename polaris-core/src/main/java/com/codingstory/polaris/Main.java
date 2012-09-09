@@ -5,6 +5,7 @@ import com.codingstory.polaris.indexing.JavaIndexer;
 import com.codingstory.polaris.parser.ProjectParser;
 import com.codingstory.polaris.parser.Token;
 import com.codingstory.polaris.parser.TokenExtractor;
+import com.codingstory.polaris.parser.TypeResolver;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -64,7 +65,7 @@ public class Main {
             try {
                 System.out.println(file);
                 in = new FileInputStream(file);
-                List<Token> tokens = TokenExtractor.extract(in);
+                List<Token> tokens = TokenExtractor.extract(in, TypeResolver.NO_OP_RESOLVER);
                 for (Token token : tokens) {
                     System.out.println(token);
                 }

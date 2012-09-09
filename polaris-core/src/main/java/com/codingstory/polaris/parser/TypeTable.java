@@ -1,59 +1,66 @@
 package com.codingstory.polaris.parser;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import java.util.LinkedList;
 import java.util.Map;
 
+/**
+ * Symbol table for types.
+ */
 public class TypeTable<T> {
 
-    private final TypeTable<T> parent;
-    private final Map<String, T> unqualifiedNameTable = Maps.newHashMap();
-    private final Map<FullyQualifiedName, T> fullyQualifiedNameTable = Maps.newHashMap();
+    private static class Frame<T> {
+        private final Map<String, T> unqualifiedNameTable = Maps.newHashMap();
+        private final Map<FullyQualifiedTypeName, T> fullyQualifiedNameTable = Maps.newHashMap();
 
-    public TypeTable() {
-        this(null);
+        public void put(FullyQualifiedTypeName name, T value) {
+            Preconditions.checkNotNull(name);
+            Preconditions.checkNotNull(value);
+            unqualifiedNameTable.put(name.getTypeName(), value);
+            // Collisions may happen if the source file does not compile. It is ignored here
+            // because Polaris is not going to be a compiler.
+            fullyQualifiedNameTable.put(name, value);
+        }
+
+        public T lookUp(String symbol) {
+            Preconditions.checkNotNull(symbol);
+            FullyQualifiedTypeName name = FullyQualifiedTypeName.of(symbol);
+            if (name.hasPackageName()) {
+                return fullyQualifiedNameTable.get(name);
+            } else {
+                return unqualifiedNameTable.get(symbol);
+            }
+        }
     }
 
-    public TypeTable(TypeTable parent) {
-        this.parent = parent;
-    }
+    private final LinkedList<Frame<T>> frames = Lists.newLinkedList();
 
-    public T resolve(String symbol) {
+    public T lookUp(String symbol) {
         Preconditions.checkNotNull(symbol);
-        FullyQualifiedName qualified = FullyQualifiedName.of(symbol);
-        if (qualified.hasPackageName()) {
-            return resolveFullyQualified(qualified);
-        } else {
-            T result = resolveUnqualified(symbol);
+        for (Frame<T> frame : frames) {
+            T result = frame.lookUp(symbol);
             if (result != null) {
                 return result;
             }
-            return resolveFullyQualified(qualified);
         }
+        return null;
     }
 
-    private T resolveUnqualified(String name) {
-        T result = unqualifiedNameTable.get(name);
-        if (result == null && parent != null) {
-            return parent.resolveUnqualified(name);
-        } else {
-            return result;
+    public void put(FullyQualifiedTypeName name, T value) {
+        if (frames.isEmpty()) {
+            throw new IllegalStateException("No frames");
         }
+        frames.getFirst().put(name, value);
     }
 
-    private T resolveFullyQualified(FullyQualifiedName name) {
-        T result = fullyQualifiedNameTable.get(name);
-        if (result == null && parent != null) {
-            return parent.resolveFullyQualified(name);
-        } else {
-            return result;
-        }
+    public void enterFrame() {
+        frames.addFirst(new Frame());
     }
 
-    public void put(FullyQualifiedName symbol, T value) {
-        unqualifiedNameTable.put(symbol.getTypeName(), value);
-        fullyQualifiedNameTable.put(symbol, value);
+    public void leaveFrame() {
+        frames.removeFirst();
     }
-
 }

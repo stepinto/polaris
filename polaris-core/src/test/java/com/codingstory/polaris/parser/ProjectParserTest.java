@@ -34,7 +34,7 @@ public class ProjectParserTest {
         TypeDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
         assertNotNull(clazz);
         assertEquals(Token.Kind.CLASS_DECLARATION, clazz.getKind());
-        assertEquals(FullyQualifiedName.of("pkg.A"), clazz.getName());
+        assertEquals(FullyQualifiedTypeName.of("pkg.A"), clazz.getName());
     }
 
     @Test
@@ -62,7 +62,7 @@ public class ProjectParserTest {
         assertNotNull(field);
         assertTrue(field.getTypeReferenece().isResoleved());
         ResolvedTypeReference resolved = (ResolvedTypeReference) field.getTypeReferenece();
-        assertEquals(FullyQualifiedName.of("pkg2.B"), resolved.getName());
+        assertEquals(FullyQualifiedTypeName.of("pkg2.B"), resolved.getName());
     }
 
     @Test
@@ -74,7 +74,7 @@ public class ProjectParserTest {
         assertNotNull(field);
         assertTrue(field.getTypeReferenece().isResoleved());
         ResolvedTypeReference resolved = (ResolvedTypeReference) field.getTypeReferenece();
-        assertEquals(FullyQualifiedName.of("pkg2.B"), resolved.getName());
+        assertEquals(FullyQualifiedTypeName.of("pkg2.B"), resolved.getName());
     }
 
     @Test
@@ -87,7 +87,7 @@ public class ProjectParserTest {
         assertNotNull(field);
         assertTrue(field.getTypeReferenece().isResoleved());
         ResolvedTypeReference resolved = (ResolvedTypeReference) field.getTypeReferenece();
-        assertEquals(FullyQualifiedName.of("pkg1.B"), resolved.getName());
+        assertEquals(FullyQualifiedTypeName.of("pkg1.B"), resolved.getName());
     }
 
     // TODO: testResolvedTypes_globalPackage

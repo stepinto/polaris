@@ -121,7 +121,7 @@ public class JavaIndexer implements Closeable {
         } else {
             // TODO: Bug? The following lines result in bad ranking.
 //            UnresolvedTypeReferenece unresolved = (UnresolvedTypeReferenece) type;
-//            for (FullyQualifiedName candidate : unresolved.getCandidates()) {
+//            for (FullyQualifiedTypeName candidate : unresolved.getCandidates()) {
 //                addIndexFieldToDocument(document, FIELD_TYPE_NAME, candidate.toString());
 //            }
         }
@@ -135,7 +135,7 @@ public class JavaIndexer implements Closeable {
     }
 
     private void processType(Document document, TypeDeclaration declaration) {
-        FullyQualifiedName name = declaration.getName();
+        FullyQualifiedTypeName name = declaration.getName();
         addIndexFieldToDocument(document, TYPE_NAME, name.getTypeName());
         String fullName = name.getTypeName();
         if (name.hasPackageName())

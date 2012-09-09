@@ -18,28 +18,32 @@ import japa.parser.ast.body.VariableDeclarator;
 import japa.parser.ast.type.Type;
 import japa.parser.ast.visitor.VoidVisitorAdapter;
 
-import java.io.ByteArrayInputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 
-public class TokenExtractor {
+public final class TokenExtractor {
 
     private static class ASTVisitor extends VoidVisitorAdapter {
 
         private final LineMonitorInputStream in;
+        private final TypeResolver externalTypeResolver;
         private final List<Token> results = Lists.newArrayList();
         private PackageDeclaration packageDeclaration;
         private final LinkedList<TypeDeclaration> typeDeclarationStack = Lists.newLinkedList();
         private final LinkedList<MethodDeclaration> methodDeclarationStack = Lists.newLinkedList();
-        private final LinkedList<TypeTable<TypeReference>> typeTable = Lists.newLinkedList();
         private final List<ImportDeclaration> imports = Lists.newArrayList();
 
-        private ASTVisitor(LineMonitorInputStream in) {
+        /** Symbol table for types. */
+        private final TypeTable<TypeReference> typeTable = new TypeTable<TypeReference>();
+        // TODO: symbol table for variables
+
+        private ASTVisitor(LineMonitorInputStream in, TypeResolver externalTypeResolver) {
             this.in = in;
-            typeTable.push(new TypeTable<TypeReference>()); // To hold imports
+            this.externalTypeResolver = externalTypeResolver;
+            typeTable.enterFrame(); // a frame for imports
         }
 
         @Override
@@ -59,12 +63,12 @@ public class TokenExtractor {
             if (node.isAsterisk()) {
                 imports.add(node);
             } else {
-                TypeTable<TypeReference> symbolTable = Iterables.getOnlyElement(typeTable);
-                FullyQualifiedName name = FullyQualifiedName.of(node.getName().toString());
-                TypeReference typeReference = new UnresolvedTypeReferenece(ImmutableList.of(name));
-                symbolTable.put(name, typeReference);
+                FullyQualifiedTypeName name = FullyQualifiedTypeName.of(node.getName().toString());
+                UnresolvedTypeReferenece unresolved = new UnresolvedTypeReferenece(ImmutableList.of(name));
+                ResolvedTypeReference resolved = externalTypeResolver.resolve(unresolved);
+                typeTable.put(name, resolved != null ? resolved : unresolved);
             }
-            super.visit(node, arg);    //To change body of overridden methods use File | Settings | File Templates.
+            super.visit(node, arg);
         }
 
         @Override
@@ -77,7 +81,7 @@ public class TokenExtractor {
             TypeDeclaration typeDeclaration = TypeDeclaration.newBuilder()
                     .setKind(node.isInterface() ? Token.Kind.INTERFACE_DECLARATION : Token.Kind.CLASS_DECLARATION)
                     .setSpan(findTokenSpan(node))
-                    .setName(FullyQualifiedName.of(findPackageName(), node.getName()))
+                    .setName(FullyQualifiedTypeName.of(findPackageName(), node.getName()))
                     .setJavaDocComment(javaDoc)
                     .build();
             results.add(typeDeclaration);
@@ -93,7 +97,7 @@ public class TokenExtractor {
             TypeDeclaration classDeclaration = TypeDeclaration.newBuilder()
                     .setKind(Token.Kind.ANNOTATION_DECLARATION)
                     .setSpan(findTokenSpan(node))
-                    .setName(FullyQualifiedName.of(findPackageName(), node.getName()))
+                    .setName(FullyQualifiedTypeName.of(findPackageName(), node.getName()))
                     .build();
             results.add(classDeclaration);
             typeDeclarationStack.push(classDeclaration);
@@ -108,7 +112,7 @@ public class TokenExtractor {
             TypeDeclaration enumDeclaration = TypeDeclaration.newBuilder()
                     .setKind(Token.Kind.ENUM_DECLARATION)
                     .setSpan(findTokenSpan(node))
-                    .setName(FullyQualifiedName.of(findPackageName(), node.getName()))
+                    .setName(FullyQualifiedTypeName.of(findPackageName(), node.getName()))
                     .build();
             results.add(enumDeclaration);
             typeDeclarationStack.push(enumDeclaration);
@@ -158,13 +162,14 @@ public class TokenExtractor {
             if (typeReference != null) {
                 return typeReference;
             }
-            typeReference = typeTable.getLast().resolve(name);
+            typeReference = typeTable.lookUp(name);
             if (typeReference != null) {
                 return typeReference;
             }
-            FullyQualifiedName qualifiedName = FullyQualifiedName.of(name);
+            FullyQualifiedTypeName qualifiedName = FullyQualifiedTypeName.of(name);
+            UnresolvedTypeReferenece unresolved;
             if (qualifiedName.hasPackageName()) {
-                return new UnresolvedTypeReferenece(ImmutableList.of(qualifiedName));
+                unresolved = new UnresolvedTypeReferenece(ImmutableList.of(qualifiedName));
             } else {
                 // Assume the type is "Type", the package is "mypkg" and "import pkg1.*" and "import pkg2.*".
                 // We will generate the following candidates:
@@ -172,17 +177,19 @@ public class TokenExtractor {
                 //   Type
                 //   pkg1.Type
                 //   pkg2.Type
-                List<FullyQualifiedName> candidates = Lists.newArrayList();
-                candidates.add(FullyQualifiedName.of(findPackageName(), name));
-                candidates.add(FullyQualifiedName.of(null, name));
+                List<FullyQualifiedTypeName> candidates = Lists.newArrayList();
+                candidates.add(FullyQualifiedTypeName.of(findPackageName(), name));
+                candidates.add(FullyQualifiedTypeName.of(null, name));
                 for (ImportDeclaration imp : imports) {
                     if (imp.isAsterisk()) {
                         String packageName = imp.getName().getName();
-                        candidates.add(FullyQualifiedName.of(packageName, name));
+                        candidates.add(FullyQualifiedTypeName.of(packageName, name));
                     }
                 }
-                return new UnresolvedTypeReferenece(candidates);
+                unresolved = new UnresolvedTypeReferenece(candidates);
             }
+            ResolvedTypeReference resolved = externalTypeResolver.resolve(unresolved);
+            return resolved != null ? resolved : unresolved;
         }
 
         private Token.Span findTokenSpan(Node node) {
@@ -257,13 +264,15 @@ public class TokenExtractor {
         }
     }
 
+    private TokenExtractor() {}
 
-    public static List<Token> extract(InputStream in) throws IOException {
+    public static List<Token> extract(InputStream in, TypeResolver externalTypeResolver) throws IOException {
         Preconditions.checkNotNull(in);
+        Preconditions.checkNotNull(externalTypeResolver);
         try {
             LineMonitorInputStream lmin = new LineMonitorInputStream(in);
             CompilationUnit compilationUnit = JavaParser.parse(lmin);
-            ASTVisitor visitor = new ASTVisitor(lmin);
+            ASTVisitor visitor = new ASTVisitor(lmin, externalTypeResolver);
             visitor.visit(compilationUnit, null);
             return visitor.getResults();
         } catch (ParseException e) {

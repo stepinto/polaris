@@ -40,7 +40,7 @@ public class TokenExtractorTest {
         TypeDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
         assertEquals(Token.Kind.CLASS_DECLARATION, clazz.getKind());
         assertEquals(Token.Span.of(13, 48), clazz.getSpan());
-        assertEquals(FullyQualifiedName.of("pkg.MyClass"), clazz.getName());
+        assertEquals(FullyQualifiedTypeName.of("pkg.MyClass"), clazz.getName());
     }
 
     @Test
@@ -64,7 +64,7 @@ public class TokenExtractorTest {
         String code = "class A {}";
         List<Token> tokens = extractTokensFromCode(code);
         TypeDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
-        assertEquals(FullyQualifiedName.of("A"), clazz.getName());
+        assertEquals(FullyQualifiedTypeName.of("A"), clazz.getName());
     }
 
     @Test
@@ -72,7 +72,7 @@ public class TokenExtractorTest {
         String code = "/** doc */ class A {}";
         List<Token> tokens = extractTokensFromCode(code);
         TypeDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
-        assertEquals(FullyQualifiedName.of("A"), clazz.getName());
+        assertEquals(FullyQualifiedTypeName.of("A"), clazz.getName());
         assertTrue(clazz.hasJavaDocComment());
         assertEquals("/** doc */", clazz.getJavaDocComment().trim());
     }
@@ -85,7 +85,7 @@ public class TokenExtractorTest {
         TypeDeclaration c = findUniqueTokenOfKind(tokens, Token.Kind.INTERFACE_DECLARATION);
         assertNotNull(c);
         assertEquals(Token.Kind.INTERFACE_DECLARATION, c.getKind());
-        assertEquals(FullyQualifiedName.of("pkg.I"), c.getName());
+        assertEquals(FullyQualifiedTypeName.of("pkg.I"), c.getName());
     }
 
 
@@ -105,7 +105,7 @@ public class TokenExtractorTest {
         assertNotNull(e);
         assertEquals(Token.Kind.ENUM_DECLARATION, e.getKind());
         assertEquals(Token.Span.of(13, 48), e.getSpan());
-        assertEquals(FullyQualifiedName.of("pkg.E"), e.getName());
+        assertEquals(FullyQualifiedTypeName.of("pkg.E"), e.getName());
     }
 
     // TODO: testEnum_public
@@ -160,7 +160,7 @@ public class TokenExtractorTest {
         List<Token> tokens = extractTokensFromCode(code);
         FieldDeclaration field = findUniqueTokenOfKind(tokens, Token.Kind.FIELD_DECLARATION);
         assertEquals("l", field.getVariableName());
-        assertEquals(new UnresolvedTypeReferenece(ImmutableList.of(FullyQualifiedName.of("java.util.List"))),
+        assertEquals(new UnresolvedTypeReferenece(ImmutableList.of(FullyQualifiedTypeName.of("java.util.List"))),
                 field.getTypeReferenece());
     }
 
@@ -174,10 +174,10 @@ public class TokenExtractorTest {
         assertFalse(typeReference.isResoleved());
         UnresolvedTypeReferenece unresolved = (UnresolvedTypeReferenece) typeReference;
         List<String> candidateFullNames = Lists.transform(unresolved.getCandidates(),
-                new Function<FullyQualifiedName, String>() {
+                new Function<FullyQualifiedTypeName, String>() {
 
                     @Override
-                    public String apply(FullyQualifiedName name) {
+                    public String apply(FullyQualifiedTypeName name) {
                         return name.toString();
                     }
                 });
@@ -205,6 +205,8 @@ public class TokenExtractorTest {
     }
 
     private static List<Token> extractTokensFromCode(String code) throws IOException {
-        return TokenExtractor.extract(new ByteArrayInputStream(code.getBytes()));
+        return TokenExtractor.extract(
+                new ByteArrayInputStream(code.getBytes()),
+                TypeResolver.NO_OP_RESOLVER);
     }
 }
