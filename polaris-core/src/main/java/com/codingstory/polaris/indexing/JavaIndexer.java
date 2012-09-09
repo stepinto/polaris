@@ -15,6 +15,9 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TBinaryProtocol;
 
 import java.io.Closeable;
 import java.io.File;
@@ -72,9 +75,26 @@ public class JavaIndexer implements Closeable {
         document.add(new Field(FILE_CONTENT, content));
         document.add(new Field(PROJECT_NAME, projectName, Field.Store.YES, Field.Index.NOT_ANALYZED));
         document.add(new Field(FILE_NAME, filePath, Field.Store.YES, Field.Index.NOT_ANALYZED));
+        document.add(new Field(TOKENS, serializeTokens(tokens)));
         writer.addDocument(document);
         for (Token token : tokens) {
             indexToken(projectName, filePath, sha1sum, token);
+        }
+    }
+
+    private byte[] serializeTokens(List<Token> tokens) {
+        try {
+            TSerializer serializer = new TSerializer(new TBinaryProtocol.Factory());
+            TTokenList list = new TTokenList();
+            for (Token token : tokens) {
+                if (token instanceof TypeDeclaration) {
+                    list.addToTokens(PojoToThriftConverter.TYPE_DECLARATION_TO_TTOKEN_CONVERTER.apply(
+                            (TypeDeclaration) token));
+                }
+            }
+            return serializer.serialize(list);
+        } catch (TException e) {
+            throw new AssertionError(e); // Should not reach here.
         }
     }
 

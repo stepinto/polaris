@@ -14,6 +14,7 @@ public class FieldName {
     public static final String OFFSET = "Offset";
     public static final String PACKAGE_NAME = "PackageName";
     public static final String PROJECT_NAME = "ProjectName";
+    public static final String TOKENS = "Tokens";
     public static final String TYPE_NAME = "TypeName";
     // TODO: method types
 
@@ -29,5 +30,6 @@ public class FieldName {
             OFFSET,
             PACKAGE_NAME,
             PROJECT_NAME,
+            TOKENS,
             TYPE_NAME);
 }
