@@ -13,7 +13,7 @@ import java.io.Reader;
  * Time: 下午3:33
  * To change this template use File | Settings | File Templates.
  */
-public class SimpleClassNameAnalyzer extends Analyzer {
+public final class SimpleClassNameAnalyzer extends Analyzer {
     @Override
     public TokenStream tokenStream(String fieldName, Reader reader) {
         try {

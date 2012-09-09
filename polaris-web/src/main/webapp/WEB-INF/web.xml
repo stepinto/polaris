@@ -6,11 +6,19 @@
 <web-app>
     <servlet>
         <servlet-name>search</servlet-name>
-        <servlet-class>com.codingstory.polaris.web.server.CodeSearchServiceImpl</servlet-class>
+        <servlet-class>com.codingstory.polaris.web.server.GWTCodeSearchServiceImpl</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>source</servlet-name>
+        <servlet-class>com.codingstory.polaris.web.server.SourceServlet</servlet-class>
     </servlet>
 
     <servlet-mapping>
         <servlet-name>search</servlet-name>
         <url-pattern>/searchui/search</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>source</servlet-name>
+        <url-pattern>/source</url-pattern>
     </servlet-mapping>
 </web-app>

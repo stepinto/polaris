@@ -62,7 +62,7 @@ public class ProjectParser {
     };
     private static final Log LOGGER = LogFactory.getLog(ProjectParser.class);
 
-    private boolean ignoreErrors = false;
+    private ParserOptions parserOptions = new ParserOptions();
     private TokenCollector tokenCollector = NO_OP_TOKEN_EXTRACTOR;
     private Stats stats;
     private List<File> sourceFiles = Lists.newArrayList();
@@ -72,8 +72,8 @@ public class ProjectParser {
         this.tokenCollector = tokenCollector;
     }
 
-    public void setIgnoreErrors(boolean ignoreErrors) {
-        this.ignoreErrors = ignoreErrors;
+    public void setParserOptions(ParserOptions parserOptions) {
+        this.parserOptions = parserOptions;
     }
 
     public void addSourceFile(File file) {
@@ -89,10 +89,10 @@ public class ProjectParser {
                 runFirstPass(f);
                 stats.successFiles++;
             } catch (IOException e) {
-                if (ignoreErrors) {
-                    stats.failedFiles++;
-                } else {
+                if (parserOptions.isFailFast()) {
                     throw e;
+                } else {
+                    stats.failedFiles++;
                 }
             }
         }
@@ -101,10 +101,10 @@ public class ProjectParser {
                 runSecondPass(f);
                 stats.successFiles++;
             } catch (IOException e) {
-                if (ignoreErrors) {
-                    stats.failedFiles++;
-                } else {
+                if (parserOptions.isFailFast()) {
                     throw e;
+                } else {
+                    stats.failedFiles++;
                 }
             }
         }

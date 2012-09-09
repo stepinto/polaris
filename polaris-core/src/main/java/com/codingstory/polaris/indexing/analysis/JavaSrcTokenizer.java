@@ -19,7 +19,7 @@ import java.util.List;
  * Time: 下午8:30
  * To change this template use File | Settings | File Templates.
  */
-public class JavaSrcTokenizer extends Tokenizer {
+public final class JavaSrcTokenizer extends Tokenizer {
     private final CharTermAttribute termAttr = addAttribute(CharTermAttribute.class);
 
     private final OffsetAttribute offsetAttr = addAttribute(OffsetAttribute.class);

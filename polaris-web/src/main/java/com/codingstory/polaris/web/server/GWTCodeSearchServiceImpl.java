@@ -15,8 +15,8 @@ import org.apache.commons.logging.LogFactory;
 
 import java.util.List;
 
-public class CodeSearchServiceImpl extends RemoteServiceServlet implements CodeSearchService {
-    private static final Log LOG = LogFactory.getLog(CodeSearchServiceImpl.class);
+public class GWTCodeSearchServiceImpl extends RemoteServiceServlet implements CodeSearchService {
+    private static final Log LOG = LogFactory.getLog(GWTCodeSearchServiceImpl.class);
 
     @Override
     public SearchResultDto search(String query) {

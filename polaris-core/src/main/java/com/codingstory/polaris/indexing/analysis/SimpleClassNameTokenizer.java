@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
  * Time: 下午3:35
  * To change this template use File | Settings | File Templates.
  */
-public class SimpleClassNameTokenizer extends Tokenizer {
+public final class SimpleClassNameTokenizer extends Tokenizer {
 
     private final CharTermAttribute termAttr = addAttribute(CharTermAttribute.class);
 

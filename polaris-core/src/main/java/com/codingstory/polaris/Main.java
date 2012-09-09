@@ -1,8 +1,7 @@
 package com.codingstory.polaris;
 
-import com.codingstory.polaris.indexing.JavaFileFilters;
-import com.codingstory.polaris.indexing.JavaIndexer;
-import com.codingstory.polaris.parser.ProjectParser;
+import com.codingstory.polaris.indexing.IndexBuilder;
+import com.codingstory.polaris.parser.ParserOptions;
 import com.codingstory.polaris.parser.Token;
 import com.codingstory.polaris.parser.TokenExtractor;
 import com.codingstory.polaris.parser.TypeResolver;
@@ -16,7 +15,6 @@ import org.apache.commons.io.filefilter.HiddenFileFilter;
 import org.apache.commons.io.filefilter.SuffixFileFilter;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.FastDateFormat;
-import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.server.Server;
@@ -77,59 +75,21 @@ public class Main {
     }
 
     private static void runIndex(List<String> args) throws IOException {
-        final JavaIndexer indexer = new JavaIndexer(new File("index"));
-        int successCount = 0;
-        int failureCount = 0;
-        StopWatch watch = new StopWatch();
-        watch.start();
-        try {
-            if (args.isEmpty()) {
-                printHelp();
-                System.exit(1);
-            }
-            for (String path : args) {
-                final File projectBaseDir = new File(path);
-                if (!projectBaseDir.isDirectory()) {
-                    LOG.error("Expect directory, but file was found: " + projectBaseDir);
-                    System.exit(1);
-                }
-                Iterable<File> sourceFiles = FileUtils.listFiles(projectBaseDir,
-                        JavaFileFilters.JAVA_SOURCE_FILETER, HiddenFileFilter.VISIBLE);
-
-                final String projectName = projectBaseDir.getName();
-                ProjectParser parser = new ProjectParser();
-                try {
-                    parser.setIgnoreErrors(true);
-                    for (File sourceFile : sourceFiles) {
-                        parser.addSourceFile(sourceFile);
-                    }
-                    parser.setTokenCollector(new ProjectParser.TokenCollector() {
-                        @Override
-                        public void collect(File file, byte[] content, List<Token> tokens) {
-                            try {
-                                String filePath = findSourceFilePath(projectBaseDir, file);
-                                indexer.indexFile(projectName, filePath, content, tokens);
-                            } catch (IOException e) {
-                                throw new SkipCheckingExceptionWrapper(e);
-                            }
-                        }
-                    });
-                    parser.run();
-                } catch (SkipCheckingExceptionWrapper e) {
-                    throw (IOException) e.getCause();
-                }
-                ProjectParser.Stats stats = parser.getStats();
-                successCount += stats.successFiles;
-                failureCount += stats.failedFiles;
-            }
-        } finally {
-            IOUtils.closeQuietly(indexer);
+        if (args.isEmpty()) {
+            printHelp();
+            System.exit(1);
         }
-        watch.stop();
-        LOG.info("Completed.");
-        LOG.info(String.format("Indexed source files: %d", successCount));
-        LOG.info(String.format("Failed: %d", failureCount));
-        LOG.info(String.format("Time elapsed: %.2fs", watch.getTime() / 1000.0));
+        List<File> projectDirs = Lists.newArrayList();
+        for (String path : args) {
+            projectDirs.add(new File(path));
+        }
+        ParserOptions parserOptions = new ParserOptions();
+        parserOptions.setFailFast(false);
+        IndexBuilder indexBuilder = new IndexBuilder();
+        indexBuilder.setIndexDirectory(new File("index"));
+        indexBuilder.setParserOptions(parserOptions);
+        indexBuilder.setProjectDirectories(projectDirs);
+        indexBuilder.build();
     }
 
     private static String findSourceFilePath(File projectBaseDir, File sourceFile) {

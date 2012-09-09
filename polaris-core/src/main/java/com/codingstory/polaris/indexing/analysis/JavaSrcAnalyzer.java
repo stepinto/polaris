@@ -14,7 +14,7 @@ import java.io.StringReader;
  * Time: 下午9:02
  * To change this template use File | Settings | File Templates.
  */
-public class JavaSrcAnalyzer extends Analyzer {
+public final class JavaSrcAnalyzer extends Analyzer {
     @Override
     public TokenStream tokenStream(String fieldName, Reader reader) {
         try {
