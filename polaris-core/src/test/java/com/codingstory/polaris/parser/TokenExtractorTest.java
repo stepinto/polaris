@@ -205,8 +205,6 @@ public class TokenExtractorTest {
     }
 
     private static List<Token> extractTokensFromCode(String code) throws IOException {
-        return new TokenExtractor()
-                .setInputStream(new ByteArrayInputStream(code.getBytes()))
-                .extractTokens();
+        return TokenExtractor.extract(new ByteArrayInputStream(code.getBytes()));
     }
 }

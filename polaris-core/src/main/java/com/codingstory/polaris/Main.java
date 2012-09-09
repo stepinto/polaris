@@ -9,8 +9,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.HiddenFileFilter;
@@ -23,11 +21,13 @@ import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.webapp.WebAppContext;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.Format;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 public class Main {
 
@@ -64,9 +64,7 @@ public class Main {
             try {
                 System.out.println(file);
                 in = new FileInputStream(file);
-                List<Token> tokens = new TokenExtractor()
-                        .setInputStream(in)
-                        .extractTokens();
+                List<Token> tokens = TokenExtractor.extract(in);
                 for (Token token : tokens) {
                     System.out.println(token);
                 }
@@ -97,39 +95,19 @@ public class Main {
                 Iterable<File> sourceFiles = FileUtils.listFiles(projectBaseDir,
                         JavaFileFilters.JAVA_SOURCE_FILETER, HiddenFileFilter.VISIBLE);
 
-                // Pass 0: index file content
                 final String projectName = projectBaseDir.getName();
-                final Map<File, byte[]> fileSha1Sums = Maps.newHashMap();
-                for (File sourceFile : sourceFiles) {
-                    String filePath = findSourceFilePath(projectBaseDir, sourceFile);
-                    InputStream in = new FileInputStream(sourceFile);
-                    try {
-                        ByteArrayOutputStream out = new ByteArrayOutputStream();
-                        byte[] content = FileUtils.readFileToByteArray(sourceFile);
-                        byte[] sha1sum = DigestUtils.sha(content);
-                        indexer.indexFile(projectName, filePath, sha1sum, content);
-                        fileSha1Sums.put(sourceFile, sha1sum);
-                    } finally {
-                        IOUtils.closeQuietly(in);
-                    }
-                }
-
-                // Pass 1/2: index tokens
                 ProjectParser parser = new ProjectParser();
                 try {
-                    parser.setProjectName("untitled");
                     parser.setIgnoreErrors(true);
                     for (File sourceFile : sourceFiles) {
                         parser.addSourceFile(sourceFile);
                     }
                     parser.setTokenCollector(new ProjectParser.TokenCollector() {
                         @Override
-                        public void collect(File file, Token token) {
+                        public void collect(File file, byte[] content, List<Token> tokens) {
                             try {
-                                String filePath = StringUtils.removeStart(
-                                        file.getAbsolutePath(),
-                                        projectBaseDir.getAbsolutePath());
-                                indexer.indexToken(projectName, filePath, fileSha1Sums.get(file), token);
+                                String filePath = findSourceFilePath(projectBaseDir, file);
+                                indexer.indexFile(projectName, filePath, content, tokens);
                             } catch (IOException e) {
                                 throw new SkipCheckingExceptionWrapper(e);
                             }

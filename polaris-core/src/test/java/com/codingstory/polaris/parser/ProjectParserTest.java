@@ -1,6 +1,5 @@
 package com.codingstory.polaris.parser;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
@@ -9,7 +8,7 @@ import org.junit.Test;
 import java.io.*;
 import java.util.List;
 
-import static com.codingstory.polaris.parser.TestUtils.*;
+import static com.codingstory.polaris.parser.TestUtils.findUniqueTokenOfKind;
 import static org.junit.Assert.*;
 
 public class ProjectParserTest {
@@ -17,10 +16,11 @@ public class ProjectParserTest {
         private List<Token> tokens = Lists.newArrayList();
 
         @Override
-        public void collect(File file, Token token) {
-            Preconditions.checkNotNull(file);
-            Preconditions.checkNotNull(token);
-            tokens.add(token);
+        public void collect(File file, byte[] content, List<Token> tokens) {
+            assertNotNull(file);
+            assertNotNull(content);
+            assertNotNull(tokens);
+            this.tokens.addAll(tokens);
         }
 
         public List<Token> getTokens() {
@@ -96,7 +96,6 @@ public class ProjectParserTest {
     private static List<Token> parse(List<String> sources) throws IOException {
         ProjectParser parser = new ProjectParser();
         TestTokenCollector tokenCollector = new TestTokenCollector();
-        parser.setProjectName("untitled");
         parser.setTokenCollector(tokenCollector);
         for (String source : sources) {
             parser.addSourceFile(createFile(source));

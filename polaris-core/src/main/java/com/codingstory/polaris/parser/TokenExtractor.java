@@ -18,6 +18,7 @@ import japa.parser.ast.body.VariableDeclarator;
 import japa.parser.ast.type.Type;
 import japa.parser.ast.visitor.VoidVisitorAdapter;
 
+import java.io.ByteArrayInputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -256,15 +257,9 @@ public class TokenExtractor {
         }
     }
 
-    private InputStream in;
 
-    public TokenExtractor setInputStream(InputStream in) {
+    public static List<Token> extract(InputStream in) throws IOException {
         Preconditions.checkNotNull(in);
-        this.in = in;
-        return this;
-    }
-
-    public List<Token> extractTokens() throws IOException {
         try {
             LineMonitorInputStream lmin = new LineMonitorInputStream(in);
             CompilationUnit compilationUnit = JavaParser.parse(lmin);
