@@ -56,7 +56,7 @@ public class CodeHighlightWidget extends Composite implements HasText {
         List<SimpleLexer.Rule> rules = Lists.newArrayList();
         final SafeHtmlBuilder builder = new SafeHtmlBuilder();
 
-        rules.add(new SimpleLexer.Rule() {
+        rules.add(new SimpleLexer.Rule() { // block comments
             @Override
             public int execute(String code, int offset) {
                 if (match(code, offset, "/*")) {
@@ -72,7 +72,7 @@ public class CodeHighlightWidget extends Composite implements HasText {
                 return 0;
             }
         });
-        rules.add(new SimpleLexer.Rule() {
+        rules.add(new SimpleLexer.Rule() { // single-line comments
             @Override
             public int execute(String code, int offset) {
                 if (match(code, offset, "//")) {
@@ -88,11 +88,14 @@ public class CodeHighlightWidget extends Composite implements HasText {
                 return 0;
             }
         });
-        rules.add(new SimpleLexer.Rule() {
+        rules.add(new SimpleLexer.Rule() { // reservered words
             @Override
             public int execute(String code, int offset) {
                 for (String reserved : JAVA_RESERVED_WORDS) {
-                    if (match(code, offset, reserved)) {
+                    // This rule is not precise, but it can correctly handle most cases.
+                    int len = reserved.length();
+                    if (match(code, offset, reserved)
+                            && (offset + len >= code.length() || !isIdentifierChar(code.charAt(offset + len)))) {
                         renderReservedWord(reserved, offset, builder);
                         return reserved.length();
                     }
@@ -100,7 +103,7 @@ public class CodeHighlightWidget extends Composite implements HasText {
                 return 0;
             }
         });
-        rules.add(new SimpleLexer.Rule() {
+        rules.add(new SimpleLexer.Rule() { // identifiers
             @Override
             public int execute(String code, int offset) {
                 StringBuilder id = new StringBuilder();
@@ -115,7 +118,29 @@ public class CodeHighlightWidget extends Composite implements HasText {
                 return n;
             }
         });
-        rules.add(new SimpleLexer.Rule() {
+        rules.add(new SimpleLexer.Rule() { // string literals
+            @Override
+            public int execute(String code, int offset) {
+                if (code.charAt(offset) != '\"') {
+                    return 0;
+                }
+                StringBuilder literal = new StringBuilder();
+                int n = 1;
+                literal.append('\"');
+                // TODO: handle escaped characters
+                while (offset + n < code.length() && code.charAt(offset + n) != '\"') {
+                    literal.append(code.charAt(offset + n));
+                    n++;
+                }
+                if (offset + n < code.length()) {
+                    literal.append('\"');
+                    n++;
+                }
+                renderStringLiteral(literal.toString(), builder);
+                return n;
+            }
+        });
+        rules.add(new SimpleLexer.Rule() { // anything else
             @Override
             public int execute(String code, int offset) {
                 renderUnknown(code.charAt(offset), builder);
@@ -166,6 +191,10 @@ public class CodeHighlightWidget extends Composite implements HasText {
         builder.appendHtmlConstant("<i>");
         builder.appendEscaped(comment);
         builder.appendHtmlConstant("</i>");
+    }
+
+    private void renderStringLiteral(String s, SafeHtmlBuilder builder) {
+        builder.appendEscaped(s);
     }
 
     private void renderUnknown(char c, SafeHtmlBuilder builder) {
