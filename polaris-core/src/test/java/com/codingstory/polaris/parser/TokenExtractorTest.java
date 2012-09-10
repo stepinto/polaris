@@ -68,6 +68,22 @@ public class TokenExtractorTest {
     }
 
     @Test
+    public void testClass_inheritance() throws IOException {
+        String code = "class A extends B implements C, D {}";
+        List<Token> tokens = extractTokensFromCode(code);
+        TypeDeclaration clazz = findUniqueTokenOfKind(tokens, Token.Kind.CLASS_DECLARATION);
+        assertEquals(FullyQualifiedTypeName.of("A"), clazz.getName());
+        List<TypeUsage> usages = filterTokensOfKind(tokens, Token.Kind.TYPE_USAGE);
+        assertEquals(3, usages.size());
+        assertEquals(Token.Span.of(16, 17), usages.get(0).getSpan());
+        assertEquals("B", usages.get(0).getTypeReference().getUnqualifiedName());
+        assertEquals(Token.Span.of(29, 30), usages.get(1).getSpan());
+        assertEquals("C", usages.get(1).getTypeReference().getUnqualifiedName());
+        assertEquals(Token.Span.of(32, 33), usages.get(2).getSpan());
+        assertEquals("D", usages.get(2).getTypeReference().getUnqualifiedName());
+    }
+
+    @Test
     public void testClass_javaDoc() throws IOException {
         String code = "/** doc */ class A {}";
         List<Token> tokens = extractTokensFromCode(code);

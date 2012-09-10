@@ -15,6 +15,7 @@ import japa.parser.ast.Node;
 import japa.parser.ast.body.AnnotationDeclaration;
 import japa.parser.ast.body.ClassOrInterfaceDeclaration;
 import japa.parser.ast.body.VariableDeclarator;
+import japa.parser.ast.type.ClassOrInterfaceType;
 import japa.parser.ast.type.Type;
 import japa.parser.ast.visitor.VoidVisitorAdapter;
 
@@ -85,6 +86,15 @@ public final class TokenExtractor {
                     .setJavaDocComment(javaDoc)
                     .build();
             results.add(typeDeclaration);
+            for (ClassOrInterfaceType superType : Iterables.concat(
+                    nullToEmptyList(node.getExtends()),
+                    nullToEmptyList(node.getImplements()))) {
+                TypeUsage usage = TypeUsage.newBuilder()
+                        .setSpan(findTokenSpan(superType))
+                        .setTypeReference(resolveType(superType))
+                        .build();
+                results.add(usage);
+            }
             typeDeclarationStack.push(typeDeclaration);
             super.visit(node, arg);
             typeDeclarationStack.pop();
@@ -209,6 +219,10 @@ public final class TokenExtractor {
         }
 
         public List<Token> getResults() { return results; }
+
+        private <T> List<T> nullToEmptyList(List<T> list) {
+            return list == null ? ImmutableList.<T>of() : list;
+        }
     }
 
     @VisibleForTesting
