@@ -152,6 +152,10 @@ public class TokenExtractorTest {
         assertEquals("A", field.getClassName());
         assertEquals("n", field.getVariableName());
         assertEquals(ResolvedTypeReference.INTEGER, field.getTypeReferenece());
+        TypeUsage type = findUniqueTokenOfKind(tokens, Token.Kind.TYPE_USAGE);
+        assertEquals(Token.Kind.TYPE_USAGE, type.getKind());
+        assertEquals(Token.Span.of(23, 26), type.getSpan());
+        assertEquals(ResolvedTypeReference.INTEGER, type.getTypeReference());
     }
 
     @Test

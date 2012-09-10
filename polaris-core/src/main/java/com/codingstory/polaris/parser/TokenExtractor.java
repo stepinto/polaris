@@ -139,6 +139,11 @@ public final class TokenExtractor {
         public void visit(japa.parser.ast.body.FieldDeclaration node, Object arg) {
             Preconditions.checkNotNull(node);
             TypeReference type = resolveType(node.getType());
+            TypeUsage typeUsage = TypeUsage.newBuilder()
+                    .setSpan(findTokenSpan(node.getType()))
+                    .setTypeReference(type)
+                    .build();
+            results.add(typeUsage);
             for (VariableDeclarator var : node.getVariables()) {
                 FieldDeclaration field = FieldDeclaration.newBuilder()
                         .setSpan(findTokenSpan(var.getId()))

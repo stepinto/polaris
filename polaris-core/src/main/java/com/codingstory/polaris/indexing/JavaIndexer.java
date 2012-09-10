@@ -88,9 +88,13 @@ public class JavaIndexer implements Closeable {
             TTokenList list = new TTokenList();
             for (Token token : tokens) {
                 if (token instanceof TypeDeclaration) {
-                    list.addToTokens(PojoToThriftConverter.TYPE_DECLARATION_TO_TTOKEN_CONVERTER.apply(
-                            (TypeDeclaration) token));
+                    list.addToTokens(PojoToThriftConverter.convertTypeDeclaration((TypeDeclaration) token));
+                } else if (token instanceof FieldDeclaration) {
+                    list.addToTokens(PojoToThriftConverter.convertFieldDeclaration((FieldDeclaration) token));
+                } else if (token instanceof TypeUsage) {
+                    list.addToTokens(PojoToThriftConverter.convertTypeUsage((TypeUsage) token));
                 }
+                // TODO: Convert more types.
             }
             return serializer.serialize(list);
         } catch (TException e) {

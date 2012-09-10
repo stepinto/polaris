@@ -4,13 +4,11 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
 public class MethodDeclaration extends TokenBase {
-
     private final String packageName;
     private final String className;
     private final String methodName;
 
     public static class Builder {
-
         Span span;
         String packageName;
         String className;

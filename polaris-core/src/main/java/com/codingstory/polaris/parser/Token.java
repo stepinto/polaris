@@ -13,6 +13,7 @@ public interface Token {
         INTERFACE_DECLARATION,
         METHOD_DECLARATION,
         FIELD_DECLARATION,
+        TYPE_USAGE,
     }
 
     public static class Span {

@@ -2,7 +2,8 @@
 <module rename-to='searchui'>
     <!-- Inherit the core Web Toolkit stuff.                        -->
     <inherits name='com.google.gwt.user.User' />
-    <inherits name="com.google.common.collect.Collect"/>
+    <inherits name='com.google.gwt.json.JSON' />
+    <inherits name='com.google.common.collect.Collect'/>
 
     <!-- We need the JUnit module in the main module,               -->
     <!-- otherwise eclipse complains (Google plugin bug?)           -->

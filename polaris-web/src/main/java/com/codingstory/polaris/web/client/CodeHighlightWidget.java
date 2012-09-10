@@ -3,15 +3,16 @@ package com.codingstory.polaris.web.client;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.safehtml.shared.SafeHtmlBuilder;
-import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.HasText;
+import com.google.gwt.safehtml.shared.SafeHtmlUtils;
+import com.google.gwt.user.client.ui.*;
 
 import java.util.List;
+import java.util.Map;
 
 public class CodeHighlightWidget extends Composite implements HasText {
-
     // Since "int" is a prefix of "interface", we have to check "interface" first.
     private static final ImmutableList<String> JAVA_RESERVED_WORDS = ImmutableList.of(
             "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char",
@@ -23,10 +24,11 @@ public class CodeHighlightWidget extends Composite implements HasText {
             "transient", "try", "void", "volatile", "while");
 
     private String text = "";
-    private HTML html = new HTML();
+    private HTMLPanel htmlPanel = new HTMLPanel("");
+    private Map<Long, String> tokenElementIds = Maps.newHashMap();
 
     public CodeHighlightWidget() {
-        initWidget(html);
+        initWidget(htmlPanel);
     }
 
     @Override
@@ -38,6 +40,16 @@ public class CodeHighlightWidget extends Composite implements HasText {
     public void setText(String text) {
         this.text = Preconditions.checkNotNull(text);
         render();
+    }
+
+    public void bindTokenWidget(long offset, Widget widget) {
+        Preconditions.checkArgument(offset >= 0);
+        Preconditions.checkNotNull(widget);
+        String id = tokenElementIds.get(offset);
+        if (id == null) {
+            return;
+        }
+        htmlPanel.addAndReplaceElement(widget, id);
     }
 
     private void render() {
@@ -97,7 +109,9 @@ public class CodeHighlightWidget extends Composite implements HasText {
                     id.append(code.charAt(offset + n));
                     n++;
                 }
-                renderIdentifier(id.toString(), offset, builder);
+                if (n > 0) {
+                    renderIdentifier(id.toString(), offset, builder);
+                }
                 return n;
             }
         });
@@ -113,7 +127,7 @@ public class CodeHighlightWidget extends Composite implements HasText {
         builder.appendHtmlConstant("<pre>");
         lexer.scan(text);
         builder.appendHtmlConstant("</pre>");
-        html.setHTML(builder.toSafeHtml());
+        htmlPanel.add(new HTML(builder.toSafeHtml()));
     }
 
     private static boolean match(String s, int i, String p) {
@@ -133,13 +147,19 @@ public class CodeHighlightWidget extends Composite implements HasText {
     }
 
     private void renderReservedWord(String token, long offset, SafeHtmlBuilder builder) {
-        builder.appendHtmlConstant("<b>");
-        builder.appendEscaped(token);
-        builder.appendHtmlConstant("</b>");
+        builder.appendHtmlConstant("<b>")
+                .appendEscaped(token)
+                .appendHtmlConstant("</b>");
     }
 
     private void renderIdentifier(String id, long offset, SafeHtmlBuilder builder) {
-        builder.appendEscaped(id);
+        // Use <span>id</span> as a place holder
+        String elementId = HTMLPanel.createUniqueId();
+        SafeHtml divTagStart = SafeHtmlUtils.fromTrustedString("<span id=\"" + elementId + "\">");
+        builder.append(divTagStart)
+                .appendEscaped(id)
+                .appendHtmlConstant("</span>");
+        tokenElementIds.put(offset, elementId);
     }
 
     private void renderComment(String comment, SafeHtmlBuilder builder) {
