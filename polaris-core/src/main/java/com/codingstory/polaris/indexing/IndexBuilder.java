@@ -62,7 +62,7 @@ public final class IndexBuilder {
 
         stopWatch.stop();
         LOG.info("Completed.");
-        LOG.info(String.format("Indexed Tokens: %d", stats.tokens));
+        LOG.info(String.format("Indexed tokens: %d", stats.tokens));
         LOG.info(String.format("Indexed source files: %d", stats.successes));
         LOG.info(String.format("Failed: %d", stats.failures));
         LOG.info(String.format("Time elapsed: %.2fs", stopWatch.getTime() / 1000.0));
