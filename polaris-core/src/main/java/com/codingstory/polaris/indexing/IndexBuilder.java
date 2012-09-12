@@ -23,6 +23,7 @@ public final class IndexBuilder {
     public static class Stats {
         public int successes;
         public int failures;
+        public int tokens;
     }
 
     private File indexDirectory;
@@ -61,6 +62,7 @@ public final class IndexBuilder {
 
         stopWatch.stop();
         LOG.info("Completed.");
+        LOG.info(String.format("Indexed Tokens: %d", stats.tokens));
         LOG.info(String.format("Indexed source files: %d", stats.successes));
         LOG.info(String.format("Failed: %d", stats.failures));
         LOG.info(String.format("Time elapsed: %.2fs", stopWatch.getTime() / 1000.0));
@@ -89,6 +91,7 @@ public final class IndexBuilder {
                     try {
                         String filePath = findSourceFilePath(projectDir, file);
                         indexer.indexFile(projectName, filePath, content, tokens);
+                        stats.tokens += tokens.size();
                     } catch (IOException e) {
                         throw new SkipCheckingExceptionWrapper(e);
                     }
