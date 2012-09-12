@@ -29,6 +29,8 @@ public class PageController {
             doSwitchToSearchPage(parameters.get("q"));
         } else if (Objects.equal(page, "source")) {
             doSwitchToSourcePage(parameters.get("file"));
+        } else if (Objects.equal(page, "error")) {
+            doSwitchToErrorPage(parameters.get("msg"));
         } else {
             doSwitchToHomePage();
         }
@@ -50,6 +52,11 @@ public class PageController {
     }
 
     public static void switchToErrorPage(Throwable e) {
+        switchToErrorPage(e.toString());
+    }
+
+    public static void switchToErrorPage(String msg) {
+        History.newItem("p=error&msg=" + URL.encode(msg));
     }
 
     public static void switchToSearchResult(String query) {
@@ -69,9 +76,13 @@ public class PageController {
     }
 
     private static void doSwitchToSourcePage(String fileId) {
-        ViewSourcePage viewSourcePage = new ViewSourcePage(fileId);
         attachWidgetToRootPanel(new ViewSourcePage(fileId));
     }
+
+    private static void doSwitchToErrorPage(String msg) {
+        attachWidgetToRootPanel(ErrorPage.createFromPlainText(msg));
+    }
+
 
     private static void attachWidgetToRootPanel(Widget widget) {
         RootPanel rootPanel = RootPanel.get();
