@@ -150,6 +150,35 @@ public class TokenExtractorTest {
         assertEquals("f", method.getMethodName());
     }
 
+    @Test
+    public void testMethod_complexSignature() throws IOException {
+        String code = "class A { B f(C c, D d) throws E, F { return new B(); } }";
+        List<Token> tokens = extractTokensFromCode(code);
+        MethodDeclaration method = findUniqueTokenOfKind(tokens, Token.Kind.METHOD_DECLARATION);
+        assertEquals("f", method.getMethodName());
+        assertEquals("B", method.getReturnType().getUnqualifiedName());
+        assertEquals(2, method.getParameters().size());
+        assertEquals("C", method.getParameters().get(0).getType().getUnqualifiedName());
+        assertEquals("c", method.getParameters().get(0).getName());
+        assertEquals("D", method.getParameters().get(1).getType().getUnqualifiedName());
+        assertEquals("d", method.getParameters().get(1).getName());
+        assertEquals(2, method.getExceptions().size());
+        assertEquals("E", method.getExceptions().get(0).getUnqualifiedName());
+        assertEquals("F", method.getExceptions().get(1).getUnqualifiedName());
+        List<TypeUsage> typeUsages = filterTokensOfKind(tokens, Token.Kind.TYPE_USAGE);
+        assertEquals(5, typeUsages.size());
+        assertEquals(Token.Span.of(10, 11), typeUsages.get(0).getSpan());
+        assertEquals("B", typeUsages.get(0).getTypeReference().getUnqualifiedName());
+        assertEquals(Token.Span.of(14, 15), typeUsages.get(1).getSpan());
+        assertEquals("C", typeUsages.get(1).getTypeReference().getUnqualifiedName());
+        assertEquals(Token.Span.of(19, 20), typeUsages.get(2).getSpan());
+        assertEquals("D", typeUsages.get(2).getTypeReference().getUnqualifiedName());
+        assertEquals(Token.Span.of(31, 32), typeUsages.get(3).getSpan());
+        assertEquals("E", typeUsages.get(3).getTypeReference().getUnqualifiedName());
+        assertEquals(Token.Span.of(34, 35), typeUsages.get(4).getSpan());
+        assertEquals("F", typeUsages.get(4).getTypeReference().getUnqualifiedName());
+    }
+
     // TODO: testMethod_public
     // TODO: testMethod_private
     // TODO: testMethod_protected

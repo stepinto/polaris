@@ -2,6 +2,7 @@ package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.SkipCheckingExceptionWrapper;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -12,9 +13,12 @@ import japa.parser.TokenMgrError;
 import japa.parser.ast.CompilationUnit;
 import japa.parser.ast.ImportDeclaration;
 import japa.parser.ast.Node;
+import japa.parser.ast.TypeParameter;
 import japa.parser.ast.body.AnnotationDeclaration;
 import japa.parser.ast.body.ClassOrInterfaceDeclaration;
+import japa.parser.ast.body.Parameter;
 import japa.parser.ast.body.VariableDeclarator;
+import japa.parser.ast.expr.NameExpr;
 import japa.parser.ast.type.ClassOrInterfaceType;
 import japa.parser.ast.type.Type;
 import japa.parser.ast.visitor.VoidVisitorAdapter;
@@ -89,10 +93,7 @@ public final class TokenExtractor {
             for (ClassOrInterfaceType superType : Iterables.concat(
                     nullToEmptyList(node.getExtends()),
                     nullToEmptyList(node.getImplements()))) {
-                TypeUsage usage = TypeUsage.newBuilder()
-                        .setSpan(findTokenSpan(superType))
-                        .setTypeReference(resolveType(superType))
-                        .build();
+                TypeUsage usage = buildTypeUsage(superType);
                 results.add(usage);
             }
             typeDeclarationStack.push(typeDeclaration);
@@ -133,11 +134,37 @@ public final class TokenExtractor {
         @Override
         public void visit(japa.parser.ast.body.MethodDeclaration node, Object arg) {
             Preconditions.checkNotNull(node);
+            TypeReference returnType = resolveType(node.getType().toString());
+            results.add(TypeUsage.newBuilder()
+                    .setSpan(findTokenSpan(node.getType()))
+                    .setTypeReference(returnType)
+                    .build());
+            List<MethodDeclaration.Parameter> parameters = Lists.newArrayList();
+            for (Parameter parameter : nullToEmptyList(node.getParameters())) {
+                TypeReference parameterType = resolveType(parameter.getType().toString());
+                results.add(TypeUsage.newBuilder()
+                        .setSpan(findTokenSpan(parameter.getType()))
+                        .setTypeReference(parameterType)
+                        .build());
+                parameters.add(new MethodDeclaration.Parameter(parameterType, parameter.getId().getName()));
+            }
+            List<TypeReference> exceptionTypes = Lists.newArrayList();
+            for (NameExpr throwExpr : nullToEmptyList(node.getThrows())) {
+                TypeReference exceptionType = resolveType(throwExpr.getName());
+                results.add(TypeUsage.newBuilder()
+                        .setSpan(findTokenSpan(throwExpr))
+                        .setTypeReference(exceptionType)
+                        .build());
+                exceptionTypes.add(exceptionType);
+            }
             MethodDeclaration methodDeclaration = MethodDeclaration.newBuilder()
                     .setSpan(findTokenSpan(node))
                     .setPackageName(findPackageName())
                     .setClassName(findClassName())
                     .setMethodName(node.getName())
+                    .setReturnType(returnType)
+                    .setParameters(parameters)
+                    .setExceptions(exceptionTypes)
                     .build();
             results.add(methodDeclaration);
             methodDeclarationStack.push(methodDeclaration);
@@ -148,7 +175,7 @@ public final class TokenExtractor {
         @Override
         public void visit(japa.parser.ast.body.FieldDeclaration node, Object arg) {
             Preconditions.checkNotNull(node);
-            TypeReference type = resolveType(node.getType());
+            TypeReference type = resolveType(node.getType().toString());
             TypeUsage typeUsage = TypeUsage.newBuilder()
                     .setSpan(findTokenSpan(node.getType()))
                     .setTypeReference(type)
@@ -171,8 +198,14 @@ public final class TokenExtractor {
             return typeDeclarationStack.getLast().getName().getTypeName();
         }
 
-        private TypeReference resolveType(Type type) {
-            String name = type.toString();
+        private TypeUsage buildTypeUsage(Node type) {
+            return TypeUsage.newBuilder()
+                    .setSpan(findTokenSpan(type))
+                    .setTypeReference(resolveType(type.toString()))
+                    .build();
+        }
+
+        private TypeReference resolveType(String name) {
             TypeReference typeReference = PrimitiveTypeResolver.resolve(name);
             if (typeReference != null) {
                 return typeReference;
