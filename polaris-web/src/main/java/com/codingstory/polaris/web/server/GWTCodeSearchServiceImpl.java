@@ -6,6 +6,7 @@ import com.codingstory.polaris.web.client.CodeSearchService;
 import com.codingstory.polaris.web.shared.SearchResultDto;
 import com.google.common.base.Function;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableAsList_CustomFieldSerializer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
@@ -19,47 +20,8 @@ public class GWTCodeSearchServiceImpl extends RemoteServiceServlet implements Co
     private static final Log LOG = LogFactory.getLog(GWTCodeSearchServiceImpl.class);
 
     @Override
-    public SearchResultDto search(String query) {
-        try {
-            Stopwatch stopwatch = new Stopwatch().start();
-            SrcSearcher search = new SrcSearcher("index");
-            List<Result> results = search.search(query, 100);
-            SearchResultDto searchResultDto = new SearchResultDto();
-            searchResultDto.setEntries(ImmutableList.copyOf(
-                    Lists.transform(results, new Function<Result, SearchResultDto.Entry>() {
-                        @Override
-                        public SearchResultDto.Entry apply(Result result) {
-                            return convertSearchResultToDtoEntry(result);
-                        }
-                    })));
-            searchResultDto.setLatency(stopwatch.elapsedMillis());
-            return searchResultDto;
-        } catch (Exception e) {
-            LOG.error("Caught exception", e);
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public String readFile(String fileId) {
-        try {
-            SrcSearcher searcher = new SrcSearcher("index");
-            return searcher.getContent(Hex.decodeHex(fileId.toCharArray()));
-        } catch (Exception e) {
-            LOG.error("Caught exception", e);
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
     public List<String> completeQuery(String query, int limit) {
-        try {
-            SrcSearcher searcher = new SrcSearcher("index");
-            return searcher.completeQuery(query, limit);
-        } catch (Exception e) {
-            LOG.error("Caught exception", e);
-            throw new RuntimeException(e);
-        }
+        return ImmutableList.of();
     }
 
     private SearchResultDto.Entry convertSearchResultToDtoEntry(Result result) {

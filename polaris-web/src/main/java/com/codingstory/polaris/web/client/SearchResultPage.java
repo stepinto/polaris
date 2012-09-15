@@ -1,7 +1,9 @@
 package com.codingstory.polaris.web.client;
 
+import com.codingstory.polaris.web.client.stub.CodeSearchStub;
 import com.codingstory.polaris.web.shared.SearchResultDto;
 import com.google.common.base.Stopwatch;
+import com.google.gwt.core.client.Callback;
 import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.core.shared.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -13,13 +15,16 @@ import com.google.gwt.uibinder.client.UiHandler;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.*;
 
+import static com.codingstory.polaris.web.client.stub.CodeSearchStub.SearchRequest;
+import static com.codingstory.polaris.web.client.stub.CodeSearchStub.SearchResponse;
+import static com.codingstory.polaris.web.client.stub.CodeSearchStub.StatusCode;
+
 import java.util.logging.Logger;
 
 public class SearchResultPage extends Composite {
     interface MyUiBinder extends UiBinder<HTMLPanel, SearchResultPage> {
     }
     private static final MyUiBinder UI_BINDER = GWT.create(MyUiBinder.class);
-    private static final CodeSearchServiceAsync RPC_SERVICE = GWT.create(CodeSearchService.class);
     private static final Logger LOGGER = Logger.getLogger(SearchResultPage.class.getName());
 
     @UiField
@@ -65,23 +70,30 @@ public class SearchResultPage extends Composite {
     private void executeSearch(String query) {
         final Stopwatch stopwatch = new Stopwatch().start();
         searchBox.setText(query);
-        RPC_SERVICE.search(query, new AsyncCallback<SearchResultDto>() {
+        SearchRequest req = new SearchRequest();
+        req.setQuery(query);
+        CodeSearchStub.search(req, new Callback<SearchResponse, Throwable>() {
             @Override
-            public void onFailure(Throwable caught) {
-                enableSearchPanel(true);
-                LOGGER.warning(caught.toString());
+            public void onFailure(Throwable e) {
+                PageController.switchToErrorPage(e);
             }
 
             @Override
-            public void onSuccess(SearchResultDto searchResults) {
+            public void onSuccess(SearchResponse resp) {
+                enableSearchPanel(true);
+                if (resp.getStatus() != StatusCode.OK) {
+                    PageController.switchToErrorPage("Got " + resp.getStatus() + " during search");
+                    return;
+                }
                 searchResultListPanel.clear();
-                for (SearchResultDto.Entry result : searchResults.getEntries()) {
+                for (SearchResponse.Entry result : resp.getEntries()) {
                     String href = "p=source&file=" + result.getFileId();
                     SearchResultEntryWidget entryWidget = new SearchResultEntryWidget(result, href);
                     searchResultListPanel.add(entryWidget);
                 }
-                latencyLabel.setText("Latency: " + String.valueOf(searchResults.getLatency()) + " ms");
-                enableSearchPanel(true);
+                long serverLatency = resp.getLatency();
+                long rpcLatency = stopwatch.elapsedMillis() - serverLatency;
+                latencyLabel.setText("Server latency: " + serverLatency + " ms; RPC latency: " + rpcLatency + " ms");
             }
         });
     }

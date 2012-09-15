@@ -13,6 +13,8 @@ import com.google.gwt.user.client.ui.HTMLPanel;
 import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.gwt.user.client.ui.Label;
 
+import static com.codingstory.polaris.web.client.stub.CodeSearchStub.SearchResponse;
+
 import java.util.Map;
 
 public class SearchResultEntryWidget extends Composite {
@@ -39,7 +41,7 @@ public class SearchResultEntryWidget extends Composite {
     @UiField
     CodeSnippetWidget summaryCodeSnippet;
 
-    public SearchResultEntryWidget(SearchResultDto.Entry entry, String href) {
+    public SearchResultEntryWidget(SearchResponse.Entry entry, String href) {
         Preconditions.checkNotNull(entry);
         Preconditions.checkNotNull(href);
         initWidget(UI_BINDER.createAndBindUi(this));

@@ -1,9 +1,12 @@
 package com.codingstory.polaris.search;
 
+import com.codingstory.polaris.indexing.FileId;
 import com.codingstory.polaris.indexing.TToken;
 import com.codingstory.polaris.indexing.TTokenList;
 import com.google.common.base.Preconditions;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.document.Document;
@@ -27,15 +30,35 @@ import static com.codingstory.polaris.indexing.FieldName.*;
 
 public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeable {
 
-    private static final Log LOGGER = LogFactory.getLog(CodeSearchServiceImpl.class);
+    private static final Log LOG = LogFactory.getLog(CodeSearchServiceImpl.class);
     private final IndexReader reader;
     private final IndexSearcher searcher;
+    private final SrcSearcher srcSearcher;
 
     public CodeSearchServiceImpl(File indexDirectory) throws IOException {
         Preconditions.checkNotNull(indexDirectory);
         Preconditions.checkArgument(indexDirectory.isDirectory());
         reader = IndexReader.open(FSDirectory.open(indexDirectory));
         searcher = new IndexSearcher(reader);
+        srcSearcher = new SrcSearcher(reader);
+    }
+
+    @Override
+    public TSearchResponse search(TSearchRequest req) throws TException {
+        Preconditions.checkNotNull(req);
+        TSearchResponse resp = new TSearchResponse();
+        try {
+            StopWatch stopWatch = new StopWatch();
+            stopWatch.start();
+            resp.setStatus(TStatusCode.OK);
+            resp.setEntries(srcSearcher.search(req.getQuery(), 100));
+            resp.setLatency(stopWatch.getTime());
+            return resp;
+        } catch (Exception e) {
+            LOG.warn("Caught exception", e);
+            resp.setStatus(TStatusCode.UNKNOWN_ERROR);
+            return resp;
+        }
     }
 
     @Override
@@ -43,11 +66,11 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
         Preconditions.checkNotNull(req);
         TSourceResponse resp = new TSourceResponse();
         try {
-            byte[] fileId = req.getFileId();
-            Query query = new TermQuery(new Term(FILE_ID, Hex.encodeHexString(fileId)));
+            FileId fileId = new FileId(req.getFileId());
+            Query query = new TermQuery(new Term(FILE_ID, fileId.getValueAsString()));
             ScoreDoc[] scoreDocs = searcher.search(query, 1).scoreDocs;
             if (scoreDocs.length > 1) {
-                LOGGER.error("Found more than one source files matching " + fileId);
+                LOG.error("Found more than one source files matching " + fileId);
                 resp.setStatus(TStatusCode.UNKNOWN_ERROR);
                 return resp;
             }
@@ -61,10 +84,11 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
             resp.setStatus(TStatusCode.OK);
             resp.setProjectName(doc.get(PROJECT_NAME));
             resp.setFileName(doc.get(FILE_NAME));
-            resp.setContent(doc.getBinaryValue(FILE_CONTENT));
+            resp.setContent(new String(doc.getBinaryValue(FILE_CONTENT)));
             resp.setTokens(deserializeTokens(doc.getBinaryValue(TOKENS)));
             return resp;
         } catch (Exception e) {
+            LOG.warn("Caught exception", e);
             resp.setStatus(TStatusCode.UNKNOWN_ERROR);
             return resp;
         }
@@ -79,7 +103,8 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
 
     @Override
     public void close() throws IOException {
-        reader.close();
-        searcher.close();
+        IOUtils.closeQuietly(reader);
+        IOUtils.closeQuietly(searcher);
+        IOUtils.closeQuietly(srcSearcher);
     }
 }

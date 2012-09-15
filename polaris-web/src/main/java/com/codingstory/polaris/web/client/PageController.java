@@ -1,6 +1,7 @@
 package com.codingstory.polaris.web.client;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.gwt.event.logical.shared.ValueChangeEvent;
@@ -28,7 +29,7 @@ public class PageController {
         if (Objects.equal(page, "search")) {
             doSwitchToSearchPage(parameters.get("q"));
         } else if (Objects.equal(page, "source")) {
-            doSwitchToSourcePage(parameters.get("file"));
+            doSwitchToSourcePage(HexUtils.stringToHex(parameters.get("file")));
         } else if (Objects.equal(page, "error")) {
             doSwitchToErrorPage(parameters.get("msg"));
         } else {
@@ -52,19 +53,23 @@ public class PageController {
     }
 
     public static void switchToErrorPage(Throwable e) {
+        Preconditions.checkNotNull(e);
         switchToErrorPage(e.toString());
     }
 
     public static void switchToErrorPage(String msg) {
+        Preconditions.checkNotNull(msg);
         History.newItem("p=error&msg=" + URL.encode(msg));
     }
 
     public static void switchToSearchResult(String query) {
+        Preconditions.checkNotNull(query);
         History.newItem("p=search&q=" + URL.encode(query));
     }
 
-    public static void switchToViewSource(String fileName) {
-        History.newItem("p=source&file=" + URL.encode(fileName));
+    public static void switchToViewSource(byte[] fileId) {
+        Preconditions.checkNotNull(fileId);
+        History.newItem("p=source&file=" + URL.encode(HexUtils.hexToString(fileId)));
     }
 
     private static void doSwitchToHomePage() {
@@ -75,7 +80,7 @@ public class PageController {
         attachWidgetToRootPanel(new SearchResultPage(query));
     }
 
-    private static void doSwitchToSourcePage(String fileId) {
+    private static void doSwitchToSourcePage(byte[] fileId) {
         attachWidgetToRootPanel(new ViewSourcePage(fileId));
     }
 

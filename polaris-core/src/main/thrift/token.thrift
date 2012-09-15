@@ -1,11 +1,13 @@
 namespace java com.codingstory.polaris.indexing
 
 enum TTokenKind {
+    PACKAGE_DECLARATION = 7,
     CLASS_DECLARATION = 1,
     INTERFACE_DECLARATION = 2,
     ENUM_DECLARATION = 3,
     ANNOTATION_DECLARATION = 4,
     FIELD_DECLARATION = 5,
+    METHOD_DECLARATION = 8,
     TYPE_USAGE = 6,
 }
 

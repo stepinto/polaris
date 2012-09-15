@@ -1,14 +1,13 @@
 package com.codingstory.polaris;
 
-import com.codingstory.polaris.indexing.IndexBuilder;
-import com.codingstory.polaris.indexing.TToken;
-import com.codingstory.polaris.indexing.TTokenKind;
+import com.codingstory.polaris.indexing.*;
 import com.codingstory.polaris.search.*;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.thrift.TException;
@@ -44,7 +43,7 @@ public class CodeSearchEndToEndTest {
 
         TCodeSearchService.Iface searcher = createSearcher();
         TSourceRequest req = new TSourceRequest();
-        req.setFileId(DigestUtils.sha(fileJavaContent.getBytes()));
+        req.setFileId(Hex.encodeHexString(DigestUtils.sha(fileJavaContent.getBytes())));
         TSourceResponse resp = searcher.source(req);
         assertEquals(TStatusCode.OK, resp.getStatus());
         assertEquals("jdk", resp.getProjectName());

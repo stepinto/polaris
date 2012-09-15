@@ -1,16 +1,18 @@
 package com.codingstory.polaris.web.client;
 
+import com.codingstory.polaris.web.client.stub.CodeSearchStub;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
+import com.google.gwt.core.client.Callback;
 import com.google.gwt.core.shared.GWT;
 import com.google.gwt.http.client.*;
-import com.google.gwt.json.client.JSONArray;
-import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONParser;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTMLPanel;
 import com.google.gwt.user.client.ui.InlineHyperlink;
+
+import static com.codingstory.polaris.web.client.stub.CodeSearchStub.*;
 
 public class ViewSourcePage extends Composite {
     interface MyUiBinder extends UiBinder<HTMLPanel, ViewSourcePage> {
@@ -20,56 +22,43 @@ public class ViewSourcePage extends Composite {
     @UiField
     CodeHighlightWidget code;
 
-    public ViewSourcePage(String fileId) {
+    public ViewSourcePage(byte[] fileId) {
+        Preconditions.checkNotNull(fileId);
         initWidget(UI_BINDER.createAndBindUi(this));
-        String url = "/source?f=" + URL.encode(fileId);
-        RequestBuilder reqBuilder = new RequestBuilder(RequestBuilder.GET, url);
-        try {
-            reqBuilder.sendRequest(null, new RequestCallback() {
-                @Override
-                public void onResponseReceived(Request req, Response resp) {
-                    if (resp.getStatusCode() != Response.SC_OK) {
-                        // TODO: report error
-                        return;
-                    }
-                    showSourceCode(JSONParser.parseStrict(resp.getText()).isObject());
-                }
+        SourceRequest req = new SourceRequest();
+        req.setFileId(fileId);
+        CodeSearchStub.source(req, new Callback<SourceResponse, Throwable>() {
+            @Override
+            public void onFailure(Throwable e) {
+                PageController.switchToErrorPage(e);
+            }
 
-                @Override
-                public void onError(Request req, Throwable e) {
-                    // TODO: report error
-                }
-            });
-        } catch (RequestException e) {
-            // TODO: report error
-        }
+            @Override
+            public void onSuccess(SourceResponse resp) {
+                showSourceCode(resp);
+            }
+        });
     }
 
-    private void showSourceCode(JSONObject resp) {
+    private void showSourceCode(SourceResponse resp) {
         Preconditions.checkNotNull(resp);
-        String content = resp.get("content").isString().stringValue();
+        String content = resp.getContent();
         code.setText(content);
-        JSONArray tokens = resp.get("tokens").isArray();
-        for (int i = 0; i < tokens.size(); i++) {
-            JSONObject token = tokens.get(i).isObject();
-            int spanFrom = (int) token.get("span").isObject().get("from").isNumber().doubleValue();
-            int spanTo = (int) token.get("span").isObject().get("to").isNumber().doubleValue();
-            if (token.containsKey("typeDeclaration")) {
-                JSONObject typeDecl = token.get("typeDeclaration").isObject();
+        for (Token token : resp.getTokens()) {
+            TokenSpan span = token.getSpan();
+            if (token.hasTypeDeclaration()) {
                 InlineHyperlink link = new InlineHyperlink();
-                String typeName = typeDecl.get("name").isString().stringValue();
-                link.setTargetHistoryToken("p=search&q=FieldTypeName:" + URL.encode(typeName));
-                code.bindTokenWidget(spanFrom, link);
-            } else if (token.containsKey("typeUsage")) {
-                JSONObject typeUsage = token.get("typeUsage").isObject();
+                TypeDeclaration typeDecl = token.getTypeDeclaration();
+                link.setTargetHistoryToken("p=search&q=FieldTypeName:" + URL.encode(typeDecl.getName()));
+                code.bindTokenWidget(span.getFrom(), link);
+            } else if (token.hasTypeUsage()) {
+                TypeReference typeRef = token.getTypeUsage().getTypeRefernece();
                 InlineHyperlink link = new InlineHyperlink();
-                JSONObject typeRef = typeUsage.get("typeReference").isObject();
-                int resolved = (int) typeRef.get("resolved").isNumber().doubleValue();
-                if (resolved == 1) {
-                    String typeName = typeRef.get("candidates").isArray().get(0).isString().stringValue();
+                if (typeRef.isResolved()) {
+                    String typeName = Iterables.getOnlyElement(typeRef.getCandidates());
                     link.setTargetHistoryToken("p=search&q=TypeName:" + URL.encode(typeName));
-                    link.setText(content.substring(spanFrom, spanTo));
-                    code.bindTokenWidget(spanFrom, link);
+                    link.setText(content.substring(span.getFrom(), span.getTo()));
+                    code.bindTokenWidget(span.getFrom(), link);
                 }
             }
         }

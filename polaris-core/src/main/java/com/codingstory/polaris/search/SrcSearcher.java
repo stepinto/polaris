@@ -1,8 +1,11 @@
 package com.codingstory.polaris.search;
 
 import com.codingstory.polaris.indexing.FieldName;
+import com.codingstory.polaris.indexing.FileId;
+import com.codingstory.polaris.indexing.PojoToThriftConverter;
 import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
 import com.codingstory.polaris.parser.Token;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -28,6 +31,7 @@ import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,14 +47,14 @@ import static com.codingstory.polaris.indexing.FieldName.*;
  * Time: 下午11:43
  * To change this template use File | Settings | File Templates.
  */
-public class SrcSearcher {
+public class SrcSearcher implements Closeable {
     private static final Log LOGGER = LogFactory.getLog(SrcSearcher.class);
-    final IndexReader reader;
-    final IndexSearcher searcher;
-    final QueryParser parser;
+    private final IndexReader reader;
+    private final IndexSearcher searcher;
+    private final QueryParser parser;
 
-    public SrcSearcher(String indexDirectory) throws IOException {
-        reader = IndexReader.open(FSDirectory.open(new File(indexDirectory)));
+    public SrcSearcher(IndexReader reader) throws IOException {
+        this.reader = Preconditions.checkNotNull(reader);
         searcher = new IndexSearcher(reader);
         String[] fields = FieldName.ALL_FIELDS.toArray(new String[FieldName.ALL_FIELDS.size()]);
         Map<String, Float> boostMap = Maps.newHashMap();
@@ -60,6 +64,7 @@ public class SrcSearcher {
         parser = new MultiFieldQueryParser(Version.LUCENE_36, fields, new JavaSrcAnalyzer(), boostMap);
     }
 
+    @Override
     public void close() throws IOException {
         searcher.close();
         reader.close();
@@ -71,33 +76,32 @@ public class SrcSearcher {
         return new String(reader.document(docid).getFieldable(FILE_CONTENT).getBinaryValue());
     }
 
-    public List<Result> search(String queryString, int limit) throws ParseException, IOException, InvalidTokenOffsetsException {
+    public List<TSearchResultEntry> search(String queryString, int limit) throws ParseException, IOException, InvalidTokenOffsetsException {
         LOGGER.debug("Query: " + queryString);
         Query query = parser.parse(queryString);
         TopDocs topDocs = searcher.search(query, limit);
         ScoreDoc[] scoreDocs = topDocs.scoreDocs;
-        List<Result> results = new ArrayList<Result>();
+        List<TSearchResultEntry> results = Lists.newArrayList();
         Highlighter highlighter = new Highlighter(new SimpleHTMLFormatter(), new QueryScorer(query));
         Analyzer analyzer = new WhitespaceAnalyzer(Version.LUCENE_36);
         for (ScoreDoc doc : scoreDocs) {
-            Result result = new Result();
+            TSearchResultEntry result = new TSearchResultEntry();
             int docid = doc.doc;
             Document document = reader.document(docid);
             result.setProjectName(document.getFieldable(PROJECT_NAME).stringValue());
-            result.setFilename(document.getFieldable(FILE_NAME).stringValue());
+            result.setFileName(document.getFieldable(FILE_NAME).stringValue());
             byte[] fileId = null;
             try {
                 fileId = Hex.decodeHex(document.getFieldable(FILE_ID).stringValue().toCharArray());
             } catch (DecoderException e) {
                 throw new AssertionError(e);
             }
-            result.setFileId(fileId);
+            result.setFileId(new FileId(fileId).getValueAsString());
             String content = getContent(fileId);
             result.setDocumentId(docid);
-            result.setContent(content);
-            result.setExplanation(searcher.explain(query, docid));
-            result.setKind(Token.Kind.valueOf(document.get(KIND)));
-            LOGGER.debug(result.getExplanation());
+            result.setExplanation(searcher.explain(query, docid).toHtml());
+            result.setKind(PojoToThriftConverter.convertTokenKind(Token.Kind.valueOf(document.get(KIND))));
+            LOGGER.debug(result.getFileName() + "(" + Hex.encodeHexString(fileId) + ")");
             int offset = Integer.parseInt(document.get(OFFSET));
             result.setSummary(getSummary(content, offset));
             results.add(result);
@@ -152,16 +156,5 @@ public class SrcSearcher {
         }
         LOGGER.debug("Candidates: " + results);
         return results;
-    }
-
-    public static void main(String[] args) throws Exception {
-        SrcSearcher searcher = new SrcSearcher("index");
-        List<Result> results = searcher.search("directory", 3);
-        for (Result result : results) {
-            System.out.println(result.getFilename());
-            System.out.println();
-            System.out.println(result.getSummary());
-        }
-        searcher.close();
     }
 }

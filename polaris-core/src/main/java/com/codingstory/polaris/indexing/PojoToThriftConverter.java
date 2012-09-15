@@ -2,6 +2,7 @@ package com.codingstory.polaris.indexing;
 
 import com.codingstory.polaris.parser.*;
 import com.google.common.base.Preconditions;
+import org.apache.commons.codec.binary.Hex;
 
 /**
  * Converters from POJOs to Thrift objects.
@@ -59,9 +60,11 @@ public final class PojoToThriftConverter {
         return result;
     }
 
-    private static TTokenKind convertTokenKind(Token.Kind kind) {
+    public static TTokenKind convertTokenKind(Token.Kind kind) {
         Preconditions.checkNotNull(kind);
         switch (kind) {
+            case PACKAGE_DECLARATION:
+                return TTokenKind.PACKAGE_DECLARATION;
             case CLASS_DECLARATION:
                 return TTokenKind.CLASS_DECLARATION;
             case INTERFACE_DECLARATION:
@@ -72,6 +75,8 @@ public final class PojoToThriftConverter {
                 return TTokenKind.ANNOTATION_DECLARATION;
             case FIELD_DECLARATION :
                 return TTokenKind.FIELD_DECLARATION;
+            case METHOD_DECLARATION:
+                return TTokenKind.METHOD_DECLARATION;
             case TYPE_USAGE:
                 return TTokenKind.TYPE_USAGE;
             default:

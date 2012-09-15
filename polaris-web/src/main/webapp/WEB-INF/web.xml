@@ -9,8 +9,8 @@
         <servlet-class>com.codingstory.polaris.web.server.GWTCodeSearchServiceImpl</servlet-class>
     </servlet>
     <servlet>
-        <servlet-name>source</servlet-name>
-        <servlet-class>com.codingstory.polaris.web.server.SourceServlet</servlet-class>
+        <servlet-name>service</servlet-name>
+        <servlet-class>com.codingstory.polaris.web.server.CodeServiceServlet</servlet-class>
     </servlet>
 
     <servlet-mapping>
@@ -18,7 +18,7 @@
         <url-pattern>/searchui/search</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
-        <servlet-name>source</servlet-name>
-        <url-pattern>/source</url-pattern>
+        <servlet-name>service</servlet-name>
+        <url-pattern>/ajax/*</url-pattern>
     </servlet-mapping>
 </web-app>

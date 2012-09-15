@@ -6,6 +6,11 @@ import com.google.common.base.Preconditions;
 public interface Token {
 
     public static enum Kind {
+        // To add a new kind enum, you need to update:
+        // 1) this file
+        // 2) token.thrift
+        // 3) PojoToThriftConverter
+        // 4) CodeSearchStub
         PACKAGE_DECLARATION,
         CLASS_DECLARATION,
         ENUM_DECLARATION,
