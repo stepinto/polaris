@@ -1,19 +1,30 @@
 package com.codingstory.polaris.web.client;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.gwt.core.client.GWT;
+import com.google.gwt.dom.client.DivElement;
 import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.safehtml.shared.SafeHtmlBuilder;
 import com.google.gwt.safehtml.shared.SafeHtmlUtils;
-import com.google.gwt.user.client.ui.*;
+import com.google.gwt.uibinder.client.UiBinder;
+import com.google.gwt.uibinder.client.UiField;
+import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.HTMLPanel;
+import com.google.gwt.user.client.ui.HasText;
+import com.google.gwt.user.client.ui.Widget;
 
 import java.util.List;
 import java.util.Map;
 
 public class CodeHighlightWidget extends Composite implements HasText {
-    // Since "int" is a prefix of "interface", we have to check "interface" first.
+
+    static interface MyUiBinder extends UiBinder<HTMLPanel, CodeHighlightWidget> {}
+    private static final MyUiBinder UI_BINDER = GWT.create(MyUiBinder.class);
+
     private static final ImmutableList<String> JAVA_RESERVED_WORDS = ImmutableList.of(
             "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char",
             "class", "const", "continue", "default", "do", "double", "else", "enum",
@@ -23,12 +34,17 @@ public class CodeHighlightWidget extends Composite implements HasText {
             "strictfp", "super", "switch", "synchronized", "this", "throw", "throws",
             "transient", "try", "void", "volatile", "while");
 
+    @UiField
+    HTMLPanel htmlPanel;
+    @UiField
+    DivElement lineNumberDivElement;
+    @UiField
+    DivElement codeDivElement;
     private String text = "";
-    private HTMLPanel htmlPanel = new HTMLPanel("");
     private Map<Long, String> tokenElementIds = Maps.newHashMap();
 
     public CodeHighlightWidget() {
-        initWidget(htmlPanel);
+        initWidget(UI_BINDER.createAndBindUi(this));
     }
 
     @Override
@@ -152,7 +168,17 @@ public class CodeHighlightWidget extends Composite implements HasText {
         builder.appendHtmlConstant("<pre>");
         lexer.scan(text);
         builder.appendHtmlConstant("</pre>");
-        htmlPanel.add(new HTML(builder.toSafeHtml()));
+        codeDivElement.setInnerSafeHtml(builder.toSafeHtml());
+
+        SafeHtmlBuilder lineNumberBuilder = new SafeHtmlBuilder();
+        lineNumberBuilder.appendHtmlConstant("<pre>");
+        int lineNo = 0;
+        for (String line : Splitter.on('\n').split(text)) {
+            lineNo++;
+            lineNumberBuilder.appendEscaped(lineNo + "\n");
+        }
+        lineNumberBuilder.appendHtmlConstant("</pre>");
+        lineNumberDivElement.setInnerSafeHtml(lineNumberBuilder.toSafeHtml());
     }
 
     private static boolean match(String s, int i, String p) {
@@ -180,8 +206,8 @@ public class CodeHighlightWidget extends Composite implements HasText {
     private void renderIdentifier(String id, long offset, SafeHtmlBuilder builder) {
         // Use <span>id</span> as a place holder
         String elementId = HTMLPanel.createUniqueId();
-        SafeHtml divTagStart = SafeHtmlUtils.fromTrustedString("<span id=\"" + elementId + "\">");
-        builder.append(divTagStart)
+        SafeHtml tagStart = SafeHtmlUtils.fromTrustedString("<span id=\"" + elementId + "\">");
+        builder.append(tagStart)
                 .appendEscaped(id)
                 .appendHtmlConstant("</span>");
         tokenElementIds.put(offset, elementId);
