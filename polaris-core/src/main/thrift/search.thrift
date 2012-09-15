@@ -35,14 +35,25 @@ struct TSourceRequest {
 }
 
 struct TSourceResponse {
-    1: TStatusCode status,
+    1: TStatusCode status;
     2: string projectName;
     3: string fileName;
     4: string content;
     5: list<token.TToken> tokens;
 }
 
+struct TCompleteRequest {
+    1: string query;
+    2: i32 limit;
+}
+
+struct TCompleteResponse {
+    1: TStatusCode status;
+    2: list<string> entries;
+}
+
 service TCodeSearchService {
     TSearchResponse search(1: TSearchRequest req);
     TSourceResponse source(1: TSourceRequest req);
+    TCompleteResponse complete(1: TCompleteRequest req);
 }

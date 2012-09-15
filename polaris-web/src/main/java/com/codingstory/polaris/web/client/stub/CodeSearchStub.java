@@ -186,7 +186,7 @@ public final class CodeSearchStub {
         }
     }
 
-    public final static class SourceResponse extends JavaScriptObject {
+    public static final class SourceResponse extends JavaScriptObject {
         protected SourceResponse() {}
 
         public StatusCode getStatus() {
@@ -198,7 +198,7 @@ public final class CodeSearchStub {
         }-*/;
 
         public native String getProjectName() /*-{
-            return this.projectName;
+
         }-*/;
 
         public native String getFileName() /*-{
@@ -210,66 +210,34 @@ public final class CodeSearchStub {
         private native JsArray<Token> doGetTokens() /*-{ return this.tokens; }-*/;
     }
 
-    private static byte[] decodeUTF8(byte[] input) {
-        // Thrift (SimpleJsonProtocol) represents bytes as UTF-8 encoded strings. Due to limitation of GWT,
-        // we have to decode it here by ourselves.
-        /*
-        Preconditions.checkNotNull(input);
-        byte[] output = new byte[input.length * 2];
-        int n = 0;
-        StringBuilder temp =  new StringBuilder();
-        for (int i = 0; i < input.length;) {
-            int k;
-            if (input[i] >= 0) {
-                k = 1;
-            } else {
-                k = 1;
-                while (((byteToUint(input[i]) >> (7 - k) & 0x1) == 1)) {
-                    k++;
-                }
-            }
-            int c = dropFirstBits(input[i] & 0xFF, k + 24);
-            i++;
-            for (int j = 0; i < input.length && j + 1 < k; i++, j++) {
-                Preconditions.checkArgument((byteToUint(input[i]) >> 6) == 0x2);
-                c <<= 6;
-                c |= byteToUint(input[i]) & 0x3F;
-            }
-            output[n++] = UintToByte(c / 256);
-            output[n++] = UintToByte(c % 256);
+    public static class CompleteRequest {
+        private String query;
+        private int limit;
+
+        public String getQuery() {
+            return query;
         }
-        byte[] result = new byte[n];
-        System.arraycopy(output, 0, result, 0, n);
-        return result;
-        */
-        String s = new String(input);
-        byte[] result = new byte[s.length() * 2];
-        for (int i = 0; i < s.length(); i++) {
-            int n = (int) s.charAt(i);
-            result[i * 2] = UintToByte(n / 256);
-            result[i * 2 + 1] = UintToByte(n % 256);
+
+        public void setQuery(String query) {
+            this.query = query;
         }
-        return result;
+
+        public int getLimit() {
+            return limit;
+        }
+
+        public void setLimit(int limit) {
+            this.limit = limit;
+        }
     }
 
-    private static byte UintToByte(int n) {
-        Preconditions.checkArgument(0 <= n && n < 256, "n = " + n);
-        if (n >= 128) {
-            n -= 128;
-        }
-        return (byte) n;
-    }
+    public static final class CompleteResponse extends JavaScriptObject {
+        protected CompleteResponse() {}
 
-    private static int byteToUint(byte b) {
-        int n = (int) b;
-        return n < 0 ? n + 256 : n;
-    }
-
-    private static int dropFirstBits(int n, int k) {
-        Preconditions.checkArgument(k < 32);
-        n <<= k;
-        n >>= k;
-        return n;
+        public StatusCode getStatus() { return StatusCode.of(doGetStatus()); }
+        private native int doGetStatus() /*-{ return this.status; }-*/;
+        public List<String> getEntries() { return jsArrayStringToList(doGetEntries()); }
+        private native JsArrayString doGetEntries() /*-{ return this.entries; }-*/;
     }
 
     public static void search(SearchRequest req, Callback<SearchResponse, Throwable> callback) {
@@ -292,6 +260,18 @@ public final class CodeSearchStub {
             @Override
             public SourceResponse apply(String s) {
                 return (SourceResponse) NativeHelper.parseSafeJson(s);
+            }
+        }, callback);
+    }
+
+    public static void complete(CompleteRequest req, Callback<CompleteResponse, Throwable> callback) {
+        Preconditions.checkNotNull(req);
+        Preconditions.checkNotNull(callback);
+        call("complete", "q=" + URL.encode(req.getQuery()) + "&n=" + req.getLimit(),
+                new Function<String, CompleteResponse>() {
+            @Override
+            public CompleteResponse apply(String s) {
+                return (CompleteResponse) NativeHelper.parseSafeJson(s);
             }
         }, callback);
     }

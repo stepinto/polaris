@@ -1,8 +1,6 @@
 package com.codingstory.polaris.web.server;
 
 import com.codingstory.polaris.search.*;
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.thrift.TException;
@@ -17,9 +15,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class CodeServiceServlet extends HttpServlet {
+public class CodeSearchServlet extends HttpServlet {
 
-    private static final Log LOG = LogFactory.getLog(CodeServiceServlet.class);
+    private static final Log LOG = LogFactory.getLog(CodeSearchServlet.class);
     private static final TCodeSearchService.Iface SEARCHER;
     private static final TSerializer JSON_SERIALIZER = new TSerializer(new TSimpleJSONProtocol.Factory());
     private static final String CONTENT_TYPE_JSON = "application/json";
@@ -42,6 +40,8 @@ public class CodeServiceServlet extends HttpServlet {
             runSearch(req, resp);
         } else if (method.equals("source")) {
             runSource(req, resp);
+        } else if (method.equals("complete")) {
+            runComplete(req, resp);
         } else {
             LOG.warn("Bad URI: " + req.getRequestURI());
             resp.setStatus(400);
@@ -74,6 +74,20 @@ public class CodeServiceServlet extends HttpServlet {
             resp.setContentType(CONTENT_TYPE_JSON);
             OutputStream out = resp.getOutputStream();
             out.write(JSON_SERIALIZER.serialize(sourceResp));
+        } catch (TException e) {
+            throw new ServletException(e);
+        }
+    }
+
+    private void runComplete(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
+        try {
+            TCompleteRequest completeReq = new TCompleteRequest();
+            completeReq.setQuery(req.getParameter("q"));
+            completeReq.setLimit(Integer.parseInt(req.getParameter("n")));
+            TCompleteResponse completeResp = SEARCHER.complete(completeReq);
+            resp.setContentType(CONTENT_TYPE_JSON);
+            OutputStream out = resp.getOutputStream();
+            out.write(JSON_SERIALIZER.serialize(completeResp));
         } catch (TException e) {
             throw new ServletException(e);
         }

@@ -5,18 +5,9 @@
 
 <web-app>
     <servlet>
-        <servlet-name>search</servlet-name>
-        <servlet-class>com.codingstory.polaris.web.server.GWTCodeSearchServiceImpl</servlet-class>
-    </servlet>
-    <servlet>
         <servlet-name>service</servlet-name>
-        <servlet-class>com.codingstory.polaris.web.server.CodeServiceServlet</servlet-class>
+        <servlet-class>com.codingstory.polaris.web.server.CodeSearchServlet</servlet-class>
     </servlet>
-
-    <servlet-mapping>
-        <servlet-name>search</servlet-name>
-        <url-pattern>/searchui/search</url-pattern>
-    </servlet-mapping>
     <servlet-mapping>
         <servlet-name>service</servlet-name>
         <url-pattern>/ajax/*</url-pattern>

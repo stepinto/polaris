@@ -4,7 +4,6 @@ import com.codingstory.polaris.indexing.FileId;
 import com.codingstory.polaris.indexing.TToken;
 import com.codingstory.polaris.indexing.TTokenList;
 import com.google.common.base.Preconditions;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
@@ -53,12 +52,11 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
             resp.setStatus(TStatusCode.OK);
             resp.setEntries(srcSearcher.search(req.getQuery(), 100));
             resp.setLatency(stopWatch.getTime());
-            return resp;
         } catch (Exception e) {
             LOG.warn("Caught exception", e);
             resp.setStatus(TStatusCode.UNKNOWN_ERROR);
-            return resp;
         }
+        return resp;
     }
 
     @Override
@@ -86,15 +84,28 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
             resp.setFileName(doc.get(FILE_NAME));
             resp.setContent(new String(doc.getBinaryValue(FILE_CONTENT)));
             resp.setTokens(deserializeTokens(doc.getBinaryValue(TOKENS)));
-            return resp;
         } catch (Exception e) {
             LOG.warn("Caught exception", e);
             resp.setStatus(TStatusCode.UNKNOWN_ERROR);
-            return resp;
         }
+        return resp;
     }
 
-   private List<TToken> deserializeTokens(byte[] bytes) throws TException {
+    @Override
+    public TCompleteResponse complete(TCompleteRequest req) throws TException {
+        Preconditions.checkNotNull(req);
+        TCompleteResponse resp = new TCompleteResponse();
+        try {
+            resp.setStatus(TStatusCode.OK);
+            resp.setEntries(srcSearcher.completeQuery(req.getQuery(), req.getLimit()));
+        } catch (Exception e) {
+            LOG.warn("Caught exception", e);
+            resp.setStatus(TStatusCode.UNKNOWN_ERROR);
+        }
+        return resp;
+    }
+
+    private List<TToken> deserializeTokens(byte[] bytes) throws TException {
        TDeserializer deserializer = new TDeserializer(new TBinaryProtocol.Factory());
        TTokenList tokens = new TTokenList();
        deserializer.deserialize(tokens, bytes);
