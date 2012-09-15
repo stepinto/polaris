@@ -1,11 +1,11 @@
 package com.codingstory.polaris.indexing;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 
 import java.util.Arrays;
-import java.util.Objects;
 
 /**
  * An unique identifier of a source file, which is the SHA1 hash of file content.
@@ -45,6 +45,6 @@ public class FileId {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof FileId && Objects.equals(value, ((FileId) obj).value);
+        return obj instanceof FileId && Objects.equal(value, ((FileId) obj).value);
     }
 }
