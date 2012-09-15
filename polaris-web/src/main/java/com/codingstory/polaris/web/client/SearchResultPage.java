@@ -1,7 +1,6 @@
 package com.codingstory.polaris.web.client;
 
 import com.codingstory.polaris.web.client.stub.CodeSearchStub;
-import com.codingstory.polaris.web.shared.SearchResultDto;
 import com.google.common.base.Stopwatch;
 import com.google.gwt.core.client.Callback;
 import com.google.gwt.core.client.Scheduler;
@@ -12,14 +11,11 @@ import com.google.gwt.event.dom.client.KeyDownEvent;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
-import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.*;
 
-import static com.codingstory.polaris.web.client.stub.CodeSearchStub.SearchRequest;
-import static com.codingstory.polaris.web.client.stub.CodeSearchStub.SearchResponse;
-import static com.codingstory.polaris.web.client.stub.CodeSearchStub.StatusCode;
-
 import java.util.logging.Logger;
+
+import static com.codingstory.polaris.web.client.stub.CodeSearchStub.*;
 
 public class SearchResultPage extends Composite {
     interface MyUiBinder extends UiBinder<HTMLPanel, SearchResultPage> {
@@ -93,7 +89,7 @@ public class SearchResultPage extends Composite {
                 }
                 long serverLatency = resp.getLatency();
                 long rpcLatency = stopwatch.elapsedMillis() - serverLatency;
-                latencyLabel.setText("Server latency: " + serverLatency + " ms; RPC latency: " + rpcLatency + " ms");
+                latencyLabel.setText("Server latency: " + serverLatency + " ms; Client latency: " + rpcLatency + " ms");
             }
         });
     }

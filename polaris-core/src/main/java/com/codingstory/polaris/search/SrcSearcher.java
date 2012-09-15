@@ -28,13 +28,10 @@ import org.apache.lucene.search.highlight.Highlighter;
 import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 import org.apache.lucene.search.highlight.QueryScorer;
 import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
-import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -99,7 +96,9 @@ public class SrcSearcher implements Closeable {
             result.setFileId(new FileId(fileId).getValueAsString());
             String content = getContent(fileId);
             result.setDocumentId(docid);
-            result.setExplanation(searcher.explain(query, docid).toHtml());
+            Explanation explanation = searcher.explain(query, docid);
+            result.setScore(explanation.getValue());
+            result.setExplanation(explanation.toHtml());
             result.setKind(PojoToThriftConverter.convertTokenKind(Token.Kind.valueOf(document.get(KIND))));
             LOGGER.debug(result.getFileName() + "(" + Hex.encodeHexString(fileId) + ")");
             int offset = Integer.parseInt(document.get(OFFSET));
