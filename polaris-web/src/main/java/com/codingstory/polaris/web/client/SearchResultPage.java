@@ -8,6 +8,7 @@ import com.google.gwt.core.shared.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.KeyCodes;
 import com.google.gwt.event.dom.client.KeyDownEvent;
+import com.google.gwt.http.client.URL;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
@@ -83,7 +84,7 @@ public class SearchResultPage extends Composite {
                 }
                 searchResultListPanel.clear();
                 for (SearchResponse.Entry result : resp.getEntries()) {
-                    String href = "p=source&file=" + result.getFileId();
+                    String href = "p=source&file=" + URL.encode(result.getFileId()) + "&offset="+ result.getOffset();
                     SearchResultEntryWidget entryWidget = new SearchResultEntryWidget(result, href);
                     searchResultListPanel.add(entryWidget);
                 }

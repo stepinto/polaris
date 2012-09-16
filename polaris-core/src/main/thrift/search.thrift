@@ -16,6 +16,7 @@ struct TSearchResultEntry {
     6: double score;
     7: token.TTokenKind kind;
     8: i64 documentId;
+    9: i64 offset;
 }
 
 struct TSearchRequest {

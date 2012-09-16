@@ -151,6 +151,7 @@ public final class CodeSearchStub {
             public TokenKind getKind() { return TokenKind.of(doGetKind()); }
             private native int doGetKind() /*-{ return this.kind; }-*/;
             // TODO: public long getDocumentId() {}
+            public native int getOffset() /*-{ return this.offset; }-*/;
         }
 
         protected SearchResponse() {}

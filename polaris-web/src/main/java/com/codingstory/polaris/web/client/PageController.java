@@ -29,7 +29,12 @@ public class PageController {
         if (Objects.equal(page, "search")) {
             doSwitchToSearchPage(parameters.get("q"));
         } else if (Objects.equal(page, "source")) {
-            doSwitchToSourcePage(HexUtils.stringToHex(parameters.get("file")));
+            String offsetStr = parameters.get("offset");
+            int offset = 0;
+            if (offsetStr != null) {
+                offset = Integer.parseInt(offsetStr);
+            }
+            doSwitchToSourcePage(HexUtils.stringToHex(parameters.get("file")), offset);
         } else if (Objects.equal(page, "error")) {
             doSwitchToErrorPage(parameters.get("msg"));
         } else {
@@ -80,8 +85,8 @@ public class PageController {
         attachWidgetToRootPanel(new SearchResultPage(query));
     }
 
-    private static void doSwitchToSourcePage(byte[] fileId) {
-        attachWidgetToRootPanel(new ViewSourcePage(fileId));
+    private static void doSwitchToSourcePage(byte[] fileId, int offset) {
+        attachWidgetToRootPanel(new ViewSourcePage(fileId, offset));
     }
 
     private static void doSwitchToErrorPage(String msg) {

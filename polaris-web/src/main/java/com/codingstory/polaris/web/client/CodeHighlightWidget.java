@@ -1,5 +1,6 @@
 package com.codingstory.polaris.web.client;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -7,6 +8,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.dom.client.DivElement;
+import com.google.gwt.dom.client.Element;
+import com.google.gwt.dom.client.NodeList;
 import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.safehtml.shared.SafeHtmlBuilder;
 import com.google.gwt.safehtml.shared.SafeHtmlUtils;
@@ -175,10 +178,37 @@ public class CodeHighlightWidget extends Composite implements HasText {
         int lineNo = 0;
         for (String line : Splitter.on('\n').split(text)) {
             lineNo++;
-            lineNumberBuilder.appendEscaped(lineNo + "\n");
+            lineNumberBuilder.appendHtmlConstant("<span>")
+                    .appendEscaped(String.valueOf(lineNo))
+                    .appendHtmlConstant("</span>")
+                    .appendHtmlConstant("\n");
         }
         lineNumberBuilder.appendHtmlConstant("</pre>");
         lineNumberDivElement.setInnerSafeHtml(lineNumberBuilder.toSafeHtml());
+    }
+
+    public void scrollToOffset(int offset) {
+        Preconditions.checkArgument(offset >= 0);
+        int line = offsetToLine(offset) - 10;
+        NodeList<Element> spans = lineNumberDivElement.getElementsByTagName("span");
+        for (int i = 0; i < spans.getLength(); i++) {
+            Element span = spans.getItem(i);
+            if (Objects.equal(span.getInnerText(), String.valueOf(line + 1))) {
+                span.scrollIntoView();
+                break;
+            }
+        }
+    }
+
+    private int offsetToLine(int offset) {
+        Preconditions.checkArgument(offset >= 0);
+        int line = 0;
+        for (int i = 0; i < offset && i < text.length(); i++) {
+            if (text.charAt(i) == '\n') {
+                line++;
+            }
+        }
+        return line;
     }
 
     private static boolean match(String s, int i, String p) {

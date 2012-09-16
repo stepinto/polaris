@@ -100,6 +100,7 @@ public class SrcSearcher implements Closeable {
             result.setScore(explanation.getValue());
             result.setExplanation(explanation.toHtml());
             result.setKind(PojoToThriftConverter.convertTokenKind(Token.Kind.valueOf(document.get(KIND))));
+            result.setOffset(Long.parseLong(document.get(OFFSET)));
             LOGGER.debug(result.getFileName() + "(" + Hex.encodeHexString(fileId) + ")");
             int offset = Integer.parseInt(document.get(OFFSET));
             result.setSummary(getSummary(content, offset));

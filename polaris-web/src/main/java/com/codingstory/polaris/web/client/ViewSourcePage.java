@@ -22,8 +22,9 @@ public class ViewSourcePage extends Composite {
     @UiField
     CodeHighlightWidget code;
 
-    public ViewSourcePage(byte[] fileId) {
+    public ViewSourcePage(byte[] fileId, final int offset) {
         Preconditions.checkNotNull(fileId);
+        Preconditions.checkArgument(offset >= 0);
         initWidget(UI_BINDER.createAndBindUi(this));
         SourceRequest req = new SourceRequest();
         req.setFileId(fileId);
@@ -35,12 +36,12 @@ public class ViewSourcePage extends Composite {
 
             @Override
             public void onSuccess(SourceResponse resp) {
-                showSourceCode(resp);
+                showSourceCode(resp, offset);
             }
         });
     }
 
-    private void showSourceCode(SourceResponse resp) {
+    private void showSourceCode(SourceResponse resp, int offset) {
         Preconditions.checkNotNull(resp);
         String content = resp.getContent();
         code.setText(content);
@@ -62,5 +63,6 @@ public class ViewSourcePage extends Composite {
                 }
             }
         }
+        code.scrollToOffset(offset);
     }
 }
