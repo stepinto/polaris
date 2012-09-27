@@ -2,7 +2,6 @@ package com.codingstory.polaris.indexing;
 
 import com.codingstory.polaris.parser.*;
 import com.google.common.base.Preconditions;
-import org.apache.commons.codec.binary.Hex;
 
 /**
  * Converters from POJOs to Thrift objects.
@@ -35,7 +34,7 @@ public final class PojoToThriftConverter {
         TFieldDeclaration result = new TFieldDeclaration();
         // TODO: Convert package and class names
         result.setName(fieldDeclaration.getVariableName());
-        result.setTypeReference(convertTypeReference(fieldDeclaration.getTypeReferenece()));
+        result.setTypeReference(convertTypeReference(fieldDeclaration.getTypeReference()));
         return result;
     }
 

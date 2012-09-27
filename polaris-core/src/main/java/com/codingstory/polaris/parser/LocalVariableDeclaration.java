@@ -3,14 +3,14 @@ package com.codingstory.polaris.parser;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
-public class FieldDeclaration extends TokenBase implements VariableDeclaration {
+public class LocalVariableDeclaration extends TokenBase implements VariableDeclaration {
 
-    private final FullMemberName name;
+    private final FullLocalName name;
     private final TypeReference typeReference;
 
     public static class Builder {
         private Span span;
-        private FullMemberName name;
+        private FullLocalName name;
         private TypeReference typeReference;
 
         public Builder setSpan(Span span) {
@@ -18,7 +18,7 @@ public class FieldDeclaration extends TokenBase implements VariableDeclaration {
             return this;
         }
 
-        public Builder setName(FullMemberName name) {
+        public Builder setName(FullLocalName name) {
             this.name = name;
             return this;
         }
@@ -28,31 +28,28 @@ public class FieldDeclaration extends TokenBase implements VariableDeclaration {
             return this;
         }
 
-        public FieldDeclaration build() {
-            Preconditions.checkNotNull(span);
-            Preconditions.checkNotNull(name);
-            Preconditions.checkNotNull(typeReference);
-            return new FieldDeclaration(this);
+        public LocalVariableDeclaration build() {
+            return new LocalVariableDeclaration(this);
         }
     }
 
-    public FieldDeclaration(Builder builder) {
-        super(Kind.FIELD_DECLARATION, builder.span);
-        this.name = builder.name;
-        this.typeReference = builder.typeReference;
+    public LocalVariableDeclaration(Builder builder) {
+        super(Kind.LOCAL_VARIABLE_DECLARATION, Preconditions.checkNotNull(builder.span));
+        this.name = Preconditions.checkNotNull(builder.name);
+        this.typeReference = Preconditions.checkNotNull(builder.typeReference);
     }
 
     public static Builder newBuilder() {
         return new Builder();
     }
 
-    public FullMemberName getName() {
+    public FullLocalName getName() {
         return name;
     }
 
     @Override
     public String getVariableName() {
-        return name.getMemberName();
+        return name.getLocalName();
     }
 
     @Override
@@ -62,7 +59,7 @@ public class FieldDeclaration extends TokenBase implements VariableDeclaration {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(FieldDeclaration.class)
+        return Objects.toStringHelper(this)
                 .add("name", name)
                 .add("typeReference", typeReference)
                 .toString();

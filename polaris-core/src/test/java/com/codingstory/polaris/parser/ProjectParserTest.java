@@ -42,7 +42,7 @@ public class ProjectParserTest {
         List<Token> tokens = parse(ImmutableList.of("package pkg; class A { int a; }"));
         FieldDeclaration field = findUniqueTokenOfKind(tokens, Token.Kind.FIELD_DECLARATION);
         assertNotNull(field);
-        assertTrue(field.getTypeReferenece().isResoleved());
+        assertTrue(field.getTypeReference().isResoleved());
     }
 
     @Test
@@ -50,7 +50,7 @@ public class ProjectParserTest {
         List<Token> tokens = parse(ImmutableList.of("package pkg; class A { B b; }"));
         FieldDeclaration field = findUniqueTokenOfKind(tokens, Token.Kind.FIELD_DECLARATION);
         assertNotNull(field);
-        assertFalse(field.getTypeReferenece().isResoleved());
+        assertFalse(field.getTypeReference().isResoleved());
     }
 
     @Test
@@ -60,8 +60,8 @@ public class ProjectParserTest {
                 "package pkg2; class B {}; "));
         FieldDeclaration field = findUniqueTokenOfKind(tokens, Token.Kind.FIELD_DECLARATION);
         assertNotNull(field);
-        assertTrue(field.getTypeReferenece().isResoleved());
-        ResolvedTypeReference resolved = (ResolvedTypeReference) field.getTypeReferenece();
+        assertTrue(field.getTypeReference().isResoleved());
+        ResolvedTypeReference resolved = (ResolvedTypeReference) field.getTypeReference();
         assertEquals(FullyQualifiedTypeName.of("pkg2.B"), resolved.getName());
     }
 
@@ -72,8 +72,8 @@ public class ProjectParserTest {
                 "package pkg2; class B {}; "));
         FieldDeclaration field = findUniqueTokenOfKind(tokens, Token.Kind.FIELD_DECLARATION);
         assertNotNull(field);
-        assertTrue(field.getTypeReferenece().isResoleved());
-        ResolvedTypeReference resolved = (ResolvedTypeReference) field.getTypeReferenece();
+        assertTrue(field.getTypeReference().isResoleved());
+        ResolvedTypeReference resolved = (ResolvedTypeReference) field.getTypeReference();
         assertEquals(FullyQualifiedTypeName.of("pkg2.B"), resolved.getName());
     }
 
@@ -85,8 +85,8 @@ public class ProjectParserTest {
                 "package pkg2; class B {}; "));
         FieldDeclaration field = findUniqueTokenOfKind(tokens, Token.Kind.FIELD_DECLARATION);
         assertNotNull(field);
-        assertTrue(field.getTypeReferenece().isResoleved());
-        ResolvedTypeReference resolved = (ResolvedTypeReference) field.getTypeReferenece();
+        assertTrue(field.getTypeReference().isResoleved());
+        ResolvedTypeReference resolved = (ResolvedTypeReference) field.getTypeReference();
         assertEquals(FullyQualifiedTypeName.of("pkg1.B"), resolved.getName());
     }
 

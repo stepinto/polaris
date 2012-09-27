@@ -134,10 +134,8 @@ public class JavaIndexer implements Closeable {
 
     private void processField(Document document, FieldDeclaration declaration) {
         addIndexFieldToDocument(document, FIELD_NAME, declaration.getVariableName());
-        String fullName = declaration.getPackageName() + "." + declaration.getClassName() + "."
-                + declaration.getVariableName();
-        addIndexFieldToDocument(document, FIELD_NAME, fullName);
-        TypeReference type = declaration.getTypeReferenece();
+        addIndexFieldToDocument(document, FIELD_NAME, declaration.getName().toString());
+        TypeReference type = declaration.getTypeReference();
         addIndexFieldToDocument(document, FIELD_TYPE_NAME, type.getUnqualifiedName());
         if (type.isResoleved()) {
             ResolvedTypeReference resolved = (ResolvedTypeReference) type;

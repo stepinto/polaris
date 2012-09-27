@@ -193,10 +193,8 @@ public class TokenExtractorTest {
         FieldDeclaration field = findUniqueTokenOfKind(tokens, Token.Kind.FIELD_DECLARATION);
         assertEquals(Token.Kind.FIELD_DECLARATION, field.getKind());
         assertEquals(Token.Span.of(27, 28), field.getSpan());
-        assertEquals("pkg", field.getPackageName());
-        assertEquals("A", field.getClassName());
-        assertEquals("n", field.getVariableName());
-        assertEquals(ResolvedTypeReference.INTEGER, field.getTypeReferenece());
+        assertEquals(FullMemberName.of("pkg.A.n"), field.getName());
+        assertEquals(ResolvedTypeReference.INTEGER, field.getTypeReference());
         TypeUsage type = findUniqueTokenOfKind(tokens, Token.Kind.TYPE_USAGE);
         assertEquals(Token.Kind.TYPE_USAGE, type.getKind());
         assertEquals(Token.Span.of(23, 26), type.getSpan());
@@ -210,7 +208,7 @@ public class TokenExtractorTest {
         FieldDeclaration field = findUniqueTokenOfKind(tokens, Token.Kind.FIELD_DECLARATION);
         assertEquals("l", field.getVariableName());
         assertEquals(new UnresolvedTypeReferenece(ImmutableList.of(FullyQualifiedTypeName.of("java.util.List"))),
-                field.getTypeReferenece());
+                field.getTypeReference());
     }
 
     @Test
@@ -219,7 +217,7 @@ public class TokenExtractorTest {
         List<Token> tokens = extractTokensFromCode(code);
         FieldDeclaration field = findUniqueTokenOfKind(tokens, Token.Kind.FIELD_DECLARATION);
         assertEquals("l", field.getVariableName());
-        TypeReference typeReference = field.getTypeReferenece();
+        TypeReference typeReference = field.getTypeReference();
         assertFalse(typeReference.isResoleved());
         UnresolvedTypeReferenece unresolved = (UnresolvedTypeReferenece) typeReference;
         List<String> candidateFullNames = Lists.transform(unresolved.getCandidates(),
@@ -234,6 +232,20 @@ public class TokenExtractorTest {
     }
 
     // TODO: testField_multiple
+    @Test
+    public void testLocalVariable() throws IOException {
+        String code = "package pkg; class A { void f() { int n; } }";
+        List<Token> tokens = extractTokensFromCode(code);
+        LocalVariableDeclaration var = (LocalVariableDeclaration)
+                findUniqueTokenOfKind(tokens, Token.Kind.LOCAL_VARIABLE_DECLARATION);
+        assertEquals(Token.Span.of(38, 39), var.getSpan());
+        assertEquals(FullLocalName.of("pkg.A.f.n"), var.getName());
+        assertEquals("n", var.getVariableName());
+        assertEquals("int", var.getTypeReference().getUnqualifiedName());
+    }
+
+    // TODO: testLocalVariable_multiple
+    // TODO: testLocalVariable_array
 
     @Test
     public void testLineMonitorInputStream() throws IOException {

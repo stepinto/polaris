@@ -19,6 +19,7 @@ public interface Token {
         METHOD_DECLARATION,
         FIELD_DECLARATION,
         TYPE_USAGE,
+        LOCAL_VARIABLE_DECLARATION,
     }
 
     public static class Span {

@@ -2,7 +2,6 @@ package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.SkipCheckingExceptionWrapper;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -13,14 +12,13 @@ import japa.parser.TokenMgrError;
 import japa.parser.ast.CompilationUnit;
 import japa.parser.ast.ImportDeclaration;
 import japa.parser.ast.Node;
-import japa.parser.ast.TypeParameter;
 import japa.parser.ast.body.AnnotationDeclaration;
 import japa.parser.ast.body.ClassOrInterfaceDeclaration;
 import japa.parser.ast.body.Parameter;
 import japa.parser.ast.body.VariableDeclarator;
 import japa.parser.ast.expr.NameExpr;
+import japa.parser.ast.expr.VariableDeclarationExpr;
 import japa.parser.ast.type.ClassOrInterfaceType;
-import japa.parser.ast.type.Type;
 import japa.parser.ast.visitor.VoidVisitorAdapter;
 
 import java.io.FilterInputStream;
@@ -181,16 +179,36 @@ public final class TokenExtractor {
                     .setTypeReference(type)
                     .build();
             results.add(typeUsage);
-            for (VariableDeclarator var : node.getVariables()) {
+            for (VariableDeclarator varDecl : node.getVariables()) {
                 FieldDeclaration field = FieldDeclaration.newBuilder()
-                        .setSpan(findTokenSpan(var.getId()))
+                        .setSpan(findTokenSpan(varDecl.getId()))
                         .setTypeReference(type)
-                        .setPackageName(findPackageName())
-                        .setClassName(findClassName())
-                        .setVariableName(var.getId().getName())
+                        .setName(FullMemberName.of(findPackageName(), findClassName(), varDecl.getId().getName()))
                         .build();
                 results.add(field);
             }
+            super.visit(node, arg);
+        }
+
+        @Override
+        public void visit(VariableDeclarationExpr node, Object arg) {
+            Preconditions.checkNotNull(node);
+            TypeReference type = resolveType(node.getType().toString());
+            TypeUsage typeUsage = TypeUsage.newBuilder()
+                    .setSpan(findTokenSpan(node.getType()))
+                    .setTypeReference(type)
+                    .build();
+            results.add(typeUsage);
+            for (VariableDeclarator varDecl : node.getVars()) {
+                LocalVariableDeclaration var = LocalVariableDeclaration.newBuilder()
+                        .setSpan(findTokenSpan(varDecl))
+                        .setTypeReference(type)
+                        .setName(FullLocalName.of(findPackageName(), findClassName(),
+                                findMethodName(), varDecl.getId().getName()))
+                        .build();
+                results.add(var);
+            }
+            // TODO: process variable declarations
             super.visit(node, arg);
         }
 
@@ -249,6 +267,10 @@ public final class TokenExtractor {
 
         private String findPackageName() {
             return packageDeclaration == null ? null : packageDeclaration.getPackageName();
+        }
+
+        private String findMethodName() {
+            return methodDeclarationStack.getLast().getMethodName();
         }
 
         public List<Token> getResults() { return results; }
