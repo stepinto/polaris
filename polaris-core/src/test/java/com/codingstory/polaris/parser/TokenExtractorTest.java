@@ -188,6 +188,14 @@ public class TokenExtractorTest {
         assertEquals("<init>", method.getMethodName());
     }
 
+    @Test
+    public void testStaticInitializer() throws IOException {
+        String code = "class A { static { int a; } }";
+        List<Token> tokens = extractTokensFromCode(code);
+        MethodDeclaration method = findUniqueTokenOfKind(tokens, Token.Kind.METHOD_DECLARATION);
+        assertEquals("<cinit>", method.getMethodName());
+    }
+
     // TODO: testMethod_public
     // TODO: testMethod_private
     // TODO: testMethod_protected

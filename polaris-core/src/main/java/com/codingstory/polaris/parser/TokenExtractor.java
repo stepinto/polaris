@@ -15,6 +15,7 @@ import japa.parser.ast.Node;
 import japa.parser.ast.body.AnnotationDeclaration;
 import japa.parser.ast.body.ClassOrInterfaceDeclaration;
 import japa.parser.ast.body.ConstructorDeclaration;
+import japa.parser.ast.body.InitializerDeclaration;
 import japa.parser.ast.body.Parameter;
 import japa.parser.ast.body.VariableDeclarator;
 import japa.parser.ast.expr.NameExpr;
@@ -148,6 +149,18 @@ public final class TokenExtractor {
             Preconditions.checkNotNull(node);
             processMethodDeclaration(null, "<init>", findTokenSpan(node),
                     node.getParameters(), node.getThrows(), new Runnable() {
+                @Override
+                public void run() {
+                    ASTVisitor.super.visit(node, arg);
+                }
+            });
+        }
+
+        @Override
+        public void visit(final InitializerDeclaration node, final Object arg) {
+            Preconditions.checkNotNull(node);
+            processMethodDeclaration(null, "<cinit>", findTokenSpan(node),
+                    null, null, new Runnable() {
                 @Override
                 public void run() {
                     ASTVisitor.super.visit(node, arg);
