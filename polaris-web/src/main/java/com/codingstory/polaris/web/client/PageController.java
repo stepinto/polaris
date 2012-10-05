@@ -14,6 +14,9 @@ import com.google.gwt.user.client.ui.Widget;
 import java.util.Map;
 
 public class PageController {
+
+    private static final MainFrame MAIN_FRAME = new MainFrame();
+
     static {
         History.addValueChangeHandler(new ValueChangeHandler<String>() {
             @Override
@@ -26,15 +29,10 @@ public class PageController {
     public static void handleHistoryToken(String token) {
         Map<String, String> parameters = buildParameters(token);
         String page = parameters.get("p");
-        if (Objects.equal(page, "search")) {
-            doSwitchToSearchPage(parameters.get("q"));
-        } else if (Objects.equal(page, "source")) {
-            String offsetStr = parameters.get("offset");
-            int offset = 0;
-            if (offsetStr != null) {
-                offset = Integer.parseInt(offsetStr);
-            }
-            doSwitchToSourcePage(HexUtils.stringToHex(parameters.get("file")), offset);
+        if (Objects.equal(page, "main")) {
+            String query = parameters.get("q");
+            MAIN_FRAME.executeQuery(query);
+            attachWidgetToRootPanel(MAIN_FRAME);
         } else if (Objects.equal(page, "error")) {
             doSwitchToErrorPage(parameters.get("msg"));
         } else {
@@ -57,6 +55,11 @@ public class PageController {
         return builder.build();
     }
 
+    public static void switchToMainFrame(String query) {
+        Preconditions.checkNotNull(query);
+        History.newItem("p=main&q=" + URL.encode(query));
+    }
+
     public static void switchToErrorPage(Throwable e) {
         Preconditions.checkNotNull(e);
         switchToErrorPage(e.toString());
@@ -67,26 +70,8 @@ public class PageController {
         History.newItem("p=error&msg=" + URL.encode(msg));
     }
 
-    public static void switchToSearchResult(String query) {
-        Preconditions.checkNotNull(query);
-        History.newItem("p=search&q=" + URL.encode(query));
-    }
-
-    public static void switchToViewSource(byte[] fileId) {
-        Preconditions.checkNotNull(fileId);
-        History.newItem("p=source&file=" + URL.encode(HexUtils.hexToString(fileId)));
-    }
-
     private static void doSwitchToHomePage() {
         attachWidgetToRootPanel(new HomePage());
-    }
-
-    private static void doSwitchToSearchPage(String query) {
-        attachWidgetToRootPanel(new SearchResultPage(query));
-    }
-
-    private static void doSwitchToSourcePage(byte[] fileId, int offset) {
-        attachWidgetToRootPanel(new ViewSourcePage(fileId, offset));
     }
 
     private static void doSwitchToErrorPage(String msg) {

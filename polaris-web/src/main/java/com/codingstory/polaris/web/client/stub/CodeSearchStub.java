@@ -1,6 +1,5 @@
 package com.codingstory.polaris.web.client.stub;
 
-import com.codingstory.polaris.web.client.HexUtils;
 import com.codingstory.polaris.web.client.NativeHelper;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -176,13 +175,13 @@ public final class CodeSearchStub {
     }
 
     public static class SourceRequest {
-        private byte[] fileId;
+        private String fileId;
 
-        public byte[] getFileId() {
+        public String getFileId() {
             return fileId;
         }
 
-        public void setFileId(byte[] fileId) {
+        public void setFileId(String fileId) {
             this.fileId = fileId;
         }
     }
@@ -256,8 +255,8 @@ public final class CodeSearchStub {
     public static void source(SourceRequest req, Callback<SourceResponse, Throwable> callback) {
         Preconditions.checkNotNull(req);
         Preconditions.checkNotNull(callback);
-        byte[] fileId = req.getFileId();
-        call("source", "f=" + URL.encode(HexUtils.hexToString(fileId)), new Function<String, SourceResponse>() {
+        String fileId = req.getFileId();
+        call("source", "f=" + URL.encode(fileId), new Function<String, SourceResponse>() {
             @Override
             public SourceResponse apply(String s) {
                 return (SourceResponse) NativeHelper.parseSafeJson(s);

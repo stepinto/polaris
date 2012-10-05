@@ -3,42 +3,14 @@
         xmlns:g='urn:import:com.google.gwt.user.client.ui'
         xmlns:p='urn:import:com.codingstory.polaris.web.client'>
     <ui:style>
-        .top {
-            margin: 10px;
-        }
-        .logo {
-            margin-top: 5px;
-            margin-bottom: 5px;
-            float: left;
-        }
-        .center {
-            margin: 10px;
-        }
-        .searchPanel {
-            clear: both;
-        }
-        .searchBox {
-            width: 200px;
-            height: 17px;
-        }
         .searchResult {
             margin: 10px;
         }
     </ui:style>
     <g:HTMLPanel>
         <div>
-            <div class="{style.top}">
-                <h1 class="{style.logo}">Polaris Code Search</h1>
-                <g:FlowPanel styleName="{style.searchPanel}">
-                    <p:SearchBox ui:field="searchBox" styleName="{style.searchBox}" />
-                    <g:Button ui:field="searchButton">Search</g:Button>
-                </g:FlowPanel>
-            </div>
-            <hr />
-            <div class="{style.center}">
-                <g:Label ui:field="latencyLabel" />
-                <g:FlowPanel styleName="{style.searchResult}" ui:field="searchResultListPanel" />
-            </div>
+            <g:Label ui:field="latencyLabel" />
+            <g:FlowPanel styleName="{style.searchResult}" ui:field="searchResultListPanel" />
         </div>
     </g:HTMLPanel>
 </ui:UiBinder>

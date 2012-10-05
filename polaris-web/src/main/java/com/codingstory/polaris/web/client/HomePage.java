@@ -48,6 +48,6 @@ public class HomePage extends Composite {
     @UiHandler("searchButton")
     void onSearchButton(ClickEvent event) {
         String query = searchBox.getText();
-        PageController.switchToSearchResult(query);
+        PageController.switchToMainFrame(query);
     }
 }

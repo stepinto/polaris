@@ -9,7 +9,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <gwtVersion>2.5.0-rc1</gwtVersion>
+        <gwtVersion>2.5.0-rc2</gwtVersion>
     </properties>
 
     <modules>
