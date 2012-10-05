@@ -12,8 +12,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
 
+import static com.codingstory.polaris.parser.TestUtils.filterTokensOfKind;
+import static com.codingstory.polaris.parser.TestUtils.findUniqueTokenOfKind;
 import static org.junit.Assert.*;
-import static com.codingstory.polaris.parser.TestUtils.*;
 
 public class TokenExtractorTest {
 
@@ -179,6 +180,14 @@ public class TokenExtractorTest {
         assertEquals("F", typeUsages.get(4).getTypeReference().getUnqualifiedName());
     }
 
+    @Test
+    public void testConstructor() throws IOException {
+        String code = "class A { A() {} }";
+        List<Token> tokens = extractTokensFromCode(code);
+        MethodDeclaration method = findUniqueTokenOfKind(tokens, Token.Kind.METHOD_DECLARATION);
+        assertEquals("<init>", method.getMethodName());
+    }
+
     // TODO: testMethod_public
     // TODO: testMethod_private
     // TODO: testMethod_protected
@@ -229,6 +238,14 @@ public class TokenExtractorTest {
                     }
                 });
         assertEquals(ImmutableList.of("java.util.List"), candidateFullNames);
+    }
+
+    @Test
+    public void testField_initialized() throws IOException {
+        String code = "class A { int m = 1; }";
+        List<Token> tokens = extractTokensFromCode(code);
+        FieldDeclaration field = findUniqueTokenOfKind(tokens, Token.Kind.FIELD_DECLARATION);
+        assertEquals("m", field.getVariableName());
     }
 
     // TODO: testField_multiple

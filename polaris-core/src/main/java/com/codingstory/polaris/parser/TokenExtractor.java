@@ -14,11 +14,13 @@ import japa.parser.ast.ImportDeclaration;
 import japa.parser.ast.Node;
 import japa.parser.ast.body.AnnotationDeclaration;
 import japa.parser.ast.body.ClassOrInterfaceDeclaration;
+import japa.parser.ast.body.ConstructorDeclaration;
 import japa.parser.ast.body.Parameter;
 import japa.parser.ast.body.VariableDeclarator;
 import japa.parser.ast.expr.NameExpr;
 import japa.parser.ast.expr.VariableDeclarationExpr;
 import japa.parser.ast.type.ClassOrInterfaceType;
+import japa.parser.ast.type.Type;
 import japa.parser.ast.visitor.VoidVisitorAdapter;
 
 import java.io.FilterInputStream;
@@ -130,15 +132,45 @@ public final class TokenExtractor {
         }
 
         @Override
-        public void visit(japa.parser.ast.body.MethodDeclaration node, Object arg) {
+        public void visit(final japa.parser.ast.body.MethodDeclaration node, final Object arg) {
             Preconditions.checkNotNull(node);
-            TypeReference returnType = resolveType(node.getType().toString());
-            results.add(TypeUsage.newBuilder()
-                    .setSpan(findTokenSpan(node.getType()))
-                    .setTypeReference(returnType)
-                    .build());
+            processMethodDeclaration(node.getType(), node.getName(), findTokenSpan(node),
+                    node.getParameters(), node.getThrows(), new Runnable() {
+                        @Override
+                        public void run() {
+                            ASTVisitor.super.visit(node, arg);
+                        }
+                    });
+        }
+
+        @Override
+        public void visit(final ConstructorDeclaration node, final Object arg) {
+            Preconditions.checkNotNull(node);
+            processMethodDeclaration(null, "<init>", findTokenSpan(node),
+                    node.getParameters(), node.getThrows(), new Runnable() {
+                @Override
+                public void run() {
+                    ASTVisitor.super.visit(node, arg);
+                }
+            });
+        }
+
+        private void processMethodDeclaration(
+                Type type,
+                String methodName,
+                Token.Span span,
+                List<Parameter> methodParameters,
+                List<NameExpr> methodThrows,
+                Runnable visitChildren) {
+            TypeReference returnType = resolveType(type == null ? "void" : type.toString());
+            if (type != null) {
+                results.add(TypeUsage.newBuilder()
+                        .setSpan(findTokenSpan(type))
+                        .setTypeReference(returnType)
+                        .build());
+            }
             List<MethodDeclaration.Parameter> parameters = Lists.newArrayList();
-            for (Parameter parameter : nullToEmptyList(node.getParameters())) {
+            for (Parameter parameter : nullToEmptyList(methodParameters)) {
                 TypeReference parameterType = resolveType(parameter.getType().toString());
                 results.add(TypeUsage.newBuilder()
                         .setSpan(findTokenSpan(parameter.getType()))
@@ -147,7 +179,7 @@ public final class TokenExtractor {
                 parameters.add(new MethodDeclaration.Parameter(parameterType, parameter.getId().getName()));
             }
             List<TypeReference> exceptionTypes = Lists.newArrayList();
-            for (NameExpr throwExpr : nullToEmptyList(node.getThrows())) {
+            for (NameExpr throwExpr : nullToEmptyList(methodThrows)) {
                 TypeReference exceptionType = resolveType(throwExpr.getName());
                 results.add(TypeUsage.newBuilder()
                         .setSpan(findTokenSpan(throwExpr))
@@ -156,17 +188,17 @@ public final class TokenExtractor {
                 exceptionTypes.add(exceptionType);
             }
             MethodDeclaration methodDeclaration = MethodDeclaration.newBuilder()
-                    .setSpan(findTokenSpan(node))
+                    .setSpan(span)
                     .setPackageName(findPackageName())
                     .setClassName(findClassName())
-                    .setMethodName(node.getName())
+                    .setMethodName(methodName)
                     .setReturnType(returnType)
                     .setParameters(parameters)
                     .setExceptions(exceptionTypes)
                     .build();
             results.add(methodDeclaration);
             methodDeclarationStack.push(methodDeclaration);
-            super.visit(node, arg);
+            visitChildren.run();
             methodDeclarationStack.pop();
         }
 
