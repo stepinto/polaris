@@ -55,17 +55,4 @@ public class SearchResultPage extends Composite {
         }
         return page;
     }
-
-//    @UiHandler("searchBox")
-//    void onSearchBoxKeyDown(KeyDownEvent event) {
-//        if (event.getNativeEvent().getKeyCode() == KeyCodes.KEY_ENTER) {
-//            // Defer firing the event to make the query completion happens first.
-//            Scheduler.get().scheduleDeferred(new Scheduler.ScheduledCommand() {
-//                @Override
-//                public void execute() {
-//                    NativeHelper.click(searchButton.getElement());
-//                }
-//            });
-//        }
-//    }
 }

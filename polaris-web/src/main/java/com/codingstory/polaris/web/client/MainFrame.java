@@ -2,10 +2,16 @@ package com.codingstory.polaris.web.client;
 
 import com.google.gwt.core.client.Callback;
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.core.client.Scheduler;
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.KeyCodes;
+import com.google.gwt.event.dom.client.KeyDownEvent;
 import com.google.gwt.regexp.shared.MatchResult;
 import com.google.gwt.regexp.shared.RegExp;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
+import com.google.gwt.uibinder.client.UiHandler;
+import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTMLPanel;
 import com.google.gwt.user.client.ui.Label;
@@ -20,6 +26,8 @@ public class MainFrame extends Composite {
 
     @UiField
     SearchBox searchBox;
+    @UiField
+    Button searchButton;
     @UiField
     SimplePanel mainPanel;
 
@@ -72,4 +80,23 @@ public class MainFrame extends Composite {
         label.setText("Loading...");
         mainPanel.setWidget(label);
     }
+
+    @UiHandler("searchBox")
+    void onSearchBoxKeyDown(KeyDownEvent event) {
+        if (event.getNativeEvent().getKeyCode() == KeyCodes.KEY_ENTER) {
+            // Defer firing the event to make the query completion happens first.
+            Scheduler.get().scheduleDeferred(new Scheduler.ScheduledCommand() {
+                @Override
+                public void execute() {
+                    NativeHelper.click(searchButton.getElement());
+                }
+            });
+        }
+    }
+
+    @UiHandler("searchButton")
+    void onSearchButtonClick(ClickEvent event) {
+        executeQuery(searchBox.getText());
+    }
+
 }
