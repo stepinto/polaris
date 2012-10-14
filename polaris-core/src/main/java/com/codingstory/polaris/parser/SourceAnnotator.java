@@ -62,6 +62,10 @@ public class SourceAnnotator {
                 i = currentTokenTo;
             }
         }
+        while (ch != -1) {
+            pw.write(escape((char) ch));
+            ch = in.read();
+        }
         pw.print("</source>");
         pw.close();
         return sw.toString();

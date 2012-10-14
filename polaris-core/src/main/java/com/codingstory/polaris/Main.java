@@ -1,26 +1,18 @@
 package com.codingstory.polaris;
 
+import com.codingstory.polaris.indexing.FileId;
 import com.codingstory.polaris.indexing.IndexBuilder;
-import com.codingstory.polaris.parser.*;
-import com.codingstory.polaris.search.CodeSearchServiceImpl;
-import com.codingstory.polaris.search.TCodeSearchService;
-import com.codingstory.polaris.search.TSearchRequest;
-import com.codingstory.polaris.search.TSearchResponse;
-import com.codingstory.polaris.search.TSearchResultEntry;
-import com.codingstory.polaris.search.TStatusCode;
+import com.codingstory.polaris.parser.ParserOptions;
+import com.codingstory.polaris.parser.Token;
+import com.codingstory.polaris.parser.TokenExtractor;
+import com.codingstory.polaris.parser.TypeResolver;
+import com.codingstory.polaris.search.*;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.io.FileUtils;
+import com.google.common.collect.Maps;
+import org.apache.commons.cli.*;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.filefilter.HiddenFileFilter;
-import org.apache.commons.io.filefilter.SuffixFileFilter;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.FastDateFormat;
 import org.apache.commons.logging.Log;
@@ -32,22 +24,33 @@ import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.webapp.WebAppContext;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.Format;
-import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 public class Main {
 
     private static final Log LOG = LogFactory.getLog(Main.class);
     private static final Format DATE_FORMAT = FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss");
     private static final int SERVER_DEFAULT_PORT = 5000;
+
+    private static enum RpcCommand {
+        SEARCH,
+        SOURCE
+    }
+    private static Map<String, RpcCommand> RPC_COMMAND_TABLE = Maps.uniqueIndex(
+            ImmutableList.copyOf(RpcCommand.values()),
+            new Function<RpcCommand, String>() {
+                @Override
+                public String apply(RpcCommand command) {
+                    return command.name().toLowerCase();
+                }
+            });
 
     public static void main(String[] args) {
         try {
@@ -61,10 +64,8 @@ public class Main {
                 runParse(commandArgs);
             } else if (command.equalsIgnoreCase("index")) {
                 runIndex(commandArgs);
-            } else if (command.equalsIgnoreCase("searchui")) {
-                runSearchUI(commandArgs);
-            } else if (command.equalsIgnoreCase("search")) {
-                runSearch(commandArgs);
+            } else if (RPC_COMMAND_TABLE.containsKey(command.toLowerCase())) {
+                runRpc(RPC_COMMAND_TABLE.get(command), commandArgs);
             } else if (command.equalsIgnoreCase("searchserver")) {
                 runSearchServer(commandArgs);
             } else {
@@ -143,7 +144,7 @@ public class Main {
         return a.toArray(new String[a.size()]);
     }
 
-    private static void runSearch(List<String> args) throws Exception {
+    private static void runRpc(RpcCommand command, List<String> args) throws Exception {
         Options commandLineOptions = new Options();
         commandLineOptions.addOption(new Option("h", "host", true, "Host to connect"));
         commandLineOptions.addOption(new Option("p", "port", true, "Port to connect"));
@@ -154,27 +155,46 @@ public class Main {
         TTransport transport = new TSocket(host, port);
         TProtocol protocol = new TBinaryProtocol(transport);
         transport.open();
-        TCodeSearchService.Client client = new TCodeSearchService.Client(protocol);
 
-        for (String query : commandLine.getArgs()) {
-            System.out.println("Query: " + query);
-            TSearchRequest req = new TSearchRequest();
-            req.setQuery(query);
-            TSearchResponse resp = client.search(req);
-            if (resp.getStatus() != TStatusCode.OK) {
-                die("Status: " + resp.getStatus());
+        try {
+            TCodeSearchService.Client client = new TCodeSearchService.Client(protocol);
+            if (command == RpcCommand.SEARCH) {
+                for (String query : commandLine.getArgs()) {
+                    System.out.println(">> " + query);
+                    TSearchRequest req = new TSearchRequest();
+                    req.setQuery(query);
+                    TSearchResponse resp = client.search(req);
+                    checkRpcStatus(resp.getStatus());
+                    int i = 1;
+                    System.out.printf("Latency: %.2f ms\n", resp.getLatency() / 1000.0);
+                    System.out.println("Results: " + resp.getCount());
+                    for (TSearchResultEntry e : resp.getEntries()) {
+                        System.out.println("Result #" + i + ": " + e.getKind());
+                        System.out.println(e.getSummary());
+                        i++;
+                    }
+                }
+            } else if (command == RpcCommand.SOURCE) {
+                for (String fileId : commandLine.getArgs()) {
+                    TSourceRequest req = new TSourceRequest();
+                    req.setFileId(new FileId(fileId).getValue());
+                    TSourceResponse resp = client.source(req);
+                    checkRpcStatus(resp.getStatus());
+                    System.out.println(">> " + fileId);
+                    System.out.println(resp.getAnnotations());
+                }
+            } else {
+                LOG.fatal("Unsupported command: " + command);
             }
-            int i = 1;
-            System.out.printf("Latency: %.2f ms\n", resp.getLatency() / 1000.0);
-            System.out.println("Results: " + resp.getCount());
-            for (TSearchResultEntry e : resp.getEntries()) {
-                System.out.println("Result #" + i + ": " + e.getKind());
-                System.out.println(e.getSummary());
-                i++;
-            }
+        } finally {
+            transport.close();
         }
+    }
 
-        transport.close();
+    private static void checkRpcStatus(TStatusCode status) {
+        if (status != TStatusCode.OK) {
+            die("Status: " + status);
+        }
     }
 
     private static void die(String s) {
@@ -182,44 +202,13 @@ public class Main {
         System.exit(1);
     }
 
-    private static void runSearchUI(List<String> args) throws Exception {
-        List<File> warFiles;
-        if (args.isEmpty()) {
-            warFiles = ImmutableList.copyOf(FileUtils.listFiles(new File("."),
-                    new SuffixFileFilter(".war"), HiddenFileFilter.VISIBLE));
-        } else {
-            warFiles = Lists.transform(args, new Function<String, File>() {
-                @Override
-                public File apply(String s) {
-                    return new File(s);
-                }
-            });
-        }
-        if (warFiles.size() != 1) {
-            LOG.error(String.format("Expect exactly one WAR file, but %d was found", warFiles.size()));
-            System.exit(1);
-        }
-        File warFile = Iterables.getOnlyElement(warFiles);
-        LOG.info(String.format("Use war: %s (last modified at %s)",
-                warFile.getPath(),
-                DATE_FORMAT.format(new Date(warFile.lastModified()))));
-        int port = 8080;
-        Server server = new Server(port);
-        WebAppContext ctx = new WebAppContext();
-        ctx.setWar(warFile.getPath());
-        server.setHandler(ctx);
-        server.start();
-        LOG.info(String.format("Listening at http://localhost:%d", port));
-        server.join();
-    }
-
     private static void printHelp() {
         System.out.println("Usage:");
         System.out.println("  polaris parse dir/files...");
         System.out.println("  polaris index dir/files...");
-        System.out.println("  polaris searchui");
         System.out.println("  polaris searchserver");
         System.out.println("  polaris search query");
+        System.out.println("  polaris source file-id");
         System.out.println();
     }
 }
