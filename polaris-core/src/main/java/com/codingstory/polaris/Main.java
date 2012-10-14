@@ -1,10 +1,7 @@
 package com.codingstory.polaris;
 
 import com.codingstory.polaris.indexing.IndexBuilder;
-import com.codingstory.polaris.parser.ParserOptions;
-import com.codingstory.polaris.parser.Token;
-import com.codingstory.polaris.parser.TokenExtractor;
-import com.codingstory.polaris.parser.TypeResolver;
+import com.codingstory.polaris.parser.*;
 import com.codingstory.polaris.search.CodeSearchServiceImpl;
 import com.codingstory.polaris.search.TCodeSearchService;
 import com.codingstory.polaris.search.TSearchRequest;
@@ -91,7 +88,6 @@ public class Main {
                     System.out.println(token);
                 }
             } finally {
-
                 IOUtils.closeQuietly(in);
             }
         }

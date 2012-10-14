@@ -1,11 +1,12 @@
 package com.codingstory.polaris.parser;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.*;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -18,41 +19,44 @@ public class SourceAnnotator {
         }
     };
 
-    public static String annotate(String source, List<Token> tokens) throws IOException {
-        for (int i = 0; i < source.length(); i++) {
-            char ch = source.charAt(i);
-            if (ch > 127) {
-                // TODO: We're not not supporting analysis on non-ASCII files yet.
-                return "<source>" + source + "</source>";
-            }
-        }
-
+    public static String annotate(InputStream in, List<Token> tokens) throws IOException {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         List<Token> sortedTokens = Lists.newArrayList(tokens);
         Collections.sort(sortedTokens, TOKEN_COMPARATOR);
-        int i = 0;
+        long i = 0;
         int j = 0;
         pw.print("<source>");
-        while (i < source.length() && j < sortedTokens.size()) {
+        sortedTokens = ImmutableList.copyOf(Iterables.filter(sortedTokens, new Predicate<Token>() {
+            @Override
+            public boolean apply(Token token) {
+                return accepts(token);
+            }
+        }));
+
+        int ch = in.read();
+        while (ch != -1 && j < sortedTokens.size()) {
             Token currentToken = sortedTokens.get(j);
             long currentTokenFrom = currentToken.getSpan().getFrom();
             if (i < currentTokenFrom) {
-                pw.write(escape(source.charAt(i)));
+                pw.write(escape((char) ch));
+                ch = in.read();
                 i++;
-            } else if (i == currentTokenFrom) {
-                long currentTokenTo = currentToken.getSpan().getTo();
-                if (currentTokenTo > source.length()) {
-                    System.out.println("currentTokenTo = " + currentTokenTo);
-                    System.out.println("currentToken = " + currentToken);
-                    System.out.println("source = " + source);
-                }
-                if (emit(pw, source.substring((int) currentTokenFrom, (int) currentTokenTo), currentToken)) {
-                    i = (int) currentTokenTo;
-                }
+            } else if (i > currentTokenFrom) {
                 j++;
             } else {
-                j++;
+                long currentTokenTo = currentToken.getSpan().getTo();
+                byte[] text = new byte [(int)(currentTokenTo - currentTokenFrom)];
+                int k = 0;
+                while (i < currentTokenTo && ch != -1) {
+                    text[k] = (byte) ch;
+                    ch = in.read();
+                    k++;
+                    i++;
+                }
+                assert ch != -1;
+                emit(pw, new String(text), currentToken);
+                i = currentTokenTo;
             }
         }
         pw.print("</source>");
@@ -60,18 +64,15 @@ public class SourceAnnotator {
         return sw.toString();
     }
 
-    private static boolean emit(PrintWriter out, String text, Token token) {
+    private static boolean accepts(Token token) {
+        return token instanceof FieldDeclaration || token instanceof TypeUsage;
+    }
+
+    private static void emit(PrintWriter out, String text, Token token) {
         if (token instanceof FieldDeclaration) {
             FieldDeclaration field = (FieldDeclaration) token;
             out.printf("<field-declaration field=\"%s\">%s</field-declaration>",
                     escape(field.getName().toString()), escape(text));
-            return true;
-        } else if (token instanceof MethodDeclaration) {
-            return false; // TODO
-//            MethodDeclaration method = (MethodDeclaration) token;
-//            out.printf("<method-declaration method='%s'>%s</method-declaration>",
-//                    method.getMethodName(), escapedText); // TOOD: Use its full name.
-//            return true;
         } else if (token instanceof TypeUsage) {
             TypeReference type = ((TypeUsage) token).getTypeReference();
             String typeName;
@@ -82,9 +83,6 @@ public class SourceAnnotator {
             }
             out.printf("<type-usage type=\"%s\" resolved=\"%s\">%s</type-usage>",
                     escape(typeName), Boolean.toString(type.isResoleved()), escape(text));
-            return true;
-        } else {
-            return false;
         }
     }
 

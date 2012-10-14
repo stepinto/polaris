@@ -19,6 +19,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
 
+import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -76,7 +77,7 @@ public class JavaIndexer implements Closeable {
         document.add(new Field(PROJECT_NAME, projectName, Field.Store.YES, Field.Index.NOT_ANALYZED));
         document.add(new Field(FILE_NAME, filePath, Field.Store.YES, Field.Index.NOT_ANALYZED));
         document.add(new Field(TOKENS, serializeTokens(tokens)));
-        document.add(new Field(SOURCE_ANNOTATIONS, SourceAnnotator.annotate(new String(content), tokens),
+        document.add(new Field(SOURCE_ANNOTATIONS, SourceAnnotator.annotate(new ByteArrayInputStream(content), tokens),
                 Field.Store.YES, Field.Index.NO));
         writer.addDocument(document);
         for (Token token : tokens) {
