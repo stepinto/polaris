@@ -1,3 +1,12 @@
+body {
+  color: #666;
+}
+
+pre {
+  font-family: Consolas, "Lucida Console", Monaco, monospace;
+  font-size: 12;
+}
+
 .header {
   margin-top: 20px;
 }
