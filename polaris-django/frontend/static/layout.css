@@ -30,6 +30,10 @@
   cursor: pointer;
 }
 
+.search_panel {
+  margin-top: 15px;
+}
+
 /* index page specific */
 .index_header {
   text-align: center;

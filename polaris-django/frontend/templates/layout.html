@@ -1,3 +1,5 @@
+{% load tags %}
+
 <html>
   <head>
     {% block title %}
@@ -17,7 +19,15 @@
   <body onload="prettyPrint()">
     {% block header %}
       <div class="header">
-        <a href="/"><img src="/static/logo.png"></a>
+        <div class="logo">
+          <a href="/"><img src="/static/logo.png"></a>
+        </div>
+        <div class="search_panel">
+          <form action="/search" method="GET">
+            {% render_search_box query=query %}
+            <button class="button" type="submit">Search</button>
+          </form>
+        </div>
       </div>
     {% endblock %}
     {% block main %}

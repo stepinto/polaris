@@ -2,18 +2,13 @@
 {% load tags %}
 
 {% block main %}
-  <div class="search_panel2">
-    <form action="/search" method="GET">
-      {% render_search_box query=query %}
-      <button class="button" type="submit">Search</button>
-    </form>
+  <div class="search_main">
+    RPC Latency: {{ resp.latency }}
+    Count: {{ resp.count }}
+    <ul class="search_result">
+      {% for e in resp.entries %}
+        {% render_search_result e %}
+      {% endfor %}
+    </ul>
   </div>
-  <hr>
-  RPC Latency: {{ resp.latency }}
-  Count: {{ resp.count }}
-  <ul class="search_result">
-    {% for e in resp.entries %}
-      {% render_search_result e %}
-    {% endfor %}
-  </ul>
 {% endblock %}
