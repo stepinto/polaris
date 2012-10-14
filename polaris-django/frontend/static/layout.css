@@ -1,0 +1,31 @@
+.header {
+}
+
+.footer {
+  text-align: center;
+}
+
+.index_main {
+  margin-top: 150px;
+  margin-bottom: 150px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 700px;
+}
+
+.search_box {
+  width: 500px;
+  height: 23px;
+}
+
+.search_button {
+  width: 50px;
+}
+
+.source_code {
+}
+
+.search_result {
+  list-style-type: none;
+  padding-left: 0px;
+}

@@ -4,7 +4,6 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
-import javax.validation.constraints.NotNull;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -24,18 +23,18 @@ public class TypeDeclaration extends TokenBase implements JavaDocable {
         private FullyQualifiedTypeName name;
         private String javaDocComment;
 
-        public Builder setKind(@NotNull Kind kind) {
+        public Builder setKind(Kind kind) {
             Preconditions.checkArgument(VALID_KINDS.contains(kind));
             this.kind = kind;
             return this;
         }
 
-        public Builder setSpan(@NotNull Span span) {
+        public Builder setSpan(Span span) {
             this.span = span;
             return this;
         }
 
-        public Builder setName(@NotNull FullyQualifiedTypeName name) {
+        public Builder setName(FullyQualifiedTypeName name) {
             Preconditions.checkNotNull(name);
             this.name = name;
             return this;

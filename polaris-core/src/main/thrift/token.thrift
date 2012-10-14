@@ -1,4 +1,5 @@
 namespace java com.codingstory.polaris.indexing
+namespace py polaris.token
 
 enum TTokenKind {
     PACKAGE_DECLARATION = 7,

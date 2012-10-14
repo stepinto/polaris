@@ -76,6 +76,8 @@ public class JavaIndexer implements Closeable {
         document.add(new Field(PROJECT_NAME, projectName, Field.Store.YES, Field.Index.NOT_ANALYZED));
         document.add(new Field(FILE_NAME, filePath, Field.Store.YES, Field.Index.NOT_ANALYZED));
         document.add(new Field(TOKENS, serializeTokens(tokens)));
+        document.add(new Field(SOURCE_ANNOTATIONS, SourceAnnotator.annotate(new String(content), tokens),
+                Field.Store.YES, Field.Index.NO));
         writer.addDocument(document);
         for (Token token : tokens) {
             indexToken(projectName, filePath, sha1sum, token);

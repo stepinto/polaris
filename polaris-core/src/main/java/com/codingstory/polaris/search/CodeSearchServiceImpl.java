@@ -84,6 +84,7 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
             resp.setFileName(doc.get(FILE_NAME));
             resp.setContent(new String(doc.getBinaryValue(FILE_CONTENT)));
             resp.setTokens(deserializeTokens(doc.getBinaryValue(TOKENS)));
+            resp.setAnnotations(doc.get(SOURCE_ANNOTATIONS));
         } catch (Exception e) {
             LOG.warn("Caught exception", e);
             resp.setStatus(TStatusCode.UNKNOWN_ERROR);

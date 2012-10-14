@@ -1,8 +1,0 @@
-<ui:UiBinder
-        xmlns:ui="urn:ui:com.google.gwt.uibinder"
-        xmlns:g="urn:import:com.google.gwt.user.client.ui"
-        xmlns:p="urn:import:com.codingstory.polaris.web.client">
-    <g:HTMLPanel ui:field="htmlPanel">
-        <p:CodeHighlightWidget ui:field="code" />
-    </g:HTMLPanel>
-</ui:UiBinder>

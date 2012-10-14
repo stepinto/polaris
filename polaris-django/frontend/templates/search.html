@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+{% load tags %}
+
+{% block main %}
+  <div class="search_panel2">
+    <form action="/search" method="GET">
+      {% render_search_box %}
+      <input type="submit" name="Search">
+    </form>
+  </div>
+  <hr>
+  RPC Latency: {{ resp.latency }}
+  Count: {{ resp.count }}
+  <ul class="search_result">
+    {% for e in resp.entries %}
+      {% render_search_result e %}
+    {% endfor %}
+  </ul>
+{% endblock %}

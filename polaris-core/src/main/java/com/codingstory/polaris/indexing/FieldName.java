@@ -16,6 +16,7 @@ public class FieldName {
     public static final String PROJECT_NAME = "ProjectName";
     public static final String TOKENS = "Tokens";
     public static final String TYPE_NAME = "TypeName";
+    public static final String SOURCE_ANNOTATIONS = "SourceAnnotations";
     // TODO: method types
 
     public static final ImmutableSet<String> ALL_FIELDS = ImmutableSet.of(

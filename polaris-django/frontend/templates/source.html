@@ -1,0 +1,8 @@
+{% extends "layout.html" %}
+{% load tags %}
+
+{% block main %}
+  <pre class="prettyprint">
+    {{ source_html|safe }}
+  </pre>
+{% endblock %}

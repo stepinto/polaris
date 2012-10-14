@@ -1,5 +1,6 @@
 include "token.thrift"
 namespace java com.codingstory.polaris.search
+namespace py polaris.search
 
 enum TStatusCode {
     OK = 0,
@@ -10,7 +11,7 @@ enum TStatusCode {
 struct TSearchResultEntry {
     1: string projectName;
     2: string fileName;
-    3: string fileId;
+    3: binary fileId;
     4: string summary;
     5: string explanation;
     6: double score;
@@ -32,7 +33,7 @@ struct TSearchResponse {
 }
 
 struct TSourceRequest {
-    1: string fileId;
+    1: binary fileId;
 }
 
 struct TSourceResponse {
@@ -41,6 +42,7 @@ struct TSourceResponse {
     3: string fileName;
     4: string content;
     5: list<token.TToken> tokens;
+    6: string annotations;
 }
 
 struct TCompleteRequest {

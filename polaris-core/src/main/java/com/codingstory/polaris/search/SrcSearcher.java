@@ -1,7 +1,6 @@
 package com.codingstory.polaris.search;
 
 import com.codingstory.polaris.indexing.FieldName;
-import com.codingstory.polaris.indexing.FileId;
 import com.codingstory.polaris.indexing.PojoToThriftConverter;
 import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
 import com.codingstory.polaris.parser.Token;
@@ -93,7 +92,7 @@ public class SrcSearcher implements Closeable {
             } catch (DecoderException e) {
                 throw new AssertionError(e);
             }
-            result.setFileId(new FileId(fileId).getValueAsString());
+            result.setFileId(fileId);
             String content = getContent(fileId);
             result.setDocumentId(docid);
             Explanation explanation = searcher.explain(query, docid);

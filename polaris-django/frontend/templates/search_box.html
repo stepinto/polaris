@@ -1,0 +1,15 @@
+<input class="search_box" type="text" name="q" id="search_box">
+<script>
+  $(function() {
+    $("#search_box").autocomplete({
+      source: function(req, resp) {
+        $.ajax({
+          url: '/ajax/complete',
+          data: {q: req.term, n: 10},
+          success: function(data) { resp($.parseJSON(data)); },
+          failure: function() { resp(); }
+        });
+      }
+    })
+  });
+</script>

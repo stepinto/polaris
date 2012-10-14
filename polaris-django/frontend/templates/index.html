@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% load tags %}
+
+{% block main %}
+  <div class="index_main">
+    <form action="search" method="GET">
+      {% render_search_box %}
+      <input class="search_button" type="submit" value="Search">
+    </form>
+  </div>
+{% endblock %}
