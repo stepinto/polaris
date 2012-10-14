@@ -2,7 +2,6 @@
 {% load tags %}
 
 {% block main %}
-  <pre class="prettyprint">
-    {{ source_html|safe }}
-  </pre>
+  <!-- // TODO: focus on that element -->
+  <pre class="prettyprint linenums" id="code">{{ source_html|safe }}</pre>
 {% endblock %}

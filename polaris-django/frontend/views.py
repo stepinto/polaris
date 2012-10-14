@@ -41,15 +41,16 @@ def about(req):
   return render_to_response('about.html')
 
 def search(req):
+  query = str(req.GET['q'])
   rpc = init_rpc()
   rpc_req = TSearchRequest()
-  rpc_req.query = str(req.GET['q'])
+  rpc_req.query = query
   rpc_resp = rpc.search(rpc_req)
   check_rpc_status(rpc_resp.status)
   for e in rpc_resp.entries:
     e.fileId = hex_encode(e.fileId)
   # TODO: socket leaked
-  return render_to_response('search.html', {'resp':rpc_resp})
+  return render_to_response('search.html', {'query': query, 'resp':rpc_resp})
 
 def source(req):
   rpc = init_rpc()
@@ -61,8 +62,11 @@ def source(req):
   # f.write(rpc_resp.annotations)
   # f.close()
   html = render_annotated_source(rpc_resp.annotations)
+  line_no = convert_offset_to_line_no(rpc_resp.content, int(req.GET.get('o', '0')))
+  line_no = max(0, line_no - 10) # show the line in center
   # TODO: socket leaked
-  return render_to_response('source.html', {'resp': rpc_resp, 'source_html': html})
+  return render_to_response('source.html', \
+    {'resp': rpc_resp, 'source_html': html, 'line_no': line_no})
 
 def ajax_complete(req):
   rpc = init_rpc()
@@ -113,5 +117,12 @@ def render_annotated_source(source):
   return dom.toxml() \
     .lstrip('<?xml version="1.0" ?><source>') \
     .rstrip('</source>')
+
+def convert_offset_to_line_no(source, offset):
+  line_no = 0
+  for i in xrange(min(len(source), offset)):
+    if source[i] == '\n':
+      line_no += 1
+  return line_no
 
 # vim: ts=2 sw=2 et

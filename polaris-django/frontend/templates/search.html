@@ -4,8 +4,8 @@
 {% block main %}
   <div class="search_panel2">
     <form action="/search" method="GET">
-      {% render_search_box %}
-      <input type="submit" name="Search">
+      {% render_search_box query=query %}
+      <button class="button" type="submit">Search</button>
     </form>
   </div>
   <hr>

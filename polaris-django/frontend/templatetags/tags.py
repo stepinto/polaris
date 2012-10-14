@@ -9,13 +9,13 @@ def render_search_result(search_result):
   assert isinstance(search_result, TSearchResultEntry)
   title = search_result.projectName + search_result.fileName
   kind = kind_to_str(search_result.kind)
-  url = '/source?f=' + search_result.fileId
+  url = '/source?f=' + search_result.fileId + '&o=' + str(search_result.offset);
   summary = search_result.summary
   return {'title': title, 'kind': kind, 'url': url, 'summary': summary}
 
 @register.inclusion_tag('search_box.html')
-def render_search_box():
-  return {}
+def render_search_box(query = ''):
+  return {'query': query}
 
 def kind_to_str(kind):
   if kind == TTokenKind.CLASS_DECLARATION:
@@ -31,6 +31,6 @@ def kind_to_str(kind):
   elif kind == TTokenKind.FIELD_DECLARATION:
     return '[field]'
   else:
-    return ''
+    return '[misc]'
 
 # vim: ts=2 sw=2 et

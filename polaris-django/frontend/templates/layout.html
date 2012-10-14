@@ -15,15 +15,17 @@
     <script src="/static/prettify.js"></script>
   </head>
   <body onload="prettyPrint()">
-    <div class="header">
-      <h1>Polaris Code Search</h1>
-    </div>
-    <div class="page">
-      {% block main %}
-      {% endblock %}
-    </div>
-    <div class="footer">
-      <p>Powered by Lucene and Django</p>
-    </div>
+    {% block header %}
+      <div class="header">
+        <a href="/"><img src="/static/logo.png"></a>
+      </div>
+    {% endblock %}
+    {% block main %}
+    {% endblock %}
+    {% block footer %}
+      <div class="footer">
+        <p>Powered by <a href="http://lucene.apache.org/">Apache Lucene</a></p>
+      </div>
+    {% endblock %}
   </body>
 </html>
