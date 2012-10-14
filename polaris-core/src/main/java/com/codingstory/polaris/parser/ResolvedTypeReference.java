@@ -1,9 +1,9 @@
 package com.codingstory.polaris.parser;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
-import java.util.List;
+import java.util.Set;
 
 public class ResolvedTypeReference implements TypeReference {
 
@@ -15,7 +15,7 @@ public class ResolvedTypeReference implements TypeReference {
     public static final ResolvedTypeReference DOUBLE = initPrimitive("double");
     public static final ResolvedTypeReference CHAR = initPrimitive("char");
     public static final ResolvedTypeReference BOOLEAN = initPrimitive("boolean");
-    public static final List<ResolvedTypeReference> PRIMITIVES = ImmutableList.of(
+    public static final Set<ResolvedTypeReference> PRIMITIVES = ImmutableSet.of(
             BYTE, SHORT, INTEGER, LONG, FLOAT, DOUBLE, CHAR, BOOLEAN);
 
     private final FullyQualifiedTypeName name;

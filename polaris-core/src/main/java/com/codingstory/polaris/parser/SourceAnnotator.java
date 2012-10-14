@@ -6,7 +6,10 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -75,14 +78,17 @@ public class SourceAnnotator {
                     escape(field.getName().toString()), escape(text));
         } else if (token instanceof TypeUsage) {
             TypeReference type = ((TypeUsage) token).getTypeReference();
-            String typeName;
             if (type.isResoleved()) {
-                typeName = ((ResolvedTypeReference) type).getName().toString();
-            } else {
-                typeName = type.getUnqualifiedName();
+                ResolvedTypeReference resolvedType = (ResolvedTypeReference) type;
+                if (!ResolvedTypeReference.PRIMITIVES.contains(resolvedType)) {
+                    String typeName = ((ResolvedTypeReference) type).getName().toString();
+                    out.printf("<type-usage type=\"%s\" resolved=\"%s\">%s</type-usage>",
+                            escape(typeName), Boolean.toString(type.isResoleved()), escape(text));
+                    return;
+                }
             }
-            out.printf("<type-usage type=\"%s\" resolved=\"%s\">%s</type-usage>",
-                    escape(typeName), Boolean.toString(type.isResoleved()), escape(text));
+            // Don't show links for primitive or unresolved types.
+            out.printf(escape(type.getUnqualifiedName()));
         }
     }
 

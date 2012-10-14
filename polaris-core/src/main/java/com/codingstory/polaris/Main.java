@@ -173,6 +173,8 @@ public class Main {
                 i++;
             }
         }
+
+        transport.close();
     }
 
     private static void die(String s) {
