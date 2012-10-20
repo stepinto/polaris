@@ -3,6 +3,7 @@ package com.codingstory.polaris.indexing;
 import com.google.common.collect.ImmutableSet;
 
 public class FieldName {
+    public static final String DIRECTORY_NAME = "DirectoryName";
     public static final String FIELD_NAME = "FieldName";
     public static final String FIELD_TYPE_NAME = "FieldTypeName";
     public static final String FILE_CONTENT = "FileContent";
@@ -14,12 +15,13 @@ public class FieldName {
     public static final String OFFSET = "Offset";
     public static final String PACKAGE_NAME = "PackageName";
     public static final String PROJECT_NAME = "ProjectName";
+    public static final String SOURCE_ANNOTATIONS = "SourceAnnotations";
     public static final String TOKENS = "Tokens";
     public static final String TYPE_NAME = "TypeName";
-    public static final String SOURCE_ANNOTATIONS = "SourceAnnotations";
     // TODO: method types
 
     public static final ImmutableSet<String> ALL_FIELDS = ImmutableSet.of(
+            DIRECTORY_NAME,
             FIELD_NAME,
             FIELD_TYPE_NAME,
             FILE_CONTENT,
@@ -31,6 +33,7 @@ public class FieldName {
             OFFSET,
             PACKAGE_NAME,
             PROJECT_NAME,
+            SOURCE_ANNOTATIONS,
             TOKENS,
             TYPE_NAME);
 }

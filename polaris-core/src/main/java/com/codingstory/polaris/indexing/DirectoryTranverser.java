@@ -1,8 +1,9 @@
 package com.codingstory.polaris.indexing;
 
+import com.google.common.base.Preconditions;
+
 import java.io.File;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.List;
 
 /**
  * Created with IntelliJ IDEA.
@@ -13,37 +14,32 @@ import java.util.Queue;
  */
 public class DirectoryTranverser {
 
-    Queue<File> queue = new LinkedList<File>();
+    public static class FileAndFileIdPair {
+        private File file;
+        private FileId fileId;
 
-    public DirectoryTranverser(String dir) {
-        queue.offer(new File(dir));
+        public FileAndFileIdPair(File file, FileId fileId) {
+            this.file = file;
+            this.fileId = fileId;
+        }
+
+        public File getFile() {
+            return file;
+        }
+
+        public FileId getFileId() {
+            return fileId;
+        }
     }
 
-    public File getNextFile() {
-        if (queue.isEmpty())
-            return null;
-        File f = queue.poll();
-        while (f != null && f.isDirectory()) {
-            if (f.getName().startsWith(".")) {
-                f = queue.poll();
-                continue;
-            }
-            File[] filenames = f.listFiles();
-            for (File subFile : filenames) {
-                queue.offer(subFile);
-            }
-            f = queue.poll();
-        }
-        return f;
+    public static interface Visitor {
+        void visitFile(File file, FileId directoryId, byte[] content);
+        void visitDirectory(File file, List<FileAndFileIdPair> contents);
     }
 
-    public static void main(String[] args) throws Exception {
-        DirectoryTranverser tranverser = new DirectoryTranverser("d:/tddownload/lucene-3.6.1-src");
-        File f;
-        while ((f = tranverser.getNextFile()) != null) {
-            if (!f.getName().endsWith(".java"))
-                continue;
-            System.out.println(f.getAbsolutePath());
-        }
+    public static void traverse(File dir, Visitor visitor) {
+        Preconditions.checkNotNull(dir);
+        Preconditions.checkArgument(dir.isDirectory(), "Expect directory: " + dir);
+        Preconditions.checkNotNull(visitor);
     }
 }

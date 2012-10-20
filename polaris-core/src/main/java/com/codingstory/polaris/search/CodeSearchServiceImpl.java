@@ -88,6 +88,7 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
             resp.setTokens(deserializeTokens(doc.getBinaryValue(TOKENS)));
             resp.setAnnotations(doc.get(SOURCE_ANNOTATIONS));
             resp.setFileId(doc.getBinaryValue(FILE_ID));
+            resp.setDirectoryName(doc.get(DIRECTORY_NAME));
         } catch (Exception e) {
             LOG.warn("Caught exception", e);
             resp.setStatus(TStatusCode.UNKNOWN_ERROR);
@@ -106,6 +107,14 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
             LOG.warn("Caught exception", e);
             resp.setStatus(TStatusCode.UNKNOWN_ERROR);
         }
+        return resp;
+    }
+
+    @Override
+    public TLayoutResponse layout(TLayoutRequest req) throws TException {
+        Preconditions.checkNotNull(req);
+        TLayoutResponse resp = new TLayoutResponse();
+        resp.setStatus(TStatusCode.UNKNOWN_ERROR);
         return resp;
     }
 

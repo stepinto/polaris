@@ -79,6 +79,7 @@ public class JavaIndexer implements Closeable {
         document.add(new Field(TOKENS, serializeTokens(tokens)));
         document.add(new Field(SOURCE_ANNOTATIONS, SourceAnnotator.annotate(new ByteArrayInputStream(content), tokens),
                 Field.Store.YES, Field.Index.NO));
+        document.add(new Field(DIRECTORY_NAME, getParentPath(filePath), Field.Store.YES, Field.Index.NOT_ANALYZED));
         writer.addDocument(document);
         for (Token token : tokens) {
             indexToken(projectName, filePath, sha1sum, token);
@@ -174,5 +175,12 @@ public class JavaIndexer implements Closeable {
     @Override
     public void close() throws IOException {
         writer.close();
+    }
+
+    private static String getParentPath(String path) {
+        Preconditions.checkNotNull(path);
+        int lastSlash = path.lastIndexOf(File.separatorChar);
+        Preconditions.checkArgument(lastSlash != -1, "Bad path: " + path);
+        return path.substring(0, lastSlash);
     }
 }

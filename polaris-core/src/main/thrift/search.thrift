@@ -1,4 +1,6 @@
 include "token.thrift"
+include "layout.thrift"
+
 namespace java com.codingstory.polaris.search
 namespace py polaris.search
 
@@ -47,6 +49,7 @@ struct TSourceResponse {
     5: list<token.TToken> tokens;
     6: string annotations;
     7: binary fileId;
+    8: string directoryName;
 }
 
 struct TCompleteRequest {
@@ -59,8 +62,19 @@ struct TCompleteResponse {
     2: list<string> entries;
 }
 
+struct TLayoutRequest {
+    1: string projectName;
+    2: string directoryName;
+}
+
+struct TLayoutResponse {
+    1: TStatusCode status;
+    2: layout.TDirectoryNode node;
+}
+
 service TCodeSearchService {
     TSearchResponse search(1: TSearchRequest req);
     TSourceResponse source(1: TSourceRequest req);
     TCompleteResponse complete(1: TCompleteRequest req);
+    TLayoutResponse layout(1: TLayoutRequest req);
 }
