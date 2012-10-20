@@ -55,7 +55,8 @@ def search(req):
 def source(req):
   rpc = init_rpc()
   rpc_req = TSourceRequest()
-  rpc_req.fileId = hex_decode(req.GET['f'])
+  rpc_req.projectName = req.GET['project']
+  rpc_req.fileName = req.GET['path']
   rpc_resp = rpc.source(rpc_req)
   check_rpc_status(rpc_resp.status)
   # f = open('/tmp/aa', 'w')

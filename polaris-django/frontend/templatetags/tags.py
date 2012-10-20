@@ -1,3 +1,4 @@
+from urllib import quote
 from django import template
 from polaris.search.ttypes import TSearchResultEntry
 from polaris.token.ttypes import TTokenKind
@@ -9,7 +10,9 @@ def render_search_result(search_result):
   assert isinstance(search_result, TSearchResultEntry)
   title = search_result.projectName + search_result.fileName
   kind = kind_to_str(search_result.kind)
-  url = '/source?f=' + search_result.fileId + '&o=' + str(search_result.offset);
+  # url = '/source?f=' + search_result.fileId + '&o=' + str(search_result.offset);
+  url = '/source?project=%s&path=%s&o=%d' % (quote(search_result.projectName),
+    quote(search_result.fileName), search_result.offset)
   summary = search_result.summary
   return {'title': title, 'kind': kind, 'url': url, 'summary': summary}
 

@@ -5,6 +5,7 @@ namespace py polaris.search
 enum TStatusCode {
     OK = 0,
     FILE_NOT_FOUND = -1,
+    MISSING_FIELDS = -2,
     UNKNOWN_ERROR = -99,
 }
 
@@ -33,7 +34,10 @@ struct TSearchResponse {
 }
 
 struct TSourceRequest {
+    // Either fileId or (projectName and fileName) should exist.
     1: binary fileId;
+    2: string projectName;
+    3: string fileName;
 }
 
 struct TSourceResponse {
@@ -43,6 +47,7 @@ struct TSourceResponse {
     4: string content;
     5: list<token.TToken> tokens;
     6: string annotations;
+    7: binary fileId;
 }
 
 struct TCompleteRequest {

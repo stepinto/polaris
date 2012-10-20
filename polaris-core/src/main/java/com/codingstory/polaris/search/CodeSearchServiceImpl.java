@@ -11,10 +11,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.*;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -64,11 +61,23 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
         Preconditions.checkNotNull(req);
         TSourceResponse resp = new TSourceResponse();
         try {
-            FileId fileId = new FileId(req.getFileId());
-            Query query = new TermQuery(new Term(FILE_ID, fileId.getValueAsString()));
+            Query query;
+            if (req.isSetFileId()) {
+                FileId fileId = new FileId(req.getFileId());
+                query = new TermQuery(new Term(FILE_ID, fileId.getValueAsString()));
+            } else if (req.isSetProjectName() && req.isSetFileName()) {
+                BooleanQuery booleanQuery = new BooleanQuery();
+                booleanQuery.add(new TermQuery(new Term(PROJECT_NAME, req.getProjectName())), BooleanClause.Occur.MUST);
+                booleanQuery.add(new TermQuery(new Term(FILE_NAME, req.getFileName())), BooleanClause.Occur.MUST);
+                query = booleanQuery;
+            } else {
+                resp.setStatus(TStatusCode.MISSING_FIELDS);
+                return resp;
+            }
             ScoreDoc[] scoreDocs = searcher.search(query, 1).scoreDocs;
             if (scoreDocs.length > 1) {
-                LOG.error("Found more than one source files matching " + fileId);
+                // TODO: log filename
+                LOG.error("Found more than one source files matching");
                 resp.setStatus(TStatusCode.UNKNOWN_ERROR);
                 return resp;
             }
@@ -85,6 +94,7 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
             resp.setContent(new String(doc.getBinaryValue(FILE_CONTENT)));
             resp.setTokens(deserializeTokens(doc.getBinaryValue(TOKENS)));
             resp.setAnnotations(doc.get(SOURCE_ANNOTATIONS));
+            resp.setFileId(doc.getBinaryValue(FILE_ID));
         } catch (Exception e) {
             LOG.warn("Caught exception", e);
             resp.setStatus(TStatusCode.UNKNOWN_ERROR);
