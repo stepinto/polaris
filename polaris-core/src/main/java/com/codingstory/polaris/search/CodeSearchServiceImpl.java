@@ -1,6 +1,5 @@
 package com.codingstory.polaris.search;
 
-import com.codingstory.polaris.indexing.FileId;
 import com.codingstory.polaris.indexing.TToken;
 import com.codingstory.polaris.indexing.TTokenList;
 import com.google.common.base.Preconditions;
@@ -61,23 +60,17 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
         Preconditions.checkNotNull(req);
         TSourceResponse resp = new TSourceResponse();
         try {
-            Query query;
-            if (req.isSetFileId()) {
-                FileId fileId = new FileId(req.getFileId());
-                query = new TermQuery(new Term(FILE_ID, fileId.getValueAsString()));
-            } else if (req.isSetProjectName() && req.isSetFileName()) {
-                BooleanQuery booleanQuery = new BooleanQuery();
-                booleanQuery.add(new TermQuery(new Term(PROJECT_NAME, req.getProjectName())), BooleanClause.Occur.MUST);
-                booleanQuery.add(new TermQuery(new Term(FILE_NAME, req.getFileName())), BooleanClause.Occur.MUST);
-                query = booleanQuery;
-            } else {
+            if (!req.isSetProjectName() || !req.isSetFileName()) {
                 resp.setStatus(TStatusCode.MISSING_FIELDS);
                 return resp;
             }
+            BooleanQuery query = new BooleanQuery();
+            query.add(new TermQuery(new Term(PROJECT_NAME, req.getProjectName())), BooleanClause.Occur.MUST);
+            query.add(new TermQuery(new Term(FILE_NAME, req.getFileName())), BooleanClause.Occur.MUST);
             ScoreDoc[] scoreDocs = searcher.search(query, 1).scoreDocs;
             if (scoreDocs.length > 1) {
-                // TODO: log filename
-                LOG.error("Found more than one source files matching");
+                LOG.error("Found more than one source files matching: "
+                        + req.getProjectName() + req.getFileName()); // TODO: join path
                 resp.setStatus(TStatusCode.UNKNOWN_ERROR);
                 return resp;
             }

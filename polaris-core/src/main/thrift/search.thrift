@@ -34,8 +34,7 @@ struct TSearchResponse {
 }
 
 struct TSourceRequest {
-    // Either fileId or (projectName and fileName) should exist.
-    1: binary fileId;
+    // OBSOLETED 1: binary fileId;
     2: string projectName;
     3: string fileName;
 }

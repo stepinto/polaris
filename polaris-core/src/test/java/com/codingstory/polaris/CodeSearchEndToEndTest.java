@@ -9,7 +9,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.thrift.TException;
 import org.junit.Before;
@@ -44,7 +43,8 @@ public class CodeSearchEndToEndTest {
 
         TCodeSearchService.Iface searcher = createSearcher();
         TSourceRequest req = new TSourceRequest();
-        req.setFileId(DigestUtils.sha(fileJavaContent.getBytes()));
+        req.setProjectName("jdk");
+        req.setFileName("/src/java/main/com/java/io/File.java");
         TSourceResponse resp = searcher.source(req);
         assertEquals(TStatusCode.OK, resp.getStatus());
         assertEquals("jdk", resp.getProjectName());
