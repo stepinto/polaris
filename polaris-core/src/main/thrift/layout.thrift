@@ -1,20 +1,17 @@
 namespace java com.codingstory.polaris.indexing.layout
-namespace py polaris.layout
+namespace py polaris.indexing
 
-enum TNodeKind {
+enum TLayoutNodeKind {
     FILE = 1,
     DIRECTORY = 2,
 }
 
-struct TChildNode {
-    1: binary id;
+struct TLayoutNode {
+    1: TLayoutNodeKind kind;
     2: string name;
-    3: TNodeKind kind;
 }
 
-struct TDirectoryNode {
-    1: binary id;
-    2: string name;
-    4: list<TChildNode> children;
+struct TLayoutNodeList {
+    1: list<TLayoutNode> nodes;
 }
 

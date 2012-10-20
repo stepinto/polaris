@@ -12,6 +12,7 @@ pre {
 }
 
 .footer {
+  clear: both;
   text-align: center;
 }
 
@@ -58,3 +59,27 @@ pre {
   width: 475px;
 }
 
+/* source page specific */
+.source_main {
+  margin-left: auto;
+  margin-right: auto;
+  overflow: hidden;
+}
+
+.source_layout_panel {
+  height: 0px;
+  width: 19%;
+  float: left;
+  overflow: auto;
+  border: 1px #CECECE solid;
+}
+
+.source_code_panel {
+  height: 0px;
+  width: 80%;
+  float: left;
+  overflow: auto;
+  border: 1px #CECECE solid;
+}
+
+source 

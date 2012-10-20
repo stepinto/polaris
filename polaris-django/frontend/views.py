@@ -53,10 +53,12 @@ def search(req):
   return render_to_response('search.html', {'query': query, 'resp':rpc_resp})
 
 def source(req):
+  project_name = req.GET['project']
+  file_name = req.GET['path']
   rpc = init_rpc()
   rpc_req = TSourceRequest()
-  rpc_req.projectName = req.GET['project']
-  rpc_req.fileName = req.GET['path']
+  rpc_req.projectName = project_name
+  rpc_req.fileName = file_name
   rpc_resp = rpc.source(rpc_req)
   check_rpc_status(rpc_resp.status)
   # f = open('/tmp/aa', 'w')
@@ -67,7 +69,7 @@ def source(req):
   line_no = max(0, line_no - 10) # show the line in center
   # TODO: socket leaked
   return render_to_response('source.html', \
-    {'resp': rpc_resp, 'source_html': html, 'line_no': line_no})
+    {'source_html': html, 'line_no': line_no})
 
 def ajax_complete(req):
   rpc = init_rpc()

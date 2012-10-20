@@ -1,9 +1,9 @@
 package com.codingstory.polaris.indexing;
 
 import com.google.common.base.Preconditions;
+import com.google.common.io.Files;
 
 import java.io.File;
-import java.util.List;
 
 /**
  * Created with IntelliJ IDEA.
@@ -14,27 +14,8 @@ import java.util.List;
  */
 public class DirectoryTranverser {
 
-    public static class FileAndFileIdPair {
-        private File file;
-        private FileId fileId;
-
-        public FileAndFileIdPair(File file, FileId fileId) {
-            this.file = file;
-            this.fileId = fileId;
-        }
-
-        public File getFile() {
-            return file;
-        }
-
-        public FileId getFileId() {
-            return fileId;
-        }
-    }
-
     public static interface Visitor {
-        void visitFile(File file, FileId directoryId, byte[] content);
-        void visitDirectory(File file, List<FileAndFileIdPair> contents);
+        public void visit(File file);
     }
 
     public static void traverse(File dir, Visitor visitor) {

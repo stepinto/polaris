@@ -1,21 +1,28 @@
 package com.codingstory.polaris.indexing;
 
 import com.codingstory.polaris.SkipCheckingExceptionWrapper;
+import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
+import com.codingstory.polaris.indexing.layout.LayoutIndexer;
 import com.codingstory.polaris.parser.ParserOptions;
 import com.codingstory.polaris.parser.ProjectParser;
 import com.codingstory.polaris.parser.Token;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.HiddenFileFilter;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.Version;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 public final class IndexBuilder {
     private static final Log LOG = LogFactory.getLog(IndexBuilder.class);
@@ -51,13 +58,15 @@ public final class IndexBuilder {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
 
-        final JavaIndexer indexer = new JavaIndexer(indexDirectory);
+        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_36, new JavaSrcAnalyzer());
+        config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
+        IndexWriter writer = new IndexWriter(FSDirectory.open(indexDirectory), config);
         try {
             for (File projectDir : projectDirectories) {
-                buildIndexForProject(projectDir, indexer);
+                buildIndexForProject(projectDir, writer);
             }
         } finally {
-            IOUtils.closeQuietly(indexer);
+            writer.close();
         }
 
         stopWatch.stop();
@@ -68,29 +77,33 @@ public final class IndexBuilder {
         LOG.info(String.format("Time elapsed: %.2fs", stopWatch.getTime() / 1000.0));
     }
 
-    private void buildIndexForProject(final File projectDir, final JavaIndexer indexer) throws IOException {
+    private void buildIndexForProject(final File projectDir, IndexWriter writer) throws IOException {
         Preconditions.checkNotNull(projectDir);
-        Preconditions.checkNotNull(indexer);
+        Preconditions.checkNotNull(writer);
         if (!projectDir.isDirectory()) {
             LOG.error("Expect directory, but file was found: " + projectDir);
             System.exit(1);
         }
         Iterable<File> sourceFiles = FileUtils.listFiles(projectDir,
                 JavaFileFilters.JAVA_SOURCE_FILETER, HiddenFileFilter.VISIBLE);
+        String projectName = projectDir.getName();
 
-        final String projectName = projectDir.getName();
+        // Index source files
         ProjectParser parser = new ProjectParser();
+        final JavaIndexer javaIndexer = new JavaIndexer(writer, projectName);
+        Set<File> sourceDirs = Sets.newHashSet();
         try {
             parser.setParserOptions(parserOptions);
             for (File sourceFile : sourceFiles) {
                 parser.addSourceFile(sourceFile);
+                sourceDirs.add(sourceFile.getParentFile());
             }
             parser.setTokenCollector(new ProjectParser.TokenCollector() {
                 @Override
                 public void collect(File file, byte[] content, List<Token> tokens) {
                     try {
                         String filePath = findSourceFilePath(projectDir, file);
-                        indexer.indexFile(projectName, filePath, content, tokens);
+                        javaIndexer.indexFile(filePath, content, tokens);
                         stats.tokens += tokens.size();
                     } catch (IOException e) {
                         throw new SkipCheckingExceptionWrapper(e);
@@ -104,6 +117,12 @@ public final class IndexBuilder {
         ProjectParser.Stats parserStats = parser.getStats();
         stats.successes += parserStats.successFiles;
         stats.failures += parserStats.failedFiles;
+
+        // Index project layout
+        LayoutIndexer layoutIndexer = new LayoutIndexer(writer, projectName);
+        for (File dir : sourceDirs) {
+            layoutIndexer.indexDirectory(dir);
+        }
     }
 
     private static String findSourceFilePath(File projectDir, File sourceFile) {

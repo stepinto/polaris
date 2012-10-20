@@ -8,6 +8,7 @@ enum TStatusCode {
     OK = 0,
     FILE_NOT_FOUND = -1,
     MISSING_FIELDS = -2,
+    NOT_IMPLEMENTED = -3,
     UNKNOWN_ERROR = -99,
 }
 
@@ -69,7 +70,7 @@ struct TLayoutRequest {
 
 struct TLayoutResponse {
     1: TStatusCode status;
-    2: layout.TDirectoryNode node;
+    2: list<layout.TLayoutNode> entries;
 }
 
 service TCodeSearchService {

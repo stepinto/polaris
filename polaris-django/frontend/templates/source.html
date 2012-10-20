@@ -1,7 +1,35 @@
 {% extends "layout.html" %}
 {% load tags %}
 
+{% block javascripts %}
+  <script>
+    function fix_height() {
+      var window_height = $(window).height();
+      var header_height = $(".header").height();
+      var footer_height = $(".footer").height();
+      var result = window_height - header_height - footer_height - 100;
+      $(".fix_height").css("height", result);
+      $(".fix_height_inner").css("height", result - 10);
+    }
+
+    $(window).resize(function () {
+      fix_height();
+    });
+
+    $(document).ready(function() {
+      fix_height();
+    });
+  </script>
+{% endblock %}
+
 {% block main %}
   <!-- // TODO: focus on that element -->
-  <pre class="prettyprint linenums" id="code">{{ source_html|safe }}</pre>
+  <div class="source_main fix_height">
+    <div class="source_layout_panel fix_height_inner">
+      Place holder for file tree
+    </div>
+    <div class="source_code_panel fix_height_inner">
+      <pre class="prettyprint linenums" id="code">{{ source_html|safe }}</pre>
+    </div>
+  </div>
 {% endblock %}

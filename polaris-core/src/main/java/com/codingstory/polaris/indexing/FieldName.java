@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 
 public class FieldName {
     public static final String DIRECTORY_NAME = "DirectoryName";
+    public static final String DIRECTORY_LAYOUT = "DirectoryLayout";
     public static final String FIELD_NAME = "FieldName";
     public static final String FIELD_TYPE_NAME = "FieldTypeName";
     public static final String FILE_CONTENT = "FileContent";
@@ -22,6 +23,7 @@ public class FieldName {
 
     public static final ImmutableSet<String> ALL_FIELDS = ImmutableSet.of(
             DIRECTORY_NAME,
+            DIRECTORY_LAYOUT,
             FIELD_NAME,
             FIELD_TYPE_NAME,
             FILE_CONTENT,

@@ -114,6 +114,10 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
     public TLayoutResponse layout(TLayoutRequest req) throws TException {
         Preconditions.checkNotNull(req);
         TLayoutResponse resp = new TLayoutResponse();
+        if (!req.isSetProjectName() || !req.isSetDirectoryName()) {
+            resp.setStatus(TStatusCode.MISSING_FIELDS);
+            return resp;
+        }
         resp.setStatus(TStatusCode.UNKNOWN_ERROR);
         return resp;
     }

@@ -1,6 +1,5 @@
 package com.codingstory.polaris.indexing;
 
-import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
 import com.codingstory.polaris.parser.*;
 import com.google.common.base.Preconditions;
 import org.apache.commons.codec.binary.Hex;
@@ -11,16 +10,11 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Fieldable;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
 
 import java.io.ByteArrayInputStream;
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.EnumSet;
@@ -35,19 +29,15 @@ import static com.codingstory.polaris.indexing.FieldName.*;
  * Time: 下午7:21
  * To change this template use File | Settings | File Templates.
  */
-public class JavaIndexer implements Closeable {
+public class JavaIndexer {
 
     private static Log LOG = LogFactory.getLog(JavaIndexer.class);
-
-    private final Directory indexDir;
-    private final IndexWriterConfig config;
     private final IndexWriter writer;
+    private final String projectName;
 
-    public JavaIndexer(File indexDir) throws IOException {
-        this.indexDir = FSDirectory.open(indexDir);
-        config = new IndexWriterConfig(Version.LUCENE_36, new JavaSrcAnalyzer());
-        config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
-        writer = new IndexWriter(this.indexDir, config);
+    public JavaIndexer(IndexWriter writer, String projectName) {
+        this.writer = Preconditions.checkNotNull(writer);
+        this.projectName = Preconditions.checkNotNull(projectName);
     }
 
     private void addIndexFieldToDocument(Document document, String fieldName, String content) {
@@ -64,8 +54,7 @@ public class JavaIndexer implements Closeable {
     /**
      * Indexes file content.
      */
-    public void indexFile(String projectName, String filePath, byte[] content, List<Token> tokens) throws IOException {
-        Preconditions.checkNotNull(projectName);
+    public void indexFile(String filePath, byte[] content, List<Token> tokens) throws IOException {
         Preconditions.checkNotNull(filePath);
         Preconditions.checkNotNull(content);
         Preconditions.checkNotNull(tokens);
@@ -170,11 +159,6 @@ public class JavaIndexer implements Closeable {
         if (declaration.hasJavaDocComment()) {
             addIndexFieldToDocument(document, JAVA_DOC, declaration.getJavaDocComment());
         }
-    }
-
-    @Override
-    public void close() throws IOException {
-        writer.close();
     }
 
     private static String getParentPath(String path) {
