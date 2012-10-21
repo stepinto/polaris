@@ -1,5 +1,5 @@
 namespace java com.codingstory.polaris.indexing.layout
-namespace py polaris.indexing
+namespace py polaris.indexing.layout
 
 enum TLayoutNodeKind {
     FILE = 1,

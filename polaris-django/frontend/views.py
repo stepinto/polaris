@@ -1,5 +1,7 @@
 # Create your views here.
 
+import os
+from urllib import quote
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.template.loader import render_to_string
@@ -11,14 +13,12 @@ from thrift.transport import TSocket
 from thrift.protocol.TBinaryProtocol import TBinaryProtocolAccelerated
 from polaris.search import *
 from polaris.search.ttypes import TCompleteRequest
-from polaris.search.ttypes import TCompleteResponse
 from polaris.search.ttypes import TSearchRequest
-from polaris.search.ttypes import TSearchResponse
-from polaris.search.ttypes import TSearchResultEntry
 from polaris.search.ttypes import TSourceRequest
-from polaris.search.ttypes import TSourceResponse
+from polaris.search.ttypes import TLayoutRequest
 from polaris.search.ttypes import TStatusCode
 from polaris.token import *
+from polaris.indexing.layout.ttypes import TLayoutNodeKind
 from settings import RPC_SERVER_HOST
 from settings import RPC_SERVER_PORT
 import json
@@ -68,8 +68,12 @@ def source(req):
   line_no = convert_offset_to_line_no(rpc_resp.content, int(req.GET.get('o', '0')))
   line_no = max(0, line_no - 10) # show the line in center
   # TODO: socket leaked
-  return render_to_response('source.html', \
-    {'source_html': html, 'line_no': line_no})
+  return render_to_response('source.html', {
+      'project': project_name,
+      'dir': rpc_resp.directoryName,
+      'source_html': html,
+      'line_no': line_no
+      })
 
 def ajax_complete(req):
   rpc = init_rpc()
@@ -77,8 +81,31 @@ def ajax_complete(req):
   rpc_req.query = req.GET['q']
   rpc_req.limit = int(req.GET['n'])
   rpc_resp = rpc.complete(rpc_req)
+  check_rpc_status(rpc_resp.status)
   # TODO: socket leaked
   return HttpResponse(json.dumps(rpc_resp.entries))
+
+def ajax_layout(req):
+  project = req.GET['project']
+  dir = req.GET['dir']
+  rpc = init_rpc()
+  rpc_req = TLayoutRequest()
+  rpc_req.projectName = project
+  rpc_req.directoryName = dir
+  rpc_resp = rpc.layout(rpc_req)
+  check_rpc_status(rpc_resp.status)
+  result = []
+  for e in rpc_resp.entries:
+    if e.kind == TLayoutNodeKind.DIRECTORY:
+      has_children = True
+      text = e.name
+    else:
+      has_children = False
+      text = "<a href=/source?project=%s&path=%s>%s</a>" % (quote(project),
+          quote(os.path.join(dir, e.name)), quote(e.name))
+    has_children = (e.kind == TLayoutNodeKind.DIRECTORY)
+    result.append({'text': text, 'hasChidlren': has_children})
+  return HttpResponse(json.dumps(result))
 
 def hex_encode(s):
   return s.encode('hex')

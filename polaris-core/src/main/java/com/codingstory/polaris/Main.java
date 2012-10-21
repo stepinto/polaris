@@ -1,6 +1,5 @@
 package com.codingstory.polaris;
 
-import com.codingstory.polaris.indexing.FileId;
 import com.codingstory.polaris.indexing.IndexBuilder;
 import com.codingstory.polaris.parser.ParserOptions;
 import com.codingstory.polaris.parser.Token;
@@ -175,12 +174,16 @@ public class Main {
                     }
                 }
             } else if (command == RpcCommand.SOURCE) {
-                for (String fileId : commandLine.getArgs()) {
+                for (String path : commandLine.getArgs()) {
                     TSourceRequest req = new TSourceRequest();
-                    req.setFileId(new FileId(fileId).getValue());
+                    int slashPos = path.indexOf('/');
+                    String project = path.substring(0, slashPos);
+                    String fileName = path.substring(slashPos + 1);
+                    req.setProjectName(project);
+                    req.setFileName(fileName);
                     TSourceResponse resp = client.source(req);
                     checkRpcStatus(resp.getStatus());
-                    System.out.println(">> " + fileId);
+                    System.out.println(">> " + path);
                     System.out.println(resp.getAnnotations());
                 }
             } else {

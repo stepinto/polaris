@@ -119,7 +119,7 @@ public final class IndexBuilder {
         stats.failures += parserStats.failedFiles;
 
         // Index project layout
-        LayoutIndexer layoutIndexer = new LayoutIndexer(writer, projectName);
+        LayoutIndexer layoutIndexer = new LayoutIndexer(writer, projectName, projectDir);
         for (File dir : sourceDirs) {
             layoutIndexer.indexDirectory(dir);
         }

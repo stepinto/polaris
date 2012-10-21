@@ -1,7 +1,9 @@
 package com.codingstory.polaris.search;
 
+import com.codingstory.polaris.EntityKind;
 import com.codingstory.polaris.indexing.TToken;
 import com.codingstory.polaris.indexing.TTokenList;
+import com.codingstory.polaris.indexing.layout.TLayoutNodeList;
 import com.google.common.base.Preconditions;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.time.StopWatch;
@@ -26,6 +28,7 @@ import static com.codingstory.polaris.indexing.FieldName.*;
 public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeable {
 
     private static final Log LOG = LogFactory.getLog(CodeSearchServiceImpl.class);
+    private static final TDeserializer DESERIALIZER = new TDeserializer(new TBinaryProtocol.Factory());
     private final IndexReader reader;
     private final IndexSearcher searcher;
     private final SrcSearcher srcSearcher;
@@ -114,12 +117,37 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
     public TLayoutResponse layout(TLayoutRequest req) throws TException {
         Preconditions.checkNotNull(req);
         TLayoutResponse resp = new TLayoutResponse();
-        if (!req.isSetProjectName() || !req.isSetDirectoryName()) {
-            resp.setStatus(TStatusCode.MISSING_FIELDS);
+        try {
+            if (!req.isSetProjectName() || !req.isSetDirectoryName()) {
+                resp.setStatus(TStatusCode.MISSING_FIELDS);
+                return resp;
+            }
+            BooleanQuery query = new BooleanQuery();
+            query.add(new TermQuery(new Term(ENTITY_KIND, String.valueOf(EntityKind.DIRECTORY_LAYOUT.getValue()))),
+                    BooleanClause.Occur.MUST);
+            query.add(new TermQuery(new Term(PROJECT_NAME, req.getProjectName())), BooleanClause.Occur.MUST);
+            query.add(new TermQuery(new Term(DIRECTORY_NAME, req.getDirectoryName())), BooleanClause.Occur.MUST);
+            ScoreDoc[] scoreDocs = searcher.search(query, 1).scoreDocs;
+            if (scoreDocs.length == 0) {
+                resp.setStatus(TStatusCode.FILE_NOT_FOUND);
+                return resp;
+            }
+            else if (scoreDocs.length != 1) {
+                resp.setStatus(TStatusCode.UNKNOWN_ERROR);
+                return resp;
+            }
+            int docId = scoreDocs[0].doc;
+            Document doc = reader.document(docId);
+            TLayoutNodeList nodes = new TLayoutNodeList();
+            DESERIALIZER.deserialize(nodes, doc.getBinaryValue(DIRECTORY_LAYOUT));
+            resp.setStatus(TStatusCode.OK);
+            resp.setEntries(nodes.getNodes());
+            return resp;
+        } catch (Exception e) {
+            LOG.error("Caught exception", e);
+            resp.setStatus(TStatusCode.UNKNOWN_ERROR);
             return resp;
         }
-        resp.setStatus(TStatusCode.UNKNOWN_ERROR);
-        return resp;
     }
 
     private List<TToken> deserializeTokens(byte[] bytes) throws TException {

@@ -19,6 +19,7 @@ public class FieldName {
     public static final String SOURCE_ANNOTATIONS = "SourceAnnotations";
     public static final String TOKENS = "Tokens";
     public static final String TYPE_NAME = "TypeName";
+    public static final String ENTITY_KIND = "EntityKind";
     // TODO: method types
 
     public static final ImmutableSet<String> ALL_FIELDS = ImmutableSet.of(

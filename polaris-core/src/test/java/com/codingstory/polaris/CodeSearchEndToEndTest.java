@@ -3,6 +3,8 @@ package com.codingstory.polaris;
 import com.codingstory.polaris.indexing.IndexBuilder;
 import com.codingstory.polaris.indexing.TToken;
 import com.codingstory.polaris.indexing.TTokenKind;
+import com.codingstory.polaris.indexing.layout.TLayoutNode;
+import com.codingstory.polaris.indexing.layout.TLayoutNodeKind;
 import com.codingstory.polaris.search.*;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -16,6 +18,8 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -56,6 +60,32 @@ public class CodeSearchEndToEndTest {
                 return token.getKind() == TTokenKind.CLASS_DECLARATION;
             }
         })));
+    }
+
+    @Test
+    public void testLayout() throws IOException, TException {
+        writeFile("project/src/com/company/A.java", "");
+        writeFile("project/src/com/company/module1/B.java", "");
+        buildIndex(ImmutableList.of("project"));
+
+        TCodeSearchService.Iface searcher = createSearcher();
+        TLayoutRequest req = new TLayoutRequest();
+        req.setProjectName("project");
+        req.setDirectoryName("/src/com/company");
+        TLayoutResponse resp = searcher.layout(req);
+        assertEquals(TStatusCode.OK, resp.getStatus());
+        List<TLayoutNode> nodes = Lists.newArrayList(resp.getEntries());
+        Collections.sort(nodes, new Comparator<TLayoutNode>() {
+            @Override
+            public int compare(TLayoutNode left, TLayoutNode right) {
+                return left.compareTo(right);
+            }
+        });
+        assertEquals(2, nodes.size());
+        assertEquals(TLayoutNodeKind.FILE, nodes.get(0).getKind());
+        assertEquals("A.java", nodes.get(0).getName());
+        assertEquals(TLayoutNodeKind.DIRECTORY, nodes.get(1).getKind());
+        assertEquals("module1", nodes.get(1).getName());
     }
 
     private TCodeSearchService.Iface createSearcher() throws IOException {
