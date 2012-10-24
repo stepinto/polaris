@@ -82,4 +82,15 @@ pre {
   border: 1px #CECECE solid;
 }
 
-source 
+.source_line_num {
+  list-style: none;
+  float: left;
+  margin: 0px;
+  padding: 0px;
+}
+
+.source_view {
+  float: left;
+  margin: 0px;
+  padding: 0px !important;
+}.

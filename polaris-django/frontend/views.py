@@ -67,12 +67,17 @@ def source(req):
   html = render_annotated_source(rpc_resp.annotations)
   line_no = convert_offset_to_line_no(rpc_resp.content, int(req.GET.get('o', '0')))
   line_no = max(0, line_no - 10) # show the line in center
+  line_count = rpc_resp.content.count('\n')
+  line_no_html = ''
+  for i in xrange(line_count):
+    line_no_html += '<li>%d</li>' % i
   # TODO: socket leaked
   return render_to_response('source.html', {
       'project': project_name,
       'dir': rpc_resp.directoryName,
       'source_html': html,
-      'line_no': line_no
+      'line_no': line_no,
+      'line_no_html': line_no_html
       })
 
 def ajax_complete(req):

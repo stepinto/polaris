@@ -38,7 +38,10 @@
       <ul class="file_tree filetree">
     </div>
     <div class="source_code_panel fix_height_inner">
-      <pre class="prettyprint linenums" id="code">{{ source_html|safe }}</pre>
+      <div style="margin:10px">
+        <pre style="margin:0px"><ul class="source_line_num">{{ line_no_html|safe }}</ul></pre>
+        <pre class="source_view prettyprint">{{ source_html|safe }}</pre>
+      </div>
     </div>
   </div>
 {% endblock %}
