@@ -70,7 +70,7 @@ def source(req):
   line_count = rpc_resp.content.count('\n')
   line_no_html = ''
   for i in xrange(line_count):
-    line_no_html += '<li>%d</li>' % i
+    line_no_html += '<li id="line_no_%d">%d</li>' % (i, i)
   # TODO: socket leaked
   return render_to_response('source.html', {
       'project': project_name,

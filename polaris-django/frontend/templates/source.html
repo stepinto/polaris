@@ -20,6 +20,12 @@
       });
     }
 
+    function scrollToLine(lineNo) {
+      var container_top = $(".source_line_num").offset().top;
+      var line_top = $("#line_no_" + lineNo).offset().top;
+      $(".source_code_panel").scrollTop(line_top - container_top);
+    }
+
     $(window).resize(function () {
       fixHeight();
     });
@@ -27,6 +33,7 @@
     $(document).ready(function() {
       fixHeight();
       initFileTree();
+      scrollToLine({{ line_no }});
     });
   </script>
 {% endblock %}
