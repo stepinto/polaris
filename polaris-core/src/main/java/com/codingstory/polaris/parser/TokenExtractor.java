@@ -73,6 +73,10 @@ public final class TokenExtractor {
                 UnresolvedTypeReferenece unresolved = new UnresolvedTypeReferenece(ImmutableList.of(name));
                 ResolvedTypeReference resolved = externalTypeResolver.resolve(unresolved);
                 typeTable.put(name, resolved != null ? resolved : unresolved);
+                results.add(TypeUsage.newBuilder()
+                        .setTypeReference(resolved != null ? resolved : unresolved)
+                        .setSpan(findTokenSpan(node.getName()))
+                        .build());
             }
             super.visit(node, arg);
         }

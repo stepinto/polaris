@@ -92,7 +92,7 @@ public class SourceAnnotator {
                 }
             }
             // Don't show links for primitive or unresolved types.
-            out.printf(escape(type.getUnqualifiedName()));
+            out.printf(escape(text));
         }
     }
 
