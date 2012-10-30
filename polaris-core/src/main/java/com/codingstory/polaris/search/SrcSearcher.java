@@ -28,6 +28,7 @@ import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 import org.apache.lucene.search.highlight.QueryScorer;
 import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
 import org.apache.lucene.util.Version;
+import org.xerial.snappy.Snappy;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -69,7 +70,7 @@ public class SrcSearcher implements Closeable {
     public String getContent(byte[] fileId) throws IOException {
         Query query = new TermQuery(new Term(FILE_ID, Hex.encodeHexString(fileId)));
         int docid = searcher.search(query, 1).scoreDocs[0].doc;
-        return new String(reader.document(docid).getFieldable(FILE_CONTENT).getBinaryValue());
+        return new String(Snappy.uncompress(reader.document(docid).getFieldable(FILE_CONTENT).getBinaryValue()));
     }
 
     public List<TSearchResultEntry> search(String queryString, int limit) throws ParseException, IOException, InvalidTokenOffsetsException {

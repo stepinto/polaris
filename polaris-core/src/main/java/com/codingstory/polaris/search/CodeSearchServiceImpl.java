@@ -17,6 +17,7 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
+import org.xerial.snappy.Snappy;
 
 import java.io.Closeable;
 import java.io.File;
@@ -87,8 +88,8 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
             resp.setStatus(TStatusCode.OK);
             resp.setProjectName(doc.get(PROJECT_NAME));
             resp.setFileName(doc.get(FILE_NAME));
-            resp.setContent(new String(doc.getBinaryValue(FILE_CONTENT)));
-            resp.setAnnotations(doc.get(SOURCE_ANNOTATIONS));
+            resp.setContent(new String(Snappy.uncompress(doc.getBinaryValue(FILE_CONTENT))));
+            resp.setAnnotations(new String(Snappy.uncompress(doc.getBinaryValue(SOURCE_ANNOTATIONS))));
             resp.setFileId(doc.getBinaryValue(FILE_ID));
             resp.setDirectoryName(doc.get(DIRECTORY_NAME));
         } catch (Exception e) {

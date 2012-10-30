@@ -13,6 +13,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
+import org.xerial.snappy.Snappy;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -62,12 +63,12 @@ public class JavaIndexer {
         LOG.debug("Indexing file content: " + projectName + filePath);
         Document document = new Document();
         document.add(new Field(FILE_ID, Hex.encodeHexString(sha1sum), Field.Store.YES, Field.Index.NOT_ANALYZED));
-        document.add(new Field(FILE_CONTENT, content));
+        document.add(new Field(FILE_CONTENT, Snappy.compress(content)));
         document.add(new Field(PROJECT_NAME, projectName, Field.Store.YES, Field.Index.NOT_ANALYZED));
         document.add(new Field(FILE_NAME, filePath, Field.Store.YES, Field.Index.NOT_ANALYZED));
         // document.add(new Field(TOKENS, serializeTokens(tokens)));
-        document.add(new Field(SOURCE_ANNOTATIONS, SourceAnnotator.annotate(new ByteArrayInputStream(content), tokens),
-                Field.Store.YES, Field.Index.NO));
+        document.add(new Field(SOURCE_ANNOTATIONS,
+                Snappy.compress(SourceAnnotator.annotate(new ByteArrayInputStream(content), tokens))));
         document.add(new Field(DIRECTORY_NAME, getParentPath(filePath), Field.Store.YES, Field.Index.NOT_ANALYZED));
         writer.addDocument(document);
         for (Token token : tokens) {
