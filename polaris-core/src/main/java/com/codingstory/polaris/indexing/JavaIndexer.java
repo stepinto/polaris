@@ -65,7 +65,7 @@ public class JavaIndexer {
         document.add(new Field(FILE_CONTENT, content));
         document.add(new Field(PROJECT_NAME, projectName, Field.Store.YES, Field.Index.NOT_ANALYZED));
         document.add(new Field(FILE_NAME, filePath, Field.Store.YES, Field.Index.NOT_ANALYZED));
-        document.add(new Field(TOKENS, serializeTokens(tokens)));
+        // document.add(new Field(TOKENS, serializeTokens(tokens)));
         document.add(new Field(SOURCE_ANNOTATIONS, SourceAnnotator.annotate(new ByteArrayInputStream(content), tokens),
                 Field.Store.YES, Field.Index.NO));
         document.add(new Field(DIRECTORY_NAME, getParentPath(filePath), Field.Store.YES, Field.Index.NOT_ANALYZED));

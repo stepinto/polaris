@@ -1,14 +1,10 @@
 package com.codingstory.polaris;
 
 import com.codingstory.polaris.indexing.IndexBuilder;
-import com.codingstory.polaris.indexing.TToken;
-import com.codingstory.polaris.indexing.TTokenKind;
 import com.codingstory.polaris.indexing.layout.TLayoutNode;
 import com.codingstory.polaris.indexing.layout.TLayoutNodeKind;
 import com.codingstory.polaris.search.*;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
@@ -54,12 +50,6 @@ public class CodeSearchEndToEndTest {
         assertEquals("jdk", resp.getProjectName());
         assertEquals(fileJavaPath, resp.getFileName());
         assertEquals(fileJavaContent, resp.getContent());
-        assertEquals(1, Iterables.size(Iterables.filter(resp.getTokens(), new Predicate<TToken>() {
-            @Override
-            public boolean apply(TToken token) {
-                return token.getKind() == TTokenKind.CLASS_DECLARATION;
-            }
-        })));
     }
 
     @Test

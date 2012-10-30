@@ -17,7 +17,6 @@ public class FieldName {
     public static final String PACKAGE_NAME = "PackageName";
     public static final String PROJECT_NAME = "ProjectName";
     public static final String SOURCE_ANNOTATIONS = "SourceAnnotations";
-    public static final String TOKENS = "Tokens";
     public static final String TYPE_NAME = "TypeName";
     public static final String ENTITY_KIND = "EntityKind";
     // TODO: method types
@@ -37,6 +36,5 @@ public class FieldName {
             PACKAGE_NAME,
             PROJECT_NAME,
             SOURCE_ANNOTATIONS,
-            TOKENS,
             TYPE_NAME);
 }

@@ -88,7 +88,6 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
             resp.setProjectName(doc.get(PROJECT_NAME));
             resp.setFileName(doc.get(FILE_NAME));
             resp.setContent(new String(doc.getBinaryValue(FILE_CONTENT)));
-            resp.setTokens(deserializeTokens(doc.getBinaryValue(TOKENS)));
             resp.setAnnotations(doc.get(SOURCE_ANNOTATIONS));
             resp.setFileId(doc.getBinaryValue(FILE_ID));
             resp.setDirectoryName(doc.get(DIRECTORY_NAME));
