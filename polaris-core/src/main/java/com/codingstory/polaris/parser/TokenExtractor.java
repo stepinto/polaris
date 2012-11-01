@@ -65,20 +65,24 @@ public final class TokenExtractor {
 
         @Override
         public void visit(ImportDeclaration node, Object arg) {
-            Preconditions.checkNotNull(node);
-            if (node.isAsterisk()) {
-                imports.add(node);
-            } else {
-                FullyQualifiedTypeName name = FullyQualifiedTypeName.of(node.getName().toString());
-                UnresolvedTypeReferenece unresolved = new UnresolvedTypeReferenece(ImmutableList.of(name));
-                ResolvedTypeReference resolved = externalTypeResolver.resolve(unresolved);
-                typeTable.put(name, resolved != null ? resolved : unresolved);
-                results.add(TypeUsage.newBuilder()
-                        .setTypeReference(resolved != null ? resolved : unresolved)
-                        .setSpan(findTokenSpan(node.getName()))
-                        .build());
+            try {
+                Preconditions.checkNotNull(node);
+                if (node.isAsterisk()) {
+                    imports.add(node);
+                } else {
+                    FullyQualifiedTypeName name = FullyQualifiedTypeName.of(node.getName().toString());
+                    UnresolvedTypeReferenece unresolved = new UnresolvedTypeReferenece(ImmutableList.of(name));
+                    ResolvedTypeReference resolved = externalTypeResolver.resolve(unresolved);
+                    typeTable.put(name, resolved != null ? resolved : unresolved);
+                    results.add(TypeUsage.newBuilder()
+                            .setTypeReference(resolved != null ? resolved : unresolved)
+                            .setSpan(findTokenSpan(node.getName()))
+                            .build());
+                }
+                super.visit(node, arg);
+            } catch (IOException e) {
+                throw new SkipCheckingExceptionWrapper(e);
             }
-            super.visit(node, arg);
         }
 
         @Override
@@ -273,38 +277,42 @@ public final class TokenExtractor {
         }
 
         private TypeReference resolveType(String name) {
-            TypeReference typeReference = PrimitiveTypeResolver.resolve(name);
-            if (typeReference != null) {
-                return typeReference;
-            }
-            typeReference = typeTable.lookUp(name);
-            if (typeReference != null) {
-                return typeReference;
-            }
-            FullyQualifiedTypeName qualifiedName = FullyQualifiedTypeName.of(name);
-            UnresolvedTypeReferenece unresolved;
-            if (qualifiedName.hasPackageName()) {
-                unresolved = new UnresolvedTypeReferenece(ImmutableList.of(qualifiedName));
-            } else {
-                // Assume the type is "Type", the package is "mypkg" and "import pkg1.*" and "import pkg2.*".
-                // We will generate the following candidates:
-                //   mypkg.Type
-                //   Type
-                //   pkg1.Type
-                //   pkg2.Type
-                List<FullyQualifiedTypeName> candidates = Lists.newArrayList();
-                candidates.add(FullyQualifiedTypeName.of(findPackageName(), name));
-                candidates.add(FullyQualifiedTypeName.of(null, name));
-                for (ImportDeclaration imp : imports) {
-                    if (imp.isAsterisk()) {
-                        String packageName = imp.getName().getName();
-                        candidates.add(FullyQualifiedTypeName.of(packageName, name));
-                    }
+            try {
+                TypeReference typeReference = PrimitiveTypeResolver.resolve(name);
+                if (typeReference != null) {
+                    return typeReference;
                 }
-                unresolved = new UnresolvedTypeReferenece(candidates);
+                typeReference = typeTable.lookUp(name);
+                if (typeReference != null) {
+                    return typeReference;
+                }
+                FullyQualifiedTypeName qualifiedName = FullyQualifiedTypeName.of(name);
+                UnresolvedTypeReferenece unresolved;
+                if (qualifiedName.hasPackageName()) {
+                    unresolved = new UnresolvedTypeReferenece(ImmutableList.of(qualifiedName));
+                } else {
+                    // Assume the type is "Type", the package is "mypkg" and "import pkg1.*" and "import pkg2.*".
+                    // We will generate the following candidates:
+                    //   mypkg.Type
+                    //   Type
+                    //   pkg1.Type
+                    //   pkg2.Type
+                    List<FullyQualifiedTypeName> candidates = Lists.newArrayList();
+                    candidates.add(FullyQualifiedTypeName.of(findPackageName(), name));
+                    candidates.add(FullyQualifiedTypeName.of(null, name));
+                    for (ImportDeclaration imp : imports) {
+                        if (imp.isAsterisk()) {
+                            String packageName = imp.getName().getName();
+                            candidates.add(FullyQualifiedTypeName.of(packageName, name));
+                        }
+                    }
+                    unresolved = new UnresolvedTypeReferenece(candidates);
+                }
+                ResolvedTypeReference resolved = externalTypeResolver.resolve(unresolved);
+                return resolved != null ? resolved : unresolved;
+            } catch (IOException e) {
+                throw new SkipCheckingExceptionWrapper(e);
             }
-            ResolvedTypeReference resolved = externalTypeResolver.resolve(unresolved);
-            return resolved != null ? resolved : unresolved;
         }
 
         private Token.Span findTokenSpan(Node node) {

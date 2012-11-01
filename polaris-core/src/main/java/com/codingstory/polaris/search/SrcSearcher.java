@@ -99,7 +99,8 @@ public class SrcSearcher implements Closeable {
             Explanation explanation = searcher.explain(query, docid);
             result.setScore(explanation.getValue());
             result.setExplanation(explanation.toHtml());
-            result.setKind(PojoToThriftConverter.convertTokenKind(Token.Kind.valueOf(document.get(KIND))));
+            result.setKind(PojoToThriftConverter.convertTokenKind(
+                    Token.Kind.values()[Integer.valueOf(document.get(KIND))]));
             result.setOffset(Long.parseLong(document.get(OFFSET)));
             LOGGER.debug(result.getFileName() + "(" + Hex.encodeHexString(fileId) + ")");
             int offset = Integer.parseInt(document.get(OFFSET));

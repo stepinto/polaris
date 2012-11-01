@@ -14,8 +14,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
@@ -61,9 +63,13 @@ public final class IndexBuilder {
         IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_36, new JavaSrcAnalyzer());
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
         IndexWriter writer = new IndexWriter(FSDirectory.open(indexDirectory), config);
+        writer.commit(); // pre-create lucene index dir layout
         try {
             for (File projectDir : projectDirectories) {
-                buildIndexForProject(projectDir, writer);
+                IndexReader reader = IndexReader.open(FSDirectory.open(indexDirectory));
+                buildIndexForProject(projectDir, reader, writer);
+                reader.close();
+                writer.commit();
             }
         } finally {
             writer.close();
@@ -77,8 +83,9 @@ public final class IndexBuilder {
         LOG.info(String.format("Time elapsed: %.2fs", stopWatch.getTime() / 1000.0));
     }
 
-    private void buildIndexForProject(final File projectDir, IndexWriter writer) throws IOException {
+    private void buildIndexForProject(final File projectDir, IndexReader reader, IndexWriter writer) throws IOException {
         Preconditions.checkNotNull(projectDir);
+        Preconditions.checkNotNull(reader);
         Preconditions.checkNotNull(writer);
         if (!projectDir.isDirectory()) {
             LOG.error("Expect directory, but file was found: " + projectDir);
@@ -93,6 +100,7 @@ public final class IndexBuilder {
         final JavaIndexer javaIndexer = new JavaIndexer(writer, projectName);
         Set<File> sourceDirs = Sets.newHashSet();
         try {
+            parser.setExternalTypeResolver(new CrossTypeResolver(new IndexSearcher(reader)));
             parser.setParserOptions(parserOptions);
             for (File sourceFile : sourceFiles) {
                 parser.addSourceFile(sourceFile);

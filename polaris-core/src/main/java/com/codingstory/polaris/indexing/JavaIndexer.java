@@ -106,7 +106,7 @@ public class JavaIndexer {
         document.add(new Field(FILE_ID, Hex.encodeHexString(sha1sum), Field.Store.YES, Field.Index.NO));
         String offset = Long.toString(t.getSpan().getFrom());
         document.add(new Field(OFFSET, offset, Field.Store.YES, Field.Index.NO));
-        document.add(new Field(KIND, t.getKind().toString(), Field.Store.YES, Field.Index.NO));
+        document.add(new Field(KIND, String.valueOf(t.getKind().ordinal()), Field.Store.YES, Field.Index.NOT_ANALYZED));
         if (EnumSet.of(Token.Kind.CLASS_DECLARATION,
                 Token.Kind.INTERFACE_DECLARATION,
                 Token.Kind.ENUM_DECLARATION,

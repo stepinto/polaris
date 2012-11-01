@@ -1,5 +1,7 @@
 package com.codingstory.polaris.parser;
 
+import java.io.IOException;
+
 /**
  * Resolvers an {@link UnresolvedTypeReferenece}.
  */
@@ -15,5 +17,5 @@ public interface TypeResolver {
      * @param typeReferenece type to resolve
      * @return the resolved type or null if it cannot be resolved
      */
-    ResolvedTypeReference resolve(UnresolvedTypeReferenece typeReferenece);
+    ResolvedTypeReference resolve(UnresolvedTypeReferenece typeReferenece) throws IOException;
 }

@@ -1,6 +1,7 @@
 package com.codingstory.polaris.parser;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
@@ -44,7 +45,7 @@ public class ProjectParser {
                 TypeDeclaration typeDeclaration = types.get(name);
                 if (typeDeclaration != null) {
                     ResolvedTypeReference resolved = new ResolvedTypeReference(name);
-                    LOGGER.debug(String.format("Resolved %s as %s",
+                    LOGGER.debug(String.format("Resolved %s as %s (project reference)",
                             unresolved.getUnqualifiedName(),
                             resolved.getName()));
                     return resolved;
@@ -66,14 +67,19 @@ public class ProjectParser {
     private TokenCollector tokenCollector = NO_OP_TOKEN_EXTRACTOR;
     private Stats stats;
     private List<File> sourceFiles = Lists.newArrayList();
-    private ProjectTypeResolver typeResolver;
+    private ProjectTypeResolver projectTypeResolver;
+    private TypeResolver externalTypeResolver = TypeResolver.NO_OP_RESOLVER;
 
     public void setTokenCollector(TokenCollector tokenCollector) {
-        this.tokenCollector = tokenCollector;
+        this.tokenCollector = Preconditions.checkNotNull(tokenCollector);
     }
 
     public void setParserOptions(ParserOptions parserOptions) {
-        this.parserOptions = parserOptions;
+        this.parserOptions = Preconditions.checkNotNull(parserOptions);
+    }
+
+    public void setExternalTypeResolver(TypeResolver externalTypeResolver) {
+        this.externalTypeResolver = Preconditions.checkNotNull(externalTypeResolver);
     }
 
     public void addSourceFile(File file) {
@@ -114,7 +120,7 @@ public class ProjectParser {
 
     private void prepare() {
         stats = new Stats();
-        typeResolver = new ProjectTypeResolver();
+        projectTypeResolver = new ProjectTypeResolver();
     }
 
     private void runFirstPass(File sourceFile) throws IOException {
@@ -125,7 +131,7 @@ public class ProjectParser {
             for (Token token : tokens) {
                 if (token instanceof TypeDeclaration) {
                     TypeDeclaration typeDeclaration = (TypeDeclaration) token;
-                    typeResolver.register(typeDeclaration);
+                    projectTypeResolver.register(typeDeclaration);
                     LOGGER.debug("Found type: " + typeDeclaration.getName());
                 }
             }
@@ -138,7 +144,8 @@ public class ProjectParser {
         LOGGER.debug("Parsing " + sourceFile + " (2nd pass)");
         byte[] content = FileUtils.readFileToByteArray(sourceFile);
         List<Token> tokens = TokenExtractor.extract(
-                new ByteArrayInputStream(content), typeResolver);
+                new ByteArrayInputStream(content),
+                new CascadeTypeResolver(ImmutableList.of(projectTypeResolver, externalTypeResolver)));
         LOGGER.debug("Found " + tokens.size() + " token(s)");
         tokenCollector.collect(sourceFile, content, tokens);
     }
