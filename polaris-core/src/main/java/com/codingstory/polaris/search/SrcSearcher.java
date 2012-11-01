@@ -148,7 +148,7 @@ public class SrcSearcher implements Closeable {
         results = ImmutableList.copyOf(Iterables.filter(results, new Predicate<String>() {
             @Override
             public boolean apply(String s) {
-                return s.startsWith(queryString);
+                return s.toLowerCase().contains(s.toLowerCase());
             }
         }));
         if (results.size() > limit) {
