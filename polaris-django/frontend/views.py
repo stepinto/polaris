@@ -149,9 +149,10 @@ def render_annotated_source(source):
     clear_attributes(node)
     node.tagName = 'a'
     node.setAttribute('href', '/search?q=' + type_name)
-  return dom.toxml() \
-    .lstrip('<?xml version="1.0" ?><source>') \
-    .rstrip('</source>')
+  result = dom.toxml()
+  result = remove_start(result, '<?xml version="1.0" ?><source>')
+  result = remove_end(result, '</source>')
+  return result
 
 def convert_offset_to_line_no(source, offset):
   line_no = 0
@@ -159,5 +160,17 @@ def convert_offset_to_line_no(source, offset):
     if source[i] == '\n':
       line_no += 1
   return line_no
+
+def remove_start(s, t):
+  if s.startswith(t):
+    return s[len(t):]
+  else:
+    return s
+
+def remove_end(s, t):
+  if s.endswith(t):
+    return s[0:len(s) - len(t)]
+  else:
+    return s
 
 # vim: ts=2 sw=2 et
