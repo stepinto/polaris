@@ -95,7 +95,7 @@ public final class TokenExtractor {
             TypeDeclaration typeDeclaration = TypeDeclaration.newBuilder()
                     .setKind(node.isInterface() ? Token.Kind.INTERFACE_DECLARATION : Token.Kind.CLASS_DECLARATION)
                     .setSpan(findTokenSpan(node))
-                    .setName(FullyQualifiedTypeName.of(findPackageName(), node.getName()))
+                    .setName(FullyQualifiedTypeName.of(findPackageName(), makeTypeName(node.getName())))
                     .setJavaDocComment(javaDoc)
                     .build();
             results.add(typeDeclaration);
@@ -110,6 +110,14 @@ public final class TokenExtractor {
             typeDeclarationStack.pop();
         }
 
+        private String makeTypeName(String name) {
+            if (typeDeclarationStack.isEmpty()) {
+                return name;
+            } else {
+                return findClassName() + "$" + name;
+            }
+        }
+
         @Override
         public void visit(AnnotationDeclaration node, Object arg) {
             // TODO: We temporarily treat annotations as classes
@@ -117,7 +125,7 @@ public final class TokenExtractor {
             TypeDeclaration classDeclaration = TypeDeclaration.newBuilder()
                     .setKind(Token.Kind.ANNOTATION_DECLARATION)
                     .setSpan(findTokenSpan(node))
-                    .setName(FullyQualifiedTypeName.of(findPackageName(), node.getName()))
+                    .setName(FullyQualifiedTypeName.of(findPackageName(), makeTypeName(node.getName())))
                     .build();
             results.add(classDeclaration);
             typeDeclarationStack.push(classDeclaration);
@@ -132,7 +140,7 @@ public final class TokenExtractor {
             TypeDeclaration enumDeclaration = TypeDeclaration.newBuilder()
                     .setKind(Token.Kind.ENUM_DECLARATION)
                     .setSpan(findTokenSpan(node))
-                    .setName(FullyQualifiedTypeName.of(findPackageName(), node.getName()))
+                    .setName(FullyQualifiedTypeName.of(findPackageName(), makeTypeName(node.getName())))
                     .build();
             results.add(enumDeclaration);
             typeDeclarationStack.push(enumDeclaration);
@@ -266,7 +274,7 @@ public final class TokenExtractor {
         }
 
         private String findClassName() {
-            return typeDeclarationStack.getLast().getName().getTypeName();
+            return typeDeclarationStack.getFirst().getName().getTypeName();
         }
 
         private TypeUsage buildTypeUsage(Node type) {

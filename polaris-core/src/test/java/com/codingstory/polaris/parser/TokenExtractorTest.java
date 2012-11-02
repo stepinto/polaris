@@ -10,11 +10,16 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import static com.codingstory.polaris.parser.TestUtils.filterTokensOfKind;
 import static com.codingstory.polaris.parser.TestUtils.findUniqueTokenOfKind;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class TokenExtractorTest {
 
@@ -105,6 +110,23 @@ public class TokenExtractorTest {
         assertEquals(FullyQualifiedTypeName.of("pkg.I"), c.getName());
     }
 
+    @Test
+    public void testInnerClass() throws IOException {
+        String code = "package pkg; public class A { static public class B { public static class C {} } }";
+        List<Token> tokens = extractTokensFromCode(code);
+        List<TypeDeclaration> c = filterTokensOfKind(tokens, Token.Kind.CLASS_DECLARATION);
+        assertEquals(3, c.size());
+        c = Lists.newArrayList(c);
+        Collections.sort(c, new Comparator<TypeDeclaration>() {
+            @Override
+            public int compare(TypeDeclaration left, TypeDeclaration right) {
+                return left.getName().compareTo(right.getName());
+            }
+        });
+        assertEquals(FullyQualifiedTypeName.of("pkg.A"), c.get(0).getName());
+        assertEquals(FullyQualifiedTypeName.of("pkg.A$B"), c.get(1).getName());
+        assertEquals(FullyQualifiedTypeName.of("pkg.A$B$C"), c.get(2).getName());
+    }
 
     // TODO: testClass_public
     // TODO: testClass_private

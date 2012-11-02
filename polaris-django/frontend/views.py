@@ -74,6 +74,7 @@ def source(req):
   # TODO: socket leaked
   return render_to_response('source.html', {
       'project': project_name,
+      'path': file_name,
       'dir': rpc_resp.directoryName,
       'source_html': html,
       'line_no': line_no,

@@ -7,7 +7,7 @@ import com.google.common.base.Preconditions;
  * Represents a fully qualified type name, which is consists of an optional package
  * name and a class/interface/enum name.
  */
-public class FullyQualifiedTypeName {
+public class FullyQualifiedTypeName implements Comparable<FullyQualifiedTypeName> {
 
     private final String packageName;
     private final String typeName;
@@ -72,5 +72,10 @@ public class FullyQualifiedTypeName {
         } else {
             return packageName + "." + typeName;
         }
+    }
+
+    @Override
+    public int compareTo(FullyQualifiedTypeName right) {
+        return this.toString().compareTo(right.toString());
     }
 }
