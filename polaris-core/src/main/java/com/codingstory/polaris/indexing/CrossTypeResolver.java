@@ -45,7 +45,7 @@ public class CrossTypeResolver implements TypeResolver {
     private boolean checkCandidate(FullyQualifiedTypeName candidate) throws IOException {
         BooleanQuery query = new BooleanQuery();
         String typeName = candidate.toString().toLowerCase(); // TODO: why need toLowerCase()?
-        query.add(new TermQuery(new Term(FieldName.TYPE_NAME, typeName)), BooleanClause.Occur.MUST);
+        query.add(new TermQuery(new Term(FieldName.TYPE_FULL_NAME_RAW, typeName)), BooleanClause.Occur.MUST);
         BooleanQuery subquery = new BooleanQuery();
         subquery.add(whereKindIs(Token.Kind.CLASS_DECLARATION), BooleanClause.Occur.SHOULD);
         subquery.add(whereKindIs(Token.Kind.INTERFACE_DECLARATION), BooleanClause.Occur.SHOULD);

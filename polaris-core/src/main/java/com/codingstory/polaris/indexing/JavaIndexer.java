@@ -153,6 +153,7 @@ public class JavaIndexer {
     private void processType(Document document, TypeDeclaration declaration) {
         FullyQualifiedTypeName name = declaration.getName();
         addIndexFieldToDocument(document, TYPE_NAME, name.getTypeName());
+        addIndexFieldToDocument(document, TYPE_FULL_NAME_RAW, name.toString());
         String fullName = name.getTypeName();
         if (name.hasPackageName())
             fullName = name.getPackageName() + "." + fullName;

@@ -1,6 +1,9 @@
 package com.codingstory.polaris.indexing.analysis;
 
+import com.codingstory.polaris.indexing.FieldName;
+import com.google.common.base.Objects;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.KeywordTokenizer;
 import org.apache.lucene.analysis.TokenStream;
 
 import java.io.IOException;
@@ -18,7 +21,11 @@ public final class JavaSrcAnalyzer extends Analyzer {
     @Override
     public TokenStream tokenStream(String fieldName, Reader reader) {
         try {
-            return new JavaSrcTokenizer(reader);
+            if (Objects.equal(fieldName, FieldName.TYPE_FULL_NAME_RAW)) {
+                return new KeywordTokenizer(reader);
+            } else {
+                return new JavaSrcTokenizer(reader);
+            }
         } catch (Exception e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }

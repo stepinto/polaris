@@ -7,6 +7,7 @@ import com.codingstory.polaris.parser.Token;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -22,7 +23,15 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.queryParser.MultiFieldQueryParser;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
-import org.apache.lucene.search.*;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.Explanation;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.PrefixQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.highlight.Highlighter;
 import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 import org.apache.lucene.search.highlight.QueryScorer;
@@ -34,8 +43,14 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import static com.codingstory.polaris.indexing.FieldName.*;
+import static com.codingstory.polaris.indexing.FieldName.FILE_CONTENT;
+import static com.codingstory.polaris.indexing.FieldName.FILE_ID;
+import static com.codingstory.polaris.indexing.FieldName.FILE_NAME;
+import static com.codingstory.polaris.indexing.FieldName.KIND;
+import static com.codingstory.polaris.indexing.FieldName.OFFSET;
+import static com.codingstory.polaris.indexing.FieldName.PROJECT_NAME;
 
 /**
  * Created with IntelliJ IDEA.
@@ -46,6 +61,23 @@ import static com.codingstory.polaris.indexing.FieldName.*;
  */
 public class SrcSearcher implements Closeable {
     private static final Log LOGGER = LogFactory.getLog(SrcSearcher.class);
+    private static final Set<String> SEARCH_FIELDS = ImmutableSet.of(
+            FieldName.DIRECTORY_NAME,
+            FieldName.DIRECTORY_LAYOUT,
+            FieldName.FIELD_NAME,
+            FieldName.FIELD_TYPE_NAME,
+            // FieldName.FILE_CONTENT,
+            FieldName.FILE_NAME,
+            FieldName.FILE_ID,
+            FieldName.JAVA_DOC,
+            FieldName.KIND,
+            FieldName.METHOD_NAME,
+            FieldName.OFFSET,
+            FieldName.PACKAGE_NAME,
+            FieldName.PROJECT_NAME,
+            FieldName.SOURCE_ANNOTATIONS,
+            FieldName.TYPE_NAME,
+            FieldName.TYPE_FULL_NAME_RAW); // just for debug
     private final IndexReader reader;
     private final IndexSearcher searcher;
     private final QueryParser parser;
@@ -53,7 +85,7 @@ public class SrcSearcher implements Closeable {
     public SrcSearcher(IndexReader reader) throws IOException {
         this.reader = Preconditions.checkNotNull(reader);
         searcher = new IndexSearcher(reader);
-        String[] fields = FieldName.ALL_FIELDS.toArray(new String[FieldName.ALL_FIELDS.size()]);
+        String[] fields = SEARCH_FIELDS.toArray(new String[SEARCH_FIELDS.size()]);
         Map<String, Float> boostMap = Maps.newHashMap();
         boostMap.put(FieldName.TYPE_NAME, 4.0f);
         boostMap.put(FieldName.METHOD_NAME, 3.0f);
