@@ -40,8 +40,12 @@
 
 {% block main %}
   <!-- // TODO: focus on that element -->
-  <div>
-    <p>{{project}}/{{path}}</p>
+  <div class="path_bar">
+    <ul>
+      {% for part in path_parts %}
+        <li>/ {{ part }}</li>
+      {% endfor %}
+    </ul>
   </div>
   <div class="source_main fix_height">
     <div class="source_layout_panel fix_height_inner">

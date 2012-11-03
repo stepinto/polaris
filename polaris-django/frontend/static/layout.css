@@ -45,6 +45,15 @@ pre {
   margin-top: 15px;
 }
 
+.path_bar ul {
+  padding: 0px;
+}
+
+.path_bar li {
+  list-style: none;
+  display: inline;
+}
+
 /* index page specific */
 .index_header {
   text-align: center;

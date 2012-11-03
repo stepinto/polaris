@@ -8,7 +8,7 @@ urlpatterns = patterns('',
     (r'^source$', 'frontend.views.source'),
     (r'^ajax/complete$', 'frontend.views.ajax_complete'),
     (r'^ajax/layout$', 'frontend.views.ajax_layout'),
-    (r'^static/(?P.*)', 'django.views.static.serve')
+    (r'^static/(?P<path>.*)$', 'django.views.static.serve')
   )
 
 

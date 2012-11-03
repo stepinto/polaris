@@ -4,6 +4,7 @@ import os
 from urllib import quote
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
+from django.shortcuts import redirect 
 from django.template.loader import render_to_string
 from django.forms.widgets import Widget
 from django.http import Http404
@@ -42,11 +43,16 @@ def about(req):
 
 def search(req):
   query = str(req.GET['q'])
+  auto_jump = bool(req.GET['autojump']) if req.GET.has_key('autojump') else False
   rpc = init_rpc()
   rpc_req = TSearchRequest()
   rpc_req.query = query
   rpc_resp = rpc.search(rpc_req)
   check_rpc_status(rpc_resp.status)
+  if len(rpc_resp.entries) == 1 and auto_jump:
+    e = rpc_resp.entries[0]
+    return redirect('/source?project=%s&path=%s' \
+        % (quote(e.projectName), quote(e.fileName)))
   for e in rpc_resp.entries:
     e.fileId = hex_encode(e.fileId)
   # TODO: socket leaked
@@ -71,10 +77,11 @@ def source(req):
   line_no_html = ''
   for i in xrange(line_count):
     line_no_html += '<li id="line_no_%d">%d</li>' % (i, i)
+  path_parts = [project_name] + filter(lambda x: x != '', file_name.split('/'))
   # TODO: socket leaked
   return render_to_response('source.html', {
       'project': project_name,
-      'path': file_name,
+      'path_parts': path_parts,
       'dir': rpc_resp.directoryName,
       'source_html': html,
       'line_no': line_no,
@@ -149,7 +156,8 @@ def render_annotated_source(source):
     resolved = bool(node.attributes['resolved'])
     clear_attributes(node)
     node.tagName = 'a'
-    node.setAttribute('href', '/search?q=' + type_name)
+    node.setAttribute('href', '/search?q=TypeFullNameRaw:%s&autojump=true' \
+        % (quote(type_name)))
   result = dom.toxml()
   result = remove_start(result, '<?xml version="1.0" ?><source>')
   result = remove_end(result, '</source>')

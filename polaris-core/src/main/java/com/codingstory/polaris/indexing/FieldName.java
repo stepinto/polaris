@@ -16,7 +16,7 @@ public class FieldName {
     public static final String PROJECT_NAME = "ProjectName";
     public static final String SOURCE_ANNOTATIONS = "SourceAnnotations";
     public static final String TYPE_NAME = "TypeName";
-    public static final String TYPE_FULL_NAME_RAW = "TypeNameRaw";
+    public static final String TYPE_FULL_NAME_RAW = "TypeFullNameRaw";
     public static final String ENTITY_KIND = "EntityKind";
     // TODO: method types
 }
