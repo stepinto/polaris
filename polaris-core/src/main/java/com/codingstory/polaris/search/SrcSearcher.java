@@ -105,17 +105,20 @@ public class SrcSearcher implements Closeable {
         return new String(Snappy.uncompress(reader.document(docid).getFieldable(FILE_CONTENT).getBinaryValue()));
     }
 
-    public List<TSearchResultEntry> search(String queryString, int limit) throws ParseException, IOException, InvalidTokenOffsetsException {
+    public List<TSearchResultEntry> search(String queryString, int from, int to)
+            throws ParseException, IOException, InvalidTokenOffsetsException {
+        Preconditions.checkNotNull(queryString);
+        Preconditions.checkArgument(0 <= from && from <= to);
         LOGGER.debug("Query: " + queryString);
         Query query = parser.parse(queryString);
-        TopDocs topDocs = searcher.search(query, limit);
+        TopDocs topDocs = searcher.search(query, to);
         ScoreDoc[] scoreDocs = topDocs.scoreDocs;
         List<TSearchResultEntry> results = Lists.newArrayList();
         Highlighter highlighter = new Highlighter(new SimpleHTMLFormatter(), new QueryScorer(query));
         Analyzer analyzer = new WhitespaceAnalyzer(Version.LUCENE_36);
-        for (ScoreDoc doc : scoreDocs) {
+        for (int i = from; i < to && i < scoreDocs.length; i++) {
             TSearchResultEntry result = new TSearchResultEntry();
-            int docid = doc.doc;
+            int docid = scoreDocs[i].doc;
             Document document = reader.document(docid);
             result.setProjectName(document.getFieldable(PROJECT_NAME).stringValue());
             result.setFileName(document.getFieldable(FILE_NAME).stringValue());

@@ -25,6 +25,8 @@ from settings import RPC_SERVER_PORT
 import json
 from xml.dom import minidom
 
+SEARCH_RESULT_PER_PAGE = 10
+
 def init_rpc():
   socket = TSocket.TSocket(RPC_SERVER_HOST, RPC_SERVER_PORT)
   transport = TTransport.TBufferedTransport(socket)
@@ -43,10 +45,13 @@ def about(req):
 
 def search(req):
   query = str(req.GET['q'])
+  page_no = int(req.GET['page']) if req.GET.has_key('page') else 0
   auto_jump = bool(req.GET['autojump']) if req.GET.has_key('autojump') else False
   rpc = init_rpc()
   rpc_req = TSearchRequest()
   rpc_req.query = query
+  rpc_req.rankFrom = SEARCH_RESULT_PER_PAGE * page_no
+  rpc_req.rankTo = rpc_req.rankFrom + SEARCH_RESULT_PER_PAGE
   rpc_resp = rpc.search(rpc_req)
   check_rpc_status(rpc_resp.status)
   if len(rpc_resp.entries) == 1 and auto_jump:
@@ -56,7 +61,9 @@ def search(req):
   for e in rpc_resp.entries:
     e.fileId = hex_encode(e.fileId)
   # TODO: socket leaked
-  return render_to_response('search.html', {'query': query, 'resp':rpc_resp})
+  next_page_url = '/search?q=%s&page=%d' % (quote(query), page_no + 1)
+  return render_to_response('search.html', \
+      {'query': query, 'next_page_url': next_page_url, 'resp':rpc_resp})
 
 def source(req):
   project_name = req.GET['project']

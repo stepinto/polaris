@@ -50,7 +50,9 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
             StopWatch stopWatch = new StopWatch();
             stopWatch.start();
             resp.setStatus(TStatusCode.OK);
-            resp.setEntries(srcSearcher.search(req.getQuery(), 100));
+            int from = req.isSetRankFrom() ? req.getRankFrom() : 0;
+            int to = req.isSetRankTo() ? req.getRankTo() : 20;
+            resp.setEntries(srcSearcher.search(req.getQuery(), from, to));
             resp.setLatency(stopWatch.getTime());
         } catch (Exception e) {
             LOG.warn("Caught exception", e);
