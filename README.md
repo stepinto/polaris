@@ -5,6 +5,7 @@ A code search engine for Java
 
 Build
 -----
+Install Apache Thrift.
 Run mvn package at project root.
 
 Run
