@@ -6,46 +6,46 @@ import com.google.common.base.Preconditions;
 /**
  * Represents a fully qualified member name. It is like "package.class.member".
  */
-public class FullMemberName {
-    private final FullyQualifiedTypeName fullTypeName;
+public final class FullMemberName {
+    private final FullTypeName fullTypeName;
     private final String memberName;
 
-    public FullMemberName(FullyQualifiedTypeName fullTypeName, String memberName) {
+    public FullMemberName(FullTypeName fullTypeName, String memberName) {
         this.fullTypeName = fullTypeName;
         this.memberName = Preconditions.checkNotNull(memberName);
     }
 
     public static FullMemberName of(String packageName, String typeName, String memberName) {
         Preconditions.checkNotNull(memberName);
-        FullyQualifiedTypeName fullTypeName;
+        FullTypeName fullTypeName;
         if (typeName == null) {
             fullTypeName = null;
         } else {
-            fullTypeName = FullyQualifiedTypeName.of(packageName, typeName);
+            fullTypeName = FullTypeName.of(packageName, typeName);
         }
         return new FullMemberName(fullTypeName, memberName);
     }
 
-    public static FullMemberName of(FullyQualifiedTypeName fullTypeName, String memberName) {
+    public static FullMemberName of(FullTypeName fullTypeName, String memberName) {
         return new FullMemberName(fullTypeName, memberName);
     }
 
     public static FullMemberName of(String name) {
         Preconditions.checkNotNull(name);
-        int lastDot = name.lastIndexOf('.');
-        FullyQualifiedTypeName fullTypeName;
+        int lastPound = name.lastIndexOf('#');
+        FullTypeName fullTypeName;
         String memberName;
-        if (lastDot == -1) {
+        if (lastPound == -1) {
             fullTypeName = null;
             memberName = name;
         } else {
-            fullTypeName = FullyQualifiedTypeName.of(name.substring(0, lastDot));
-            memberName = name.substring(lastDot + 1);
+            fullTypeName = FullTypeName.of(name.substring(0, lastPound));
+            memberName = name.substring(lastPound + 1);
         }
         return new FullMemberName(fullTypeName, memberName);
     }
 
-    public FullyQualifiedTypeName getFullTypeName() {
+    public FullTypeName getFullTypeName() {
         return fullTypeName;
     }
 
@@ -63,7 +63,7 @@ public class FullMemberName {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof FullMemberName)) {
+        if (o.getClass() != FullMemberName.class) {
             return false;
         }
 
@@ -74,6 +74,10 @@ public class FullMemberName {
 
     @Override
     public String toString() {
-        return fullTypeName.toString() + "." + memberName;
+        if (fullTypeName == null) {
+            return memberName;
+        } else {
+            return fullTypeName.toString() + "#" + memberName;
+        }
     }
 }

@@ -20,7 +20,7 @@ for file in os.listdir(PROTO_DIR):
 
 # Since "from" is a python keyword, we have to replace Span#from
 # Span#to _from to get it compiled.
-file_to_fix = os.path.join(OUTPUT_DIR, 'polaris/token/ttypes.py')
+file_to_fix = os.path.join(OUTPUT_DIR, 'polaris/parser/ttypes.py')
 f = open(file_to_fix, 'r')
 s = f.read()
 f.close()

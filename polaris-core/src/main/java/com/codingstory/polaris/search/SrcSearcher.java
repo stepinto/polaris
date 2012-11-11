@@ -1,57 +1,5 @@
 package com.codingstory.polaris.search;
 
-import com.codingstory.polaris.indexing.FieldName;
-import com.codingstory.polaris.indexing.PojoToThriftConverter;
-import com.codingstory.polaris.indexing.analysis.JavaSrcAnalyzer;
-import com.codingstory.polaris.parser.Token;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.WhitespaceAnalyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.queryParser.MultiFieldQueryParser;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.queryParser.QueryParser;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.Explanation;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.PrefixQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.highlight.Highlighter;
-import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
-import org.apache.lucene.search.highlight.QueryScorer;
-import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
-import org.apache.lucene.util.Version;
-import org.xerial.snappy.Snappy;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static com.codingstory.polaris.indexing.FieldName.FILE_CONTENT;
-import static com.codingstory.polaris.indexing.FieldName.FILE_ID;
-import static com.codingstory.polaris.indexing.FieldName.FILE_NAME;
-import static com.codingstory.polaris.indexing.FieldName.KIND;
-import static com.codingstory.polaris.indexing.FieldName.OFFSET;
-import static com.codingstory.polaris.indexing.FieldName.PROJECT_NAME;
-
 /**
  * Created with IntelliJ IDEA.
  * User: Zhou Yunqing
@@ -59,7 +7,8 @@ import static com.codingstory.polaris.indexing.FieldName.PROJECT_NAME;
  * Time: 下午11:43
  * To change this template use File | Settings | File Templates.
  */
-public class SrcSearcher implements Closeable {
+public class SrcSearcher /*implements Closeable*/ {
+    /*
     private static final Log LOGGER = LogFactory.getLog(SrcSearcher.class);
     private static final Set<String> SEARCH_FIELDS = ImmutableSet.of(
             FieldName.DIRECTORY_NAME,
@@ -134,8 +83,6 @@ public class SrcSearcher implements Closeable {
             Explanation explanation = searcher.explain(query, docid);
             result.setScore(explanation.getValue());
             result.setExplanation(explanation.toHtml());
-            result.setKind(PojoToThriftConverter.convertTokenKind(
-                    Token.Kind.values()[Integer.valueOf(document.get(KIND))]));
             result.setOffset(Long.parseLong(document.get(OFFSET)));
             LOGGER.debug(result.getFileName() + "(" + Hex.encodeHexString(fileId) + ")");
             int offset = Integer.parseInt(document.get(OFFSET));
@@ -165,7 +112,7 @@ public class SrcSearcher implements Closeable {
         return builder.toString();
     }
 
-    public List<String> completeQuery(final String queryString, int limit) throws IOException {
+    public List<String> complete(final String queryString, int limit) throws IOException {
         LOGGER.debug("Complete query: " + queryString);
         BooleanQuery q = new BooleanQuery();
         q.add(new PrefixQuery(new Term(FieldName.PACKAGE_NAME, queryString)), BooleanClause.Occur.SHOULD);
@@ -192,5 +139,5 @@ public class SrcSearcher implements Closeable {
         }
         LOGGER.debug("Candidates: " + results);
         return results;
-    }
+    }*/
 }

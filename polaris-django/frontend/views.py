@@ -1,5 +1,7 @@
 # Create your views here.
 
+# TODO: socket leaked after init_rpc
+
 import os
 from urllib import quote
 from django.http import HttpResponse
@@ -13,13 +15,7 @@ from thrift.transport import TTransport
 from thrift.transport import TSocket
 from thrift.protocol.TBinaryProtocol import TBinaryProtocolAccelerated
 from polaris.search import *
-from polaris.search.ttypes import TCompleteRequest
-from polaris.search.ttypes import TSearchRequest
-from polaris.search.ttypes import TSourceRequest
-from polaris.search.ttypes import TLayoutRequest
-from polaris.search.ttypes import TStatusCode
-from polaris.token import *
-from polaris.indexing.layout.ttypes import TLayoutNodeKind
+from polaris.search.ttypes import *
 from settings import RPC_SERVER_HOST
 from settings import RPC_SERVER_PORT
 import json
@@ -45,8 +41,7 @@ def about(req):
 
 def search(req):
   query = str(req.GET['q'])
-  page_no = int(req.GET['page']) if req.GET.has_key('page') else 0
-  auto_jump = bool(req.GET['autojump']) if req.GET.has_key('autojump') else False
+  page_no = int(req.GET.get('page', '0'))
   rpc = init_rpc()
   rpc_req = TSearchRequest()
   rpc_req.query = query
@@ -54,42 +49,49 @@ def search(req):
   rpc_req.rankTo = rpc_req.rankFrom + SEARCH_RESULT_PER_PAGE
   rpc_resp = rpc.search(rpc_req)
   check_rpc_status(rpc_resp.status)
-  if len(rpc_resp.entries) == 1 and auto_jump:
-    e = rpc_resp.entries[0]
-    return redirect('/source?project=%s&path=%s' \
-        % (quote(e.projectName), quote(e.fileName)))
-  for e in rpc_resp.entries:
-    e.fileId = hex_encode(e.fileId)
-  # TODO: socket leaked
   next_page_url = '/search?q=%s&page=%d' % (quote(query), page_no + 1)
   return render_to_response('search.html', \
       {'query': query, 'next_page_url': next_page_url, 'resp':rpc_resp})
 
-def source(req):
-  project_name = req.GET['project']
-  file_name = req.GET['path']
+def goto_type(req, type_id):
+  type_id = int(type_id)
   rpc = init_rpc()
+  rpc_req = TReadClassTypeRequest()
+  rpc_req.typeId = type_id
+  rpc_resp = rpc.readClassType(rpc_req)
+  check_rpc_status(rpc_resp.status)
+  jump_target = rpc_resp.classType.jumpTarget
+  return redirect('/goto/source/%d?offset=%d' % (jump_target.fileId, jump_target.offset))
+
+def goto_source_by_id(req, file_id):
   rpc_req = TSourceRequest()
-  rpc_req.projectName = project_name
-  rpc_req.fileName = file_name
+  rpc_req.fileId = int(file_id)
+  return goto_source_helper(req, rpc_req)
+
+def goto_source_by_path(req, project, path):
+  rpc_req = TSourceRequest()
+  rpc_req.projectName = project
+  rpc_req.fileName = '/' + path
+  return goto_source_helper(req, rpc_req)
+
+def goto_source_helper(req, rpc_req):
+  offset = int(req.GET.get('offset', '0'))
+  rpc = init_rpc()
   rpc_resp = rpc.source(rpc_req)
   check_rpc_status(rpc_resp.status)
-  # f = open('/tmp/aa', 'w')
-  # f.write(rpc_resp.annotations)
-  # f.close()
-  html = render_annotated_source(rpc_resp.annotations)
-  line_no = convert_offset_to_line_no(rpc_resp.content, int(req.GET.get('o', '0')))
+  source = rpc_resp.source
+  html = render_annotated_source(source.annotatedSource)
+  line_no = convert_offset_to_line_no(source.source, int(req.GET.get('offset', '0')))
   line_no = max(0, line_no - 10) # show the line in center
-  line_count = rpc_resp.content.count('\n')
+  line_count = source.source.count('\n')
   line_no_html = ''
   for i in xrange(line_count):
     line_no_html += '<li id="line_no_%d">%d</li>' % (i, i)
-  path_parts = [project_name] + filter(lambda x: x != '', file_name.split('/'))
-  # TODO: socket leaked
+  path_parts = [source.project] + filter(lambda x: x != '', source.path.split('/'))
   return render_to_response('source.html', {
-      'project': project_name,
+      'project': source.project,
       'path_parts': path_parts,
-      'dir': rpc_resp.directoryName,
+      'dir': os.path.dirname(source.path),
       'source_html': html,
       'line_no': line_no,
       'line_no_html': line_no_html
@@ -102,29 +104,27 @@ def ajax_complete(req):
   rpc_req.limit = int(req.GET['n'])
   rpc_resp = rpc.complete(rpc_req)
   check_rpc_status(rpc_resp.status)
-  # TODO: socket leaked
   return HttpResponse(json.dumps(rpc_resp.entries))
 
-def ajax_layout(req):
-  project = req.GET['project']
-  dir = req.GET['dir']
+def ajax_layout(req, project, path):
+  path = '/' + path
   rpc = init_rpc()
   rpc_req = TLayoutRequest()
   rpc_req.projectName = project
-  rpc_req.directoryName = dir
+  rpc_req.directoryName = path
   rpc_resp = rpc.layout(rpc_req)
   check_rpc_status(rpc_resp.status)
   result = []
-  for e in rpc_resp.entries:
-    if e.kind == TLayoutNodeKind.DIRECTORY:
+  for child in rpc_resp.children:
+    child = remove_start(child, path + '/')
+    if child.endswith('/'):
       has_children = True
-      text = e.name
+      text = remove_end(child, '/')
     else:
       has_children = False
-      text = "<a href=/source?project=%s&path=%s>%s</a>" % (quote(project),
-          quote(os.path.join(dir, e.name)), quote(e.name))
-    has_children = (e.kind == TLayoutNodeKind.DIRECTORY)
-    result.append({'text': text, 'hasChidlren': has_children})
+      text = "<a href=/goto/source/%s%s>%s</a>" % (quote(project),
+          quote(os.path.join(path, child)), quote(child))
+    result.append({'text': text, 'hasChildren': has_children})
   return HttpResponse(json.dumps(result))
 
 def hex_encode(s):
@@ -141,7 +141,7 @@ def check_rpc_status(status):
     return
   elif status == TStatusCode.FILE_NOT_FOUND:
     raise Http404
-  elif status == TStatusCode.UNKNOWN_ERROR:
+  else:
     raise RpcError(status)
 
 def render_annotated_source(source):
@@ -154,17 +154,18 @@ def render_annotated_source(source):
   dom = minidom.parseString(source)
   for node in dom.getElementsByTagName('field-declaration'):
     field_name = node.getAttribute('field')
-    print 'field_name = ' + field_name
     clear_attributes(node)
     node.tagName = 'a'
     node.setAttribute('href', '/search?q=' + field_name)
   for node in dom.getElementsByTagName('type-usage'):
-    type_name = node.getAttribute('type')
-    resolved = bool(node.attributes['resolved'])
+    resolved = bool(node.getAttribute('resolved'))
+    type_id = int(node.getAttribute('type-id'))
     clear_attributes(node)
-    node.tagName = 'a'
-    node.setAttribute('href', '/search?q=TypeFullNameRaw:%s&autojump=true' \
-        % (quote(type_name)))
+    if resolved and type_id != -1:
+      node.tagName = 'a'
+      node.setAttribute('href', '/goto/type/%d' % type_id)
+    else:
+      node.tagName = 'span'
   result = dom.toxml()
   result = remove_start(result, '<?xml version="1.0" ?><source>')
   result = remove_end(result, '</source>')

@@ -1,5 +1,5 @@
-include "token.thrift"
 include "layout.thrift"
+include "parser.thrift"
 
 namespace java com.codingstory.polaris.search
 namespace py polaris.search
@@ -12,16 +12,14 @@ enum TStatusCode {
     UNKNOWN_ERROR = -99,
 }
 
-struct TSearchResultEntry {
-    1: string projectName;
-    2: string fileName;
-    3: binary fileId;
+struct THit {
+    1: string project;
+    2: string path;
+    3: parser.TJumpTarget jumpTarget;
     4: string summary;
-    5: string explanation;
-    6: double score;
-    7: token.TTokenKind kind;
-    8: i64 documentId;
-    9: i64 offset;
+    5: double score;
+    6: parser.TClassType classType; // if this match is a type
+    7: string queryHint; // for query completion
 }
 
 struct TSearchRequest {
@@ -33,26 +31,20 @@ struct TSearchRequest {
 
 struct TSearchResponse {
     1: TStatusCode status;
-    2: list<TSearchResultEntry> entries;
+    2: list<THit> hits;
     3: i64 latency;
     4: i64 count;
 }
 
 struct TSourceRequest {
-    // OBSOLETED 1: binary fileId;
+    1: i64 fileId;
     2: string projectName;
     3: string fileName;
 }
 
 struct TSourceResponse {
     1: TStatusCode status;
-    2: string projectName;
-    3: string fileName;
-    4: string content;
-    5: list<token.TToken> tokens;
-    6: string annotations;
-    7: binary fileId;
-    8: string directoryName;
+    2: parser.TSourceFile source;
 }
 
 struct TCompleteRequest {
@@ -63,6 +55,7 @@ struct TCompleteRequest {
 struct TCompleteResponse {
     1: TStatusCode status;
     2: list<string> entries;
+    3: i64 latency;
 }
 
 struct TLayoutRequest {
@@ -72,7 +65,16 @@ struct TLayoutRequest {
 
 struct TLayoutResponse {
     1: TStatusCode status;
-    2: list<layout.TLayoutNode> entries;
+    2: list<string> children;
+}
+
+struct TReadClassTypeRequest {
+    1: i64 typeId;
+}
+
+struct TReadClassTypeResponse {
+    1: TStatusCode status;
+    2: parser.TClassType classType;
 }
 
 service TCodeSearchService {
@@ -80,4 +82,5 @@ service TCodeSearchService {
     TSourceResponse source(1: TSourceRequest req);
     TCompleteResponse complete(1: TCompleteRequest req);
     TLayoutResponse layout(1: TLayoutRequest req);
+    TReadClassTypeResponse readClassType(1: TReadClassTypeRequest req);
 }

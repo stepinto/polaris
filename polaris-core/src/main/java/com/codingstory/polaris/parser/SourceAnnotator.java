@@ -15,51 +15,50 @@ import java.util.Comparator;
 import java.util.List;
 
 public class SourceAnnotator {
-    private static final Comparator<Token> TOKEN_COMPARATOR = new Comparator<Token>() {
+    private static final Comparator<Usage> USAGE_COMPARATOR = new Comparator<Usage>() {
         @Override
-        public int compare(Token left, Token right) {
+        public int compare(Usage left, Usage right) {
             return Longs.compare(left.getSpan().getFrom(), right.getSpan().getFrom());
         }
     };
 
-    public static String annotate(InputStream in, List<Token> tokens) throws IOException {
+    public static String annotate(InputStream in, List<Usage> usages) throws IOException {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
-        List<Token> sortedTokens = Lists.newArrayList(tokens);
-        Collections.sort(sortedTokens, TOKEN_COMPARATOR);
+        List<Usage> sortedUsages = Lists.newArrayList(usages);
+        Collections.sort(sortedUsages, USAGE_COMPARATOR);
         long i = 0;
         int j = 0;
         pw.print("<source>");
-        sortedTokens = ImmutableList.copyOf(Iterables.filter(sortedTokens, new Predicate<Token>() {
+        sortedUsages= ImmutableList.copyOf(Iterables.filter(sortedUsages, new Predicate<Usage>() {
             @Override
-            public boolean apply(Token token) {
-                return accepts(token);
+            public boolean apply(Usage usage) {
+                return accepts(usage);
             }
         }));
 
         int ch = in.read();
-        while (ch != -1 && j < sortedTokens.size()) {
-            Token currentToken = sortedTokens.get(j);
-            long currentTokenFrom = currentToken.getSpan().getFrom();
-            if (i < currentTokenFrom) {
+        while (ch != -1 && j < sortedUsages.size()) {
+            Usage currentUsage = sortedUsages.get(j);
+            long currentUsageFrom = currentUsage.getSpan().getFrom();
+            if (i < currentUsageFrom) {
                 pw.write(escape((char) ch));
                 ch = in.read();
                 i++;
-            } else if (i > currentTokenFrom) {
+            } else if (i > currentUsageFrom) {
                 j++;
             } else {
-                long currentTokenTo = currentToken.getSpan().getTo();
-                byte[] text = new byte [(int)(currentTokenTo - currentTokenFrom)];
+                long currentUsageTo = currentUsage.getSpan().getTo();
+                byte[] text = new byte [(int)(currentUsageTo - currentUsageFrom)];
                 int k = 0;
-                while (i < currentTokenTo && ch != -1) {
+                while (i < currentUsageTo && ch != -1) {
                     text[k] = (byte) ch;
                     ch = in.read();
                     k++;
                     i++;
                 }
-                assert ch != -1;
-                emit(pw, new String(text), currentToken);
-                i = currentTokenTo;
+                emit(pw, new String(text), currentUsage);
+                i = currentUsageTo;
             }
         }
         while (ch != -1) {
@@ -71,28 +70,28 @@ public class SourceAnnotator {
         return sw.toString();
     }
 
-    private static boolean accepts(Token token) {
-        return token instanceof FieldDeclaration || token instanceof TypeUsage;
+    private static boolean accepts(Usage usage) {
+        if (usage instanceof TypeUsage) {
+            TypeUsage typeUsage = (TypeUsage) usage;
+            // Type declaration's span is buggy. Don't generate tags for them until we move to antlr parser.
+            return typeUsage.getKind() != TypeUsage.Kind.TYPE_DECLARATION;
+        } else {
+            return false;
+        }
     }
 
-    private static void emit(PrintWriter out, String text, Token token) {
-        if (token instanceof FieldDeclaration) {
-            FieldDeclaration field = (FieldDeclaration) token;
-            out.printf("<field-declaration field=\"%s\">%s</field-declaration>",
-                    escape(field.getName().toString()), escape(text));
-        } else if (token instanceof TypeUsage) {
-            TypeReference type = ((TypeUsage) token).getTypeReference();
-            if (type.isResoleved()) {
-                ResolvedTypeReference resolvedType = (ResolvedTypeReference) type;
-                if (!ResolvedTypeReference.PRIMITIVES.contains(resolvedType)) {
-                    String typeName = ((ResolvedTypeReference) type).getName().toString();
-                    out.printf("<type-usage type=\"%s\" resolved=\"%s\">%s</type-usage>",
-                            escape(typeName), Boolean.toString(type.isResoleved()), escape(text));
-                    return;
-                }
+    private static void emit(PrintWriter out, String text, Usage usage) {
+        if (usage instanceof TypeUsage) {
+            TypeUsage typeUsage = (TypeUsage) usage;
+            TypeHandle type = typeUsage.getType();
+            if (!TypeUtils.isPrimitiveTypeHandle(type)) {
+                String typeNameStr = type.getName().toString();
+                out.printf("<type-usage type=\"%s\" type-id=\"%d\" resolved=\"%s\">%s</type-usage>",
+                        escape(typeNameStr), type.getId(), Boolean.toString(type.isResolved()), escape(text));
+                return;
             }
             // Don't show links for primitive or unresolved types.
-            out.printf(escape(text));
+            out.print(escape(text));
         }
     }
 

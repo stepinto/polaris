@@ -6,8 +6,8 @@
     RPC Latency: {{ resp.latency }}
     Count: {{ resp.count }}
     <ul class="search_result">
-      {% for e in resp.entries %}
-        {% render_search_result e %}
+      {% for hit in resp.hits %}
+        {% render_search_result hit %}
       {% endfor %}
     </ul>
     <a href="{{next_page_url}}">Next</a>

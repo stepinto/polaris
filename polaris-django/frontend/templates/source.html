@@ -16,7 +16,7 @@
       var project = "{{ project }}";
       var dir = "{{ dir }}";
       $(".file_tree").treeview({
-        url: "/ajax/layout?project=" + escape(project) + "&dir=" + escape(dir)
+        url: "/ajax/layout/" + escape(project) + escape(dir)
       });
     }
 

@@ -10,38 +10,34 @@ import java.util.Map;
 /**
  * Symbol table for types.
  */
-public class TypeTable<T> {
+public class TypeTable {
+    public static class Frame {
+        private final Map<FullTypeName, TypeHandle> fullyNamedTypes = Maps.newHashMap();
+        private final Map<String, TypeHandle> shortlyNamedTypes = Maps.newHashMap();
 
-    private static class Frame<T> {
-        private final Map<String, T> unqualifiedNameTable = Maps.newHashMap();
-        private final Map<FullyQualifiedTypeName, T> fullyQualifiedNameTable = Maps.newHashMap();
-
-        public void put(FullyQualifiedTypeName name, T value) {
-            Preconditions.checkNotNull(name);
-            Preconditions.checkNotNull(value);
-            unqualifiedNameTable.put(name.getTypeName(), value);
-            // Collisions may happen if the source file does not compile. It is ignored here
-            // because Polaris is not going to be a compiler.
-            fullyQualifiedNameTable.put(name, value);
+        public void put(TypeHandle type) {
+            Preconditions.checkNotNull(type);
+            FullTypeName typeName = type.getName();
+            fullyNamedTypes.put(typeName, type);
+            shortlyNamedTypes.put(typeName.getTypeName(), type);
         }
 
-        public T lookUp(String symbol) {
-            Preconditions.checkNotNull(symbol);
-            FullyQualifiedTypeName name = FullyQualifiedTypeName.of(symbol);
+        public TypeHandle lookUp(FullTypeName name) {
+            Preconditions.checkNotNull(name);
             if (name.hasPackageName()) {
-                return fullyQualifiedNameTable.get(name);
+                return fullyNamedTypes.get(name);
             } else {
-                return unqualifiedNameTable.get(symbol);
+                return shortlyNamedTypes.get(name.getTypeName());
             }
         }
     }
 
-    private final LinkedList<Frame<T>> frames = Lists.newLinkedList();
+    private final LinkedList<Frame> frames = Lists.newLinkedList();
 
-    public T lookUp(String symbol) {
-        Preconditions.checkNotNull(symbol);
-        for (Frame<T> frame : frames) {
-            T result = frame.lookUp(symbol);
+    public TypeHandle lookUp(FullTypeName name) {
+        Preconditions.checkNotNull(name);
+        for (Frame frame : frames) {
+            TypeHandle result = frame.lookUp(name);
             if (result != null) {
                 return result;
             }
@@ -49,11 +45,15 @@ public class TypeTable<T> {
         return null;
     }
 
-    public void put(FullyQualifiedTypeName name, T value) {
+    public void put(TypeHandle type) {
         if (frames.isEmpty()) {
             throw new IllegalStateException("No frames");
         }
-        frames.getFirst().put(name, value);
+        currentFrame().put(type);
+    }
+
+    public Frame currentFrame() {
+        return frames.getFirst();
     }
 
     public void enterFrame() {
@@ -62,5 +62,15 @@ public class TypeTable<T> {
 
     public void leaveFrame() {
         frames.removeFirst();
+    }
+
+    public TypeResolver getTypeResolver() {
+        return new TypeResolver() {
+            @Override
+            public TypeHandle resolve(FullTypeName name) {
+                Preconditions.checkNotNull(name);
+                return lookUp(name);
+            }
+        };
     }
 }

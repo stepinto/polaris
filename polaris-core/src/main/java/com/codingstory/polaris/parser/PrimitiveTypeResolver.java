@@ -1,26 +1,34 @@
 package com.codingstory.polaris.parser;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
 import java.util.Map;
 
 public class PrimitiveTypeResolver implements TypeResolver {
 
-    private static final Map<String, ResolvedTypeReference> TABLE = Maps.uniqueIndex(ResolvedTypeReference.PRIMITIVES,
-            new Function<ResolvedTypeReference, String>() {
+    private static final Map<FullTypeName, PrimitiveType> TABLE = Maps.uniqueIndex(
+            ImmutableList.copyOf(PrimitiveType.values()),
+            new Function<PrimitiveType, FullTypeName>() {
                 @Override
-                public String apply(ResolvedTypeReference typeReference) {
-                    return typeReference.getName().toString();
+                public FullTypeName apply(PrimitiveType type) {
+                    return type.getName();
                 }
             });
+    private static final PrimitiveTypeResolver INSTANCE = new PrimitiveTypeResolver();
 
-    public static ResolvedTypeReference resolve(String symbol) {
-        return TABLE.get(symbol);
-    }
+    private PrimitiveTypeResolver() {}
 
     @Override
-    public ResolvedTypeReference resolve(UnresolvedTypeReferenece typeReferenece) {
-        return resolve(typeReferenece.getUnqualifiedName());
+    public TypeHandle resolve(FullTypeName name) {
+        Preconditions.checkNotNull(name);
+        PrimitiveType type = TABLE.get(name);
+        return type != null ? type.getHandle() : null;
+    }
+
+    public static PrimitiveTypeResolver getInstance() {
+        return INSTANCE;
     }
 }

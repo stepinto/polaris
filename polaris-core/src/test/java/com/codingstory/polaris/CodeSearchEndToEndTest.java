@@ -1,10 +1,17 @@
 package com.codingstory.polaris;
 
 import com.codingstory.polaris.indexing.IndexBuilder;
-import com.codingstory.polaris.indexing.layout.TLayoutNode;
-import com.codingstory.polaris.indexing.layout.TLayoutNodeKind;
-import com.codingstory.polaris.search.*;
+import com.codingstory.polaris.search.CodeSearchServiceImpl;
+import com.codingstory.polaris.search.TCodeSearchService;
+import com.codingstory.polaris.search.TLayoutRequest;
+import com.codingstory.polaris.search.TLayoutResponse;
+import com.codingstory.polaris.search.TSearchRequest;
+import com.codingstory.polaris.search.TSearchResponse;
+import com.codingstory.polaris.search.TSourceRequest;
+import com.codingstory.polaris.search.TSourceResponse;
+import com.codingstory.polaris.search.TStatusCode;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
@@ -14,8 +21,6 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -47,9 +52,9 @@ public class CodeSearchEndToEndTest {
         req.setFileName("/src/java/main/com/java/io/File.java");
         TSourceResponse resp = searcher.source(req);
         assertEquals(TStatusCode.OK, resp.getStatus());
-        assertEquals("jdk", resp.getProjectName());
-        assertEquals(fileJavaPath, resp.getFileName());
-        assertEquals(fileJavaContent, resp.getContent());
+        assertEquals("jdk", resp.getSource().getProject());
+        assertEquals(fileJavaPath, resp.getSource().getPath());
+        assertEquals(fileJavaContent, resp.getSource().getSource());
     }
 
     @Test
@@ -64,18 +69,22 @@ public class CodeSearchEndToEndTest {
         req.setDirectoryName("/src/com/company");
         TLayoutResponse resp = searcher.layout(req);
         assertEquals(TStatusCode.OK, resp.getStatus());
-        List<TLayoutNode> nodes = Lists.newArrayList(resp.getEntries());
-        Collections.sort(nodes, new Comparator<TLayoutNode>() {
-            @Override
-            public int compare(TLayoutNode left, TLayoutNode right) {
-                return left.compareTo(right);
-            }
-        });
-        assertEquals(2, nodes.size());
-        assertEquals(TLayoutNodeKind.FILE, nodes.get(0).getKind());
-        assertEquals("A.java", nodes.get(0).getName());
-        assertEquals(TLayoutNodeKind.DIRECTORY, nodes.get(1).getKind());
-        assertEquals("module1", nodes.get(1).getName());
+        assertEquals(ImmutableSet.of("/src/com/company/A.java", "/src/com/company/module1/"),
+                ImmutableSet.copyOf(resp.getChildren()));
+    }
+
+    @Test
+    public void testSearchForType() throws IOException, TException {
+        writeFile("project/src/com/company/A.java", "package com.company; class A {}");
+        buildIndex(ImmutableList.of("project"));
+
+        TCodeSearchService.Iface searcher = createSearcher();
+        TSearchRequest req = new TSearchRequest();
+        req.setQuery("com.company.A");
+        TSearchResponse resp =  searcher.search(req);
+        assertEquals(TStatusCode.OK, resp.getStatus());
+        assertEquals(1, resp.getCount());
+        assertEquals("/src/com/company/A.java", resp.getHits().get(0).getPath());
     }
 
     private TCodeSearchService.Iface createSearcher() throws IOException {

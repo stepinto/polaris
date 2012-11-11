@@ -1,41 +1,89 @@
 package com.codingstory.polaris.parser;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
 
-public class TypeUsage extends TokenBase {
-    private final TypeReference typeReference;
+public final class TypeUsage implements Usage {
+    // TODO: Kind.SUBCLASS, Kind.SUPER_CLASS, Kind.METHOD_SIGNATURE
 
-    public static class Builder {
-        Span span;
-        TypeReference typeReference;
+    public static enum Kind {
+        IMPORT,
+        SUPER_CLASS,
+        METHOD_SIGNATURE, // method parameter, return value, or throws
+        FIELD,
+        LOCAL_VARIABLE,
+        GENERIC_TYPE_PARAMETER,
+        TYPE_DECLARATION;
 
-        public Builder setSpan(Span span) {
-            this.span = Preconditions.checkNotNull(span);
-            return this;
+        private static final BiMap<Kind, TTypeUsageKind> THRIFT_ENUM_MAP =
+                ImmutableBiMap.<Kind, TTypeUsageKind>builder()
+                        .put(IMPORT, TTypeUsageKind.IMPORT)
+                        .put(SUPER_CLASS, TTypeUsageKind.SUPER_CLASS)
+                        .put(METHOD_SIGNATURE, TTypeUsageKind.METHOD_SIGNATURE)
+                        .put(FIELD, TTypeUsageKind.FIELD)
+                        .put(LOCAL_VARIABLE, TTypeUsageKind.LOCAL_VARIABLE)
+                        .put(GENERIC_TYPE_PARAMETER, TTypeUsageKind.GENERIC_TYPE_PARAMETER)
+                        .put(TYPE_DECLARATION, TTypeUsageKind.TYPE_DECLARATION)
+                        .build();
+
+        public static Kind createFromThrift(TTypeUsageKind t) {
+            Preconditions.checkNotNull(t);
+            return THRIFT_ENUM_MAP.inverse().get(t);
         }
 
-        public Builder setTypeReference(TypeReference typeReference) {
-            this.typeReference = Preconditions.checkNotNull(typeReference);
-            return this;
-        }
-
-        public TypeUsage build() {
-            Preconditions.checkNotNull(span);
-            Preconditions.checkNotNull(typeReference);
-            return new TypeUsage(this);
+        public TTypeUsageKind toThrift() {
+            return THRIFT_ENUM_MAP.get(this);
         }
     }
 
-    private TypeUsage(Builder builder) {
-        super(Kind.TYPE_USAGE, builder.span);
-        this.typeReference = builder.typeReference;
+    // TODO: fileinfo
+    private final TypeHandle type;
+    private final Span span;
+    private final Kind kind;
+
+    public TypeUsage(TypeHandle type, Span span, Kind kind) {
+        this.type = Preconditions.checkNotNull(type);
+        this.span = Preconditions.checkNotNull(span);
+        this.kind = Preconditions.checkNotNull(kind);
     }
 
-    public static Builder newBuilder() {
-        return new Builder();
+    public static TypeUsage createFromThrift(TTypeUsage t) {
+        Preconditions.checkNotNull(t);
+        return new TypeUsage(
+                TypeHandle.createFromThrift(t.getType()),
+                Span.createFromThrift(t.getSpan()),
+                Kind.createFromThrift(t.getKind()));
     }
 
-    public TypeReference getTypeReference() {
-        return typeReference;
+    public TypeHandle getType() {
+        return type;
+    }
+
+    @Override
+    public Span getSpan() {
+        return span;
+    }
+
+    public Kind getKind() {
+        return kind;
+    }
+
+    public TTypeUsage toThrift() {
+        TTypeUsage t = new TTypeUsage();
+        t.setType(type.toThrift());
+        t.setSpan(span.toThrift());
+        t.setKind(kind.toThrift());
+        return t;
+    }
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(TypeUsage.class)
+                .add("type", type)
+                .add("span", span)
+                .add("kind", kind)
+                .toString();
     }
 }

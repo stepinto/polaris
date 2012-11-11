@@ -1,62 +1,41 @@
 package com.codingstory.polaris.indexing;
 
-import com.codingstory.polaris.parser.FullyQualifiedTypeName;
-import com.codingstory.polaris.parser.ResolvedTypeReference;
-import com.codingstory.polaris.parser.Token;
+import com.codingstory.polaris.SkipCheckingExceptionWrapper;
+import com.codingstory.polaris.parser.ClassType;
+import com.codingstory.polaris.parser.FullTypeName;
+import com.codingstory.polaris.parser.TypeHandle;
 import com.codingstory.polaris.parser.TypeResolver;
-import com.codingstory.polaris.parser.UnresolvedTypeReferenece;
+import com.codingstory.polaris.typedb.TypeDb;
 import com.google.common.base.Preconditions;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopDocs;
 
 import java.io.IOException;
+import java.util.List;
 
 public class CrossTypeResolver implements TypeResolver {
 
-    private static final Log LOGGER = LogFactory.getLog(CrossTypeResolver.class);
-    private final IndexSearcher searcher;
+    private static final Log LOG = LogFactory.getLog(CrossTypeResolver.class);
+    private final TypeDb typeDb;
 
-    public CrossTypeResolver(IndexSearcher searcher) {
-        this.searcher = Preconditions.checkNotNull(searcher);
+    public CrossTypeResolver(TypeDb typeDb) {
+        this.typeDb = Preconditions.checkNotNull(typeDb);
     }
 
     @Override
-    public ResolvedTypeReference resolve(UnresolvedTypeReferenece unresolved) throws IOException {
-        Preconditions.checkNotNull(unresolved);
-        for (FullyQualifiedTypeName candidate : unresolved.getCandidates()) {
-            if (checkCandidate(candidate)) {
-                ResolvedTypeReference resolved = new ResolvedTypeReference(candidate);
-                LOGGER.debug(String.format("Resolved %s as %s (cross reference)",
-                        unresolved.getUnqualifiedName(),
-                        resolved.getName()));
-                return resolved;
+    public TypeHandle resolve(FullTypeName name) {
+        Preconditions.checkNotNull(name);
+        try {
+            List<ClassType> result = typeDb.queryByTypeName(name);
+            if (result.isEmpty()) {
+                return null;
             }
+            if (result.size() > 1) {
+                LOG.debug("Ambiguous type: " + name);
+            }
+            return result.get(0).getHandle();
+        } catch (IOException e) {
+            throw new SkipCheckingExceptionWrapper(e);
         }
-        return null;
-    }
-
-    private boolean checkCandidate(FullyQualifiedTypeName candidate) throws IOException {
-        BooleanQuery query = new BooleanQuery();
-        String typeName = candidate.toString().toLowerCase(); // TODO: why need toLowerCase()?
-        query.add(new TermQuery(new Term(FieldName.TYPE_FULL_NAME_RAW, typeName)), BooleanClause.Occur.MUST);
-        BooleanQuery subquery = new BooleanQuery();
-        subquery.add(whereKindIs(Token.Kind.CLASS_DECLARATION), BooleanClause.Occur.SHOULD);
-        subquery.add(whereKindIs(Token.Kind.INTERFACE_DECLARATION), BooleanClause.Occur.SHOULD);
-        subquery.add(whereKindIs(Token.Kind.ENUM_DECLARATION), BooleanClause.Occur.SHOULD);
-        subquery.add(whereKindIs(Token.Kind.ANNOTATION_DECLARATION), BooleanClause.Occur.SHOULD);
-        query.add(subquery, BooleanClause.Occur.MUST);
-        TopDocs topDocs = searcher.search(query, 1);
-        return topDocs.scoreDocs.length > 0;
-    }
-
-    private static Query whereKindIs(Token.Kind kind) {
-        return new TermQuery(new Term(FieldName.KIND, String.valueOf(kind.ordinal())));
     }
 }

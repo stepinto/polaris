@@ -1,6 +1,6 @@
 package com.codingstory.polaris.indexing;
 
-import com.codingstory.polaris.parser.*;
+import com.codingstory.polaris.parser.ClassType;
 import com.google.common.base.Preconditions;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -10,18 +10,22 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Fieldable;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TBinaryProtocol;
 import org.xerial.snappy.Snappy;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.EnumSet;
 import java.util.List;
 
-import static com.codingstory.polaris.indexing.FieldName.*;
+import static com.codingstory.polaris.indexing.FieldName.DIRECTORY_NAME;
+import static com.codingstory.polaris.indexing.FieldName.FILE_CONTENT;
+import static com.codingstory.polaris.indexing.FieldName.FILE_ID;
+import static com.codingstory.polaris.indexing.FieldName.FILE_NAME;
+import static com.codingstory.polaris.indexing.FieldName.KIND;
+import static com.codingstory.polaris.indexing.FieldName.OFFSET;
+import static com.codingstory.polaris.indexing.FieldName.PROJECT_NAME;
+import static com.codingstory.polaris.indexing.FieldName.SOURCE_ANNOTATIONS;
+import static com.codingstory.polaris.indexing.FieldName.TYPE_FULL_NAME_RAW;
+import static com.codingstory.polaris.indexing.FieldName.TYPE_NAME;
 
 /**
  * Created with IntelliJ IDEA.
@@ -55,10 +59,10 @@ public class JavaIndexer {
     /**
      * Indexes file content.
      */
-    public void indexFile(String filePath, byte[] content, List<Token> tokens) throws IOException {
+    public void indexFile(String filePath, byte[] content, String annotatedSource) throws IOException {
         Preconditions.checkNotNull(filePath);
         Preconditions.checkNotNull(content);
-        Preconditions.checkNotNull(tokens);
+        Preconditions.checkNotNull(annotatedSource);
         byte[] sha1sum = DigestUtils.sha(content);
         LOG.debug("Indexing file content: " + projectName + filePath);
         Document document = new Document();
@@ -66,101 +70,32 @@ public class JavaIndexer {
         document.add(new Field(FILE_CONTENT, Snappy.compress(content)));
         document.add(new Field(PROJECT_NAME, projectName, Field.Store.YES, Field.Index.NOT_ANALYZED));
         document.add(new Field(FILE_NAME, filePath, Field.Store.YES, Field.Index.NOT_ANALYZED));
-        // document.add(new Field(TOKENS, serializeTokens(tokens)));
-        document.add(new Field(SOURCE_ANNOTATIONS,
-                Snappy.compress(SourceAnnotator.annotate(new ByteArrayInputStream(content), tokens))));
+        document.add(new Field(SOURCE_ANNOTATIONS, Snappy.compress(annotatedSource)));
         document.add(new Field(DIRECTORY_NAME, getParentPath(filePath), Field.Store.YES, Field.Index.NOT_ANALYZED));
         writer.addDocument(document);
-        for (Token token : tokens) {
-            indexToken(projectName, filePath, sha1sum, token);
+    }
+    public void indexTypes(String filePath, byte[] content, List<ClassType> types) throws IOException {
+        byte[] sha1sum = DigestUtils.sha(content);
+        for (ClassType type : types) {
+            indexType(filePath, sha1sum, type);
         }
     }
 
-    private byte[] serializeTokens(List<Token> tokens) {
-        try {
-            TSerializer serializer = new TSerializer(new TBinaryProtocol.Factory());
-            TTokenList list = new TTokenList();
-            for (Token token : tokens) {
-                if (token instanceof TypeDeclaration) {
-                    list.addToTokens(PojoToThriftConverter.convertTypeDeclaration((TypeDeclaration) token));
-                } else if (token instanceof FieldDeclaration) {
-                    list.addToTokens(PojoToThriftConverter.convertFieldDeclaration((FieldDeclaration) token));
-                } else if (token instanceof TypeUsage) {
-                    list.addToTokens(PojoToThriftConverter.convertTypeUsage((TypeUsage) token));
-                }
-                // TODO: Convert more types.
-            }
-            return serializer.serialize(list);
-        } catch (TException e) {
-            throw new AssertionError(e); // Should not reach here.
-        }
-    }
-
-    private void indexToken(String projectName, String filePath, byte[] sha1sum, Token t) throws IOException {
+    private void indexType(String filePath, byte[] sha1sum, ClassType type) throws IOException {
         Preconditions.checkNotNull(projectName);
         Preconditions.checkNotNull(filePath);
-        Preconditions.checkNotNull(t);
+        Preconditions.checkNotNull(type);
+        String typeName = type.getName().toString();
         Document document = new Document();
         document.add(new Field(PROJECT_NAME, projectName, Field.Store.YES, Field.Index.NO));
         document.add(new Field(FILE_NAME, filePath, Field.Store.YES, Field.Index.NO));
         document.add(new Field(FILE_ID, Hex.encodeHexString(sha1sum), Field.Store.YES, Field.Index.NO));
-        String offset = Long.toString(t.getSpan().getFrom());
-        document.add(new Field(OFFSET, offset, Field.Store.YES, Field.Index.NO));
-        document.add(new Field(KIND, String.valueOf(t.getKind().ordinal()), Field.Store.YES, Field.Index.NOT_ANALYZED));
-        if (EnumSet.of(Token.Kind.CLASS_DECLARATION,
-                Token.Kind.INTERFACE_DECLARATION,
-                Token.Kind.ENUM_DECLARATION,
-                Token.Kind.ANNOTATION_DECLARATION).contains(t.getKind())) {
-            TypeDeclaration declaration = (TypeDeclaration) t;
-            processType(document, declaration);
-        } else if (t.getKind() == Token.Kind.METHOD_DECLARATION) {
-            MethodDeclaration declaration = (MethodDeclaration) t;
-            processMethod(document, declaration);
-        } else if (t.getKind() == Token.Kind.PACKAGE_DECLARATION) {
-            PackageDeclaration declaration = (PackageDeclaration) t;
-            addIndexFieldToDocument(document, PACKAGE_NAME, declaration.getPackageName());
-        } else if (t.getKind() == Token.Kind.FIELD_DECLARATION) {
-            FieldDeclaration declaration = (FieldDeclaration) t;
-            processField(document, declaration);
-        }
+        document.add(new Field(OFFSET, String.valueOf(type.getJumpTarget().getOffset()), Field.Store.YES, Field.Index.NO));
+        document.add(new Field(KIND, String.valueOf(type.getKind().ordinal()), Field.Store.YES, Field.Index.NOT_ANALYZED));
+        document.add(new Field(TYPE_NAME, typeName, Field.Store.YES, Field.Index.ANALYZED));
+        document.add(new Field(TYPE_FULL_NAME_RAW, typeName, Field.Store.YES,  Field.Index.ANALYZED));
+        // TODO: process fields/methods
         writer.addDocument(document);
-    }
-
-    private void processField(Document document, FieldDeclaration declaration) {
-        addIndexFieldToDocument(document, FIELD_NAME, declaration.getVariableName());
-        addIndexFieldToDocument(document, FIELD_NAME, declaration.getName().toString());
-        TypeReference type = declaration.getTypeReference();
-        addIndexFieldToDocument(document, FIELD_TYPE_NAME, type.getUnqualifiedName());
-        if (type.isResoleved()) {
-            ResolvedTypeReference resolved = (ResolvedTypeReference) type;
-            addIndexFieldToDocument(document, FIELD_TYPE_NAME, resolved.getName().toString());
-        } else {
-            // TODO: Bug? The following lines result in bad ranking.
-//            UnresolvedTypeReferenece unresolved = (UnresolvedTypeReferenece) type;
-//            for (FullyQualifiedTypeName candidate : unresolved.getCandidates()) {
-//                addIndexFieldToDocument(document, FIELD_TYPE_NAME, candidate.toString());
-//            }
-        }
-    }
-
-    private void processMethod(Document document, MethodDeclaration declaration) {
-        String name = declaration.getMethodName();
-        addIndexFieldToDocument(document, METHOD_NAME, name);
-        String fullName = declaration.getPackageName() + "." + declaration.getClassName() + "." + name;
-        addIndexFieldToDocument(document, METHOD_NAME, fullName);
-    }
-
-    private void processType(Document document, TypeDeclaration declaration) {
-        FullyQualifiedTypeName name = declaration.getName();
-        addIndexFieldToDocument(document, TYPE_NAME, name.getTypeName());
-        addIndexFieldToDocument(document, TYPE_FULL_NAME_RAW, name.toString());
-        String fullName = name.getTypeName();
-        if (name.hasPackageName())
-            fullName = name.getPackageName() + "." + fullName;
-        addIndexFieldToDocument(document, TYPE_NAME, fullName);
-        if (declaration.hasJavaDocComment()) {
-            addIndexFieldToDocument(document, JAVA_DOC, declaration.getJavaDocComment());
-        }
     }
 
     private static String getParentPath(String path) {

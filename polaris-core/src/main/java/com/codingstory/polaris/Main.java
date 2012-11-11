@@ -2,15 +2,26 @@ package com.codingstory.polaris;
 
 import com.codingstory.polaris.indexing.IndexBuilder;
 import com.codingstory.polaris.parser.ParserOptions;
-import com.codingstory.polaris.parser.Token;
-import com.codingstory.polaris.parser.TokenExtractor;
+import com.codingstory.polaris.parser.SecondPassProcessor;
 import com.codingstory.polaris.parser.TypeResolver;
-import com.codingstory.polaris.search.*;
+import com.codingstory.polaris.parser.Usage;
+import com.codingstory.polaris.search.CodeSearchServiceImpl;
+import com.codingstory.polaris.search.TCodeSearchService;
+import com.codingstory.polaris.search.THit;
+import com.codingstory.polaris.search.TSearchRequest;
+import com.codingstory.polaris.search.TSearchResponse;
+import com.codingstory.polaris.search.TSourceRequest;
+import com.codingstory.polaris.search.TSourceResponse;
+import com.codingstory.polaris.search.TStatusCode;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.FastDateFormat;
@@ -83,9 +94,15 @@ public class Main {
             try {
                 System.out.println(file);
                 in = new FileInputStream(file);
-                List<Token> tokens = TokenExtractor.extract(in, TypeResolver.NO_OP_RESOLVER);
-                for (Token token : tokens) {
-                    System.out.println(token);
+                long fakeFileId = 1;
+                SecondPassProcessor.Result result = SecondPassProcessor.extract(
+                        "temp-project",
+                        fakeFileId,
+                        in,
+                        TypeResolver.NO_OP_RESOLVER,
+                        new SimpleIdGenerator());
+                for (Usage usage : result.getUsages()) {
+                    System.out.println(usage);
                 }
             } finally {
                 IOUtils.closeQuietly(in);
@@ -167,24 +184,28 @@ public class Main {
                     int i = 1;
                     System.out.printf("Latency: %.2f ms\n", resp.getLatency() / 1000.0);
                     System.out.println("Results: " + resp.getCount());
-                    for (TSearchResultEntry e : resp.getEntries()) {
-                        System.out.println("Result #" + i + ": " + e.getKind());
-                        System.out.println(e.getSummary());
+                    for (THit hit : resp.getHits()) {
+                        System.out.println("Result #" + i + ": ");
+                        System.out.println(hit.getSummary());
                         i++;
                     }
                 }
             } else if (command == RpcCommand.SOURCE) {
                 for (String path : commandLine.getArgs()) {
                     TSourceRequest req = new TSourceRequest();
-                    int slashPos = path.indexOf('/');
-                    String project = path.substring(0, slashPos);
-                    String fileName = path.substring(slashPos + 1);
-                    req.setProjectName(project);
-                    req.setFileName(fileName);
+                    if (path.matches("\\d+")) {
+                        req.setFileId(Long.parseLong(path));
+                    } else {
+                        int slashPos = path.indexOf('/');
+                        String project = path.substring(0, slashPos);
+                        String fileName = path.substring(slashPos + 1);
+                        req.setProjectName(project);
+                        req.setFileName(fileName);
+                    }
                     TSourceResponse resp = client.source(req);
                     checkRpcStatus(resp.getStatus());
                     System.out.println(">> " + path);
-                    System.out.println(resp.getAnnotations());
+                    System.out.println(resp.getSource().getAnnotatedSource());
                 }
             } else {
                 LOG.fatal("Unsupported command: " + command);
@@ -211,7 +232,7 @@ public class Main {
         System.out.println("  polaris index dir/files...");
         System.out.println("  polaris searchserver");
         System.out.println("  polaris search query");
-        System.out.println("  polaris source file-id");
+        System.out.println("  polaris source source");
         System.out.println();
     }
 }

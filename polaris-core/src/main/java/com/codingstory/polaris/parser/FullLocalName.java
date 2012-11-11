@@ -3,7 +3,7 @@ package com.codingstory.polaris.parser;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
-public class FullLocalName {
+public final class FullLocalName {
 
     private final FullMemberName fullMemberName;
     private final String localName;
@@ -56,7 +56,7 @@ public class FullLocalName {
         if (o == this) {
             return true;
         }
-        if (!(o instanceof FullLocalName)) {
+        if (o.getClass() != FullLocalName.class) {
             return false;
         }
         FullLocalName that = (FullLocalName) o;
