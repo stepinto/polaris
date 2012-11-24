@@ -104,11 +104,12 @@ pre {
   float: left;
   margin: 0px;
   padding: 0px;
+  width: 20px;
+  text-align: right;
 }
 
 .source_view {
-  float: left;
-  margin: 0px;
+  margin: 0px 0px 0px 30px;
   padding: 0px !important;
 }
 
@@ -116,6 +117,7 @@ pre {
   list-style: none;
   margin: 10px;
   padding: 0px;
+  white-space: nowrap;
 }
 
 .member_list {

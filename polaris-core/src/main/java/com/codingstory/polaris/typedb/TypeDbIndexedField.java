@@ -9,4 +9,6 @@ public class TypeDbIndexedField {
     public static String TYPE_ACRONYM_CASE_INSENSITIVE = "TypeAcronymCaseInsensitive";
     public static String FILE_ID = "FileId";
     public static String TYPE_DATA = "TypeData";
+    public static String FIELD_ID = "FieldId";
+    public static String METHOD_ID = "MethodId";
 }

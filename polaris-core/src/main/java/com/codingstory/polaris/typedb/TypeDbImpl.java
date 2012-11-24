@@ -2,7 +2,9 @@ package com.codingstory.polaris.typedb;
 
 import com.codingstory.polaris.IdUtils;
 import com.codingstory.polaris.parser.ClassType;
+import com.codingstory.polaris.parser.Field;
 import com.codingstory.polaris.parser.FullTypeName;
+import com.codingstory.polaris.parser.Method;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -46,7 +48,7 @@ public class TypeDbImpl implements TypeDb {
     }
 
     @Override
-    public ClassType queryByTypeId(long typeId) throws IOException {
+    public ClassType getTypeById(long typeId) throws IOException {
         IdUtils.checkValid(typeId);
         Query query = new TermQuery(new Term(TypeDbIndexedField.TYPE_ID, String.valueOf(typeId)));
         TopDocs result = searcher.search(query, 2);
@@ -61,7 +63,7 @@ public class TypeDbImpl implements TypeDb {
     }
 
     @Override
-    public List<ClassType> queryByTypeName(FullTypeName type) throws IOException {
+    public List<ClassType> getTypeByName(FullTypeName type) throws IOException {
         Preconditions.checkNotNull(type);
         TermQuery query = new TermQuery(new Term(TypeDbIndexedField.FULL_TYPE, type.toString()));
         TopDocs result = searcher.search(query, Integer.MAX_VALUE);
@@ -78,7 +80,7 @@ public class TypeDbImpl implements TypeDb {
     }
 
     @Override
-    public List<ClassType> queryForAutoCompletion(String query, int n) throws IOException {
+    public List<ClassType> completeQuery(String query, int n) throws IOException {
         Preconditions.checkNotNull(query);
         Preconditions.checkArgument(n >= 0);
         BooleanQuery booleanQuery = new BooleanQuery();
@@ -96,7 +98,7 @@ public class TypeDbImpl implements TypeDb {
     }
 
     @Override
-    public List<ClassType> queryInFile(long fileId, int n) throws IOException {
+    public List<ClassType> getTypesInFile(long fileId, int n) throws IOException {
         IdUtils.checkValid(fileId);
         Query query = new TermQuery(new Term(TypeDbIndexedField.FILE_ID, String.valueOf(fileId)));
         TopDocs hits = searcher.search(query, n);
@@ -105,6 +107,48 @@ public class TypeDbImpl implements TypeDb {
             result.add(retrieveDocument(scoreDoc.doc));
         }
         return result;
+    }
+
+    @Override
+    public Field getFieldById(long id) throws IOException {
+        IdUtils.checkValid(id);
+        Query query = new TermQuery(new Term(TypeDbIndexedField.FIELD_ID, String.valueOf(id)));
+        TopDocs hits = searcher.search(query, 2);
+        if (hits.scoreDocs.length == 0) {
+            return null;
+        }
+        if (hits.scoreDocs.length > 1) {
+            LOG.warn("Ambiguous field id: " + id);
+        }
+        ClassType classType = retrieveDocument(hits.scoreDocs[0].doc);
+        for (Field field : classType.getFields()) {
+            if (field.getHandle().getId() == id) {
+                return field;
+            }
+        }
+        LOG.error("Field " + id + " is indexed but not found in type " + classType.getHandle().getId());
+        return null;
+    }
+
+    @Override
+    public Method getMethodById(long id) throws IOException {
+        IdUtils.checkValid(id);
+        Query query = new TermQuery(new Term(TypeDbIndexedField.METHOD_ID, String.valueOf(id)));
+        TopDocs hits = searcher.search(query, 2);
+        if (hits.scoreDocs.length == 0) {
+            return null;
+        }
+        if (hits.scoreDocs.length > 1) {
+            LOG.warn("Ambiguous method id: " + id);
+        }
+        ClassType classType = retrieveDocument(hits.scoreDocs[0].doc);
+        for (Method method : classType.getMethods()) {
+            if (method.getId() == id) {
+                return method;
+            }
+        }
+        LOG.error("Method " + id + " is indexed but not found in type " + classType.getHandle().getId());
+        return null;
     }
 
     @Override

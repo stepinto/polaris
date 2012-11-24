@@ -34,7 +34,7 @@ public class SearchMixer {
         LOG.info("Query: " + query);
         // TODO: Need to understand query
         List<THit> result = Lists.newArrayList();
-        List<ClassType> classTypes = typeDb.queryByTypeName(FullTypeName.of(query));
+        List<ClassType> classTypes = typeDb.getTypeByName(FullTypeName.of(query));
         for (ClassType classType : classTypes) {
             result.add(classTypeToHit(classType));
         }
@@ -46,7 +46,7 @@ public class SearchMixer {
         Preconditions.checkArgument(n >= 0);
         LOG.info("Complete query: " + query);
         List<THit> result = Lists.newArrayList();
-        List<ClassType> classTypes = typeDb.queryForAutoCompletion(query, n);
+        List<ClassType> classTypes = typeDb.completeQuery(query, n);
         for (ClassType classType : classTypes) {
             result.add(classTypeToHit(classType));
         }

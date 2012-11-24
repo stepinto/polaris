@@ -57,12 +57,33 @@ def search(req):
 def goto_type(req, type_id):
   type_id = int(type_id)
   rpc = init_rpc()
-  rpc_req = TReadClassTypeRequest()
+  rpc_req = TGetTypeRequest()
   rpc_req.typeId = type_id
-  rpc_resp = rpc.readClassType(rpc_req)
+  rpc_resp = rpc.getType(rpc_req)
   check_rpc_status(rpc_resp.status)
   jump_target = rpc_resp.classType.jumpTarget
   return redirect('/goto/source/%d?offset=%d' % (jump_target.fileId, jump_target.offset))
+
+def goto_field(req, field_id):
+  field_id = int(field_id)
+  rpc = init_rpc()
+  rpc_req = TGetFieldRequest()
+  rpc_req.fieldId = field_id
+  rpc_resp = rpc.getField(rpc_req)
+  check_rpc_status(rpc_resp.status)
+  jump_target = rpc_resp.field.jumpTarget
+  return redirect('/goto/source/%d?offset=%d' % (jump_target.fileId, jump_target.offset))
+
+def goto_method(req, method_id):
+  method_id = int(method_id)
+  rpc = init_rpc()
+  rpc_req = TGetMethodRequest()
+  rpc_req.methodId = method_id
+  rpc_resp = rpc.getMethod(rpc_req)
+  check_rpc_status(rpc_resp.status)
+  jump_target = rpc_resp.method.jumpTarget
+  return redirect('/goto/source/%d?offset=%d' % (jump_target.fileId, jump_target.offset))
+  pass
 
 def goto_source_by_id(req, file_id):
   rpc_req = TSourceRequest()
@@ -76,6 +97,11 @@ def goto_source_by_path(req, project, path):
   return goto_source_helper(req, rpc_req)
 
 def goto_source_helper(req, rpc_req):
+  def trim_package(type_name):
+    return type_name.split('.')[-1]
+  def trim_type(member_name):
+    return member_name.split('#')[-1]
+
   offset = int(req.GET.get('offset', '0'))
   rpc = init_rpc()
   rpc_resp = rpc.source(rpc_req)
@@ -95,11 +121,19 @@ def goto_source_helper(req, rpc_req):
   rpc_resp2 = rpc.listTypesInFile(rpc_req2)
   check_rpc_status(rpc_resp2.status)
   for class_type in rpc_resp2.classTypes:
+    class_type.display_name = trim_package(class_type.handle.name)
     for field in (class_type.fields or []):
-      field.short_name = field.handle.name.split('#')[1]
+      field.dipslay = trim_type(field.handle.name) + ': ' + trim_package(field.type.name)
     for method in (class_type.methods or []):
-      method.short_name = method.handle.name.split('#')[1]
-  print len(rpc_resp2.classTypes)
+      name = trim_type(method.handle.name)
+      return_type = trim_package(method.returnType.name)
+      if method.parameters:
+        method.display_name = '%s(%s): %s' % ( \
+            name, \
+            ', '.join([trim_package(p.type.name) for p in method.parameters]), \
+            return_type)
+      else:
+        method.display_name = '%s: %s' % (name, return_type)
   return render_to_response('source.html', {
       'project': source.project,
       'path_parts': path_parts,

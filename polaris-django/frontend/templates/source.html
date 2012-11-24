@@ -52,24 +52,24 @@
       <ul class="file_tree filetree">
     </div>
     <div class="code_structure_panel fix_height_inner">
-      <!-- Handle inner types -->
-      {% if types %}
-        <ul class="class_list">
-          {% for type in types %}
-            <li>{{ type.handle.name }}</li>
-            <ul class="member_list">
-              {% for field in type.fields %}
-                <li>{{ field.short_name }}</li>
-              {% endfor %}
-              {% for method in type.methods %}
-                <li>{{ method.short_name }}</li>
-              {% endfor %}
-            </ul>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p>No code structure available preview in this file</p>
-      {% endif %}
+        <!-- Handle inner types -->
+        {% if types %}
+          <ul class="class_list">
+            {% for type in types %}
+              <li><a href="/goto/type/{{type.handle.id}}">{{ type.display_name }}</a></li>
+              <ul class="member_list">
+                {% for field in type.fields %}
+                  <li><a href="/goto/field/{{field.handle.id}}">{{ field.display_name }}</a></li>
+                {% endfor %}
+                {% for method in type.methods %}
+                  <li><a href="/goto/method/{{method.handle.id}}">{{ method.display_name }}</a></li>
+                {% endfor %}
+              </ul>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>No code structure available preview in this file</p>
+        {% endif %}
     </div>
     <div class="source_code_panel fix_height_inner">
       <div style="margin:10px">

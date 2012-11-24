@@ -26,7 +26,7 @@ public class CrossTypeResolver implements TypeResolver {
     public TypeHandle resolve(FullTypeName name) {
         Preconditions.checkNotNull(name);
         try {
-            List<ClassType> result = typeDb.queryByTypeName(name);
+            List<ClassType> result = typeDb.getTypeByName(name);
             if (result.isEmpty()) {
                 return null;
             }

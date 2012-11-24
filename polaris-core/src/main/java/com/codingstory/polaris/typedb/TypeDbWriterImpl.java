@@ -2,6 +2,7 @@ package com.codingstory.polaris.typedb;
 
 import com.codingstory.polaris.parser.ClassType;
 import com.codingstory.polaris.parser.FullTypeName;
+import com.codingstory.polaris.parser.Method;
 import com.codingstory.polaris.parser.TypeHandle;
 import com.google.common.base.Preconditions;
 import org.apache.lucene.document.Document;
@@ -49,6 +50,14 @@ public class TypeDbWriterImpl implements TypeDbWriter {
                     getAcronym(typeName.getTypeName()).toLowerCase(), Field.Store.YES, Field.Index.ANALYZED));
             document.add(new Field(TypeDbIndexedField.FILE_ID, String.valueOf(type.getJumpTarget().getFileId()),
                     Field.Store.YES, Field.Index.ANALYZED));
+            for (com.codingstory.polaris.parser.Field field : type.getFields()) {
+                document.add(new Field(TypeDbIndexedField.FIELD_ID, String.valueOf(field.getHandle().getId()),
+                        Field.Store.YES, Field.Index.ANALYZED));
+            }
+            for (Method method : type.getMethods()) {
+                document.add(new Field(TypeDbIndexedField.METHOD_ID, String.valueOf(method.getHandle().getId()),
+                        Field.Store.YES, Field.Index.ANALYZED));
+            }
             TTypeData typeData = new TTypeData();
             typeData.setClassType(type.toThrift());
             byte[] typeDataBinary = Snappy.compress(SERIALIZER.serialize(typeData));

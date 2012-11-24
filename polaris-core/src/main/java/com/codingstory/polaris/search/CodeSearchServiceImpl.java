@@ -2,6 +2,8 @@ package com.codingstory.polaris.search;
 
 import com.codingstory.polaris.indexing.IndexPathUtils;
 import com.codingstory.polaris.parser.ClassType;
+import com.codingstory.polaris.parser.Field;
+import com.codingstory.polaris.parser.Method;
 import com.codingstory.polaris.parser.SourceFile;
 import com.codingstory.polaris.parser.TypeUsage;
 import com.codingstory.polaris.sourcedb.SourceDb;
@@ -140,15 +142,15 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
     }
 
     @Override
-    public TReadClassTypeResponse readClassType(TReadClassTypeRequest req) throws TException {
+    public TGetTypeResponse getType(TGetTypeRequest req) throws TException {
         Preconditions.checkNotNull(req);
-        TReadClassTypeResponse resp = new TReadClassTypeResponse();
+        TGetTypeResponse resp = new TGetTypeResponse();
         try {
             if (!req.isSetTypeId()) {
                 resp.setStatus(TStatusCode.MISSING_FIELDS);
                 return resp;
             }
-            ClassType classType = typeDb.queryByTypeId(req.getTypeId());
+            ClassType classType = typeDb.getTypeById(req.getTypeId());
             if (classType == null) {
                 resp.setStatus(TStatusCode.FILE_NOT_FOUND);
                 return resp;
@@ -173,7 +175,7 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
                 return resp;
             }
             int limit = req.isSetLimit() ? req.getLimit() : 20;
-            List<ClassType> classTypes = typeDb.queryInFile(req.getFileId(), limit);
+            List<ClassType> classTypes = typeDb.getTypesInFile(req.getFileId(), limit);
             resp.setStatus(TStatusCode.OK);
             for (ClassType classType : classTypes) {
                 resp.addToClassTypes(classType.toThrift());
@@ -200,6 +202,54 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
             for (TypeUsage usage : usages) {
                 resp.addToUsages(usage.toThrift());
             }
+            return resp;
+        } catch (Exception e) {
+            LOG.error("Caught exception", e);
+            resp.setStatus(TStatusCode.UNKNOWN_ERROR);
+            return resp;
+        }
+    }
+
+    @Override
+    public TGetFieldResponse getField(TGetFieldRequest req) throws TException {
+        Preconditions.checkNotNull(req);
+        TGetFieldResponse resp = new TGetFieldResponse();
+        try {
+            if (!req.isSetFieldId()) {
+                resp.setStatus(TStatusCode.MISSING_FIELDS);
+                return resp;
+            }
+            Field field = typeDb.getFieldById(req.getFieldId());
+            if (field == null) {
+                resp.setStatus(TStatusCode.FILE_NOT_FOUND);
+                return resp;
+            }
+            resp.setStatus(TStatusCode.OK);
+            resp.setField(field.toThrift());
+            return resp;
+        } catch (Exception e) {
+            LOG.error("Caught exception", e);
+            resp.setStatus(TStatusCode.UNKNOWN_ERROR);
+            return resp;
+        }
+    }
+
+    @Override
+    public TGetMethodResponse getMethod(TGetMethodRequest req) throws TException {
+        Preconditions.checkNotNull(req);
+        TGetMethodResponse resp = new TGetMethodResponse();
+        try {
+            if (!req.isSetMethodId()) {
+                resp.setStatus(TStatusCode.MISSING_FIELDS);
+                return resp;
+            }
+            Method method = typeDb.getMethodById(req.getMethodId());
+            if (method == null) {
+                resp.setStatus(TStatusCode.FILE_NOT_FOUND);
+                return resp;
+            }
+            resp.setStatus(TStatusCode.OK);
+            resp.setMethod(method.toThrift());
             return resp;
         } catch (Exception e) {
             LOG.error("Caught exception", e);

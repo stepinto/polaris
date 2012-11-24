@@ -105,7 +105,7 @@ public class CodeSearchEndToEndTest {
         buildIndex(ImmutableList.of("project"));
 
         TypeDb typeDb = new TypeDbImpl(IndexPathUtils.getTypeDbPath(indexDir));
-        ClassType type = Iterables.getOnlyElement(typeDb.queryByTypeName(FullTypeName.of("com.company.A")));
+        ClassType type = Iterables.getOnlyElement(typeDb.getTypeByName(FullTypeName.of("com.company.A")));
         long typeId = type.getHandle().getId();
         TCodeSearchService.Iface searcher = createSearcher();
         TListTypeUsagesRequest req = new TListTypeUsagesRequest();
