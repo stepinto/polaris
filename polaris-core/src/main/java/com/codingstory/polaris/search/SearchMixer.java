@@ -2,7 +2,6 @@ package com.codingstory.polaris.search;
 
 import com.codingstory.polaris.JumpTarget;
 import com.codingstory.polaris.parser.ClassType;
-import com.codingstory.polaris.parser.FullTypeName;
 import com.codingstory.polaris.parser.SourceFile;
 import com.codingstory.polaris.sourcedb.SourceDb;
 import com.codingstory.polaris.typedb.TypeDb;
@@ -34,7 +33,7 @@ public class SearchMixer {
         LOG.info("Query: " + query);
         // TODO: Need to understand query
         List<THit> result = Lists.newArrayList();
-        List<ClassType> classTypes = typeDb.getTypeByName(FullTypeName.of(query));
+        List<ClassType> classTypes = typeDb.completeQuery(query, n); // TODO: Use dedicated approach
         for (ClassType classType : classTypes) {
             result.add(classTypeToHit(classType));
         }
