@@ -77,10 +77,20 @@ struct TReadClassTypeResponse {
     2: parser.TClassType classType;
 }
 
+struct TListTypeUsagesRequest {
+    1: i64 typeId;
+}
+
+struct TListTypeUsagesResponse {
+    1: TStatusCode status;
+    2: list<parser.TTypeUsage> usages;
+}
+
 service TCodeSearchService {
     TSearchResponse search(1: TSearchRequest req);
     TSourceResponse source(1: TSourceRequest req);
     TCompleteResponse complete(1: TCompleteRequest req);
     TLayoutResponse layout(1: TLayoutRequest req);
     TReadClassTypeResponse readClassType(1: TReadClassTypeRequest req);
+    TListTypeUsagesResponse listTypeUsages(1: TListTypeUsagesRequest req);
 }

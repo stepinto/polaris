@@ -3,10 +3,13 @@ package com.codingstory.polaris.search;
 import com.codingstory.polaris.indexing.IndexPathUtils;
 import com.codingstory.polaris.parser.ClassType;
 import com.codingstory.polaris.parser.SourceFile;
+import com.codingstory.polaris.parser.TypeUsage;
 import com.codingstory.polaris.sourcedb.SourceDb;
 import com.codingstory.polaris.sourcedb.SourceDbImpl;
 import com.codingstory.polaris.typedb.TypeDb;
 import com.codingstory.polaris.typedb.TypeDbImpl;
+import com.codingstory.polaris.usagedb.UsageDb;
+import com.codingstory.polaris.usagedb.UsageDbImpl;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
@@ -26,16 +29,15 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
     private static final TDeserializer DESERIALIZER = new TDeserializer(new TBinaryProtocol.Factory());
     private final TypeDb typeDb;
     private final SourceDb sourceDb;
+    private final UsageDb usageDb;
     private final SearchMixer mixer;
 
     public CodeSearchServiceImpl(File indexDirectory) throws IOException {
         Preconditions.checkNotNull(indexDirectory);
         Preconditions.checkArgument(indexDirectory.isDirectory());
-        // reader = IndexReader.open(FSDirectory.open(indexDirectory));
-        // searcher = new IndexSearcher(reader);
-        // srcSearcher = new SrcSearcher(reader);
         typeDb = new TypeDbImpl(IndexPathUtils.getTypeDbPath(indexDirectory));
         sourceDb = new SourceDbImpl(IndexPathUtils.getSourceDbPath(indexDirectory));
+        usageDb = new UsageDbImpl(IndexPathUtils.getUsageDbPath(indexDirectory));
         mixer = new SearchMixer(typeDb, sourceDb);
     }
 
@@ -153,6 +155,28 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
             }
             resp.setStatus(TStatusCode.OK);
             resp.setClassType(classType.toThrift());
+            return resp;
+        } catch (Exception e) {
+            LOG.error("Caught exception", e);
+            resp.setStatus(TStatusCode.UNKNOWN_ERROR);
+            return resp;
+        }
+    }
+
+    @Override
+    public TListTypeUsagesResponse listTypeUsages(TListTypeUsagesRequest req) throws TException {
+        Preconditions.checkNotNull(req);
+        TListTypeUsagesResponse resp = new TListTypeUsagesResponse();
+        try {
+            if (!req.isSetTypeId()) {
+                resp.setStatus(TStatusCode.MISSING_FIELDS);
+                return resp;
+            }
+            resp.setStatus(TStatusCode.OK);
+            List<TypeUsage> usages = usageDb.query(req.getTypeId());
+            for (TypeUsage usage : usages) {
+                resp.addToUsages(usage.toThrift());
+            }
             return resp;
         } catch (Exception e) {
             LOG.error("Caught exception", e);
