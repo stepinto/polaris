@@ -3,6 +3,7 @@
 # TODO: socket leaked after init_rpc
 
 import os
+import sys
 from urllib import quote
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
@@ -88,13 +89,25 @@ def goto_source_helper(req, rpc_req):
   for i in xrange(line_count):
     line_no_html += '<li id="line_no_%d">%d</li>' % (i, i)
   path_parts = [source.project] + filter(lambda x: x != '', source.path.split('/'))
+  rpc_req2 = TListTypesInFileRequest()
+  rpc_req2.fileId = source.id
+  rpc_req2.limit = sys.maxint
+  rpc_resp2 = rpc.listTypesInFile(rpc_req2)
+  check_rpc_status(rpc_resp2.status)
+  for class_type in rpc_resp2.classTypes:
+    for field in (class_type.fields or []):
+      field.short_name = field.handle.name.split('#')[1]
+    for method in (class_type.methods or []):
+      method.short_name = method.handle.name.split('#')[1]
+  print len(rpc_resp2.classTypes)
   return render_to_response('source.html', {
       'project': source.project,
       'path_parts': path_parts,
       'dir': os.path.dirname(source.path),
       'source_html': html,
       'line_no': line_no,
-      'line_no_html': line_no_html
+      'line_no_html': line_no_html,
+      'types': rpc_resp2.classTypes
       })
 
 def ajax_complete(req):

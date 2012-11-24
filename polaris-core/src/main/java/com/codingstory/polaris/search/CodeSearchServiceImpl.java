@@ -164,6 +164,29 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
     }
 
     @Override
+    public TListTypesInFileResponse listTypesInFile(TListTypesInFileRequest req) throws TException {
+        Preconditions.checkNotNull(req);
+        TListTypesInFileResponse resp = new TListTypesInFileResponse();
+        try {
+            if (!req.isSetFileId()) {
+                resp.setStatus(TStatusCode.MISSING_FIELDS);
+                return resp;
+            }
+            int limit = req.isSetLimit() ? req.getLimit() : 20;
+            List<ClassType> classTypes = typeDb.queryInFile(req.getFileId(), limit);
+            resp.setStatus(TStatusCode.OK);
+            for (ClassType classType : classTypes) {
+                resp.addToClassTypes(classType.toThrift());
+            }
+            return resp;
+        } catch (Exception e) {
+            LOG.error("Caught exception", e);
+            resp.setStatus(TStatusCode.UNKNOWN_ERROR);
+            return resp;
+        }
+    }
+
+    @Override
     public TListTypeUsagesResponse listTypeUsages(TListTypeUsagesRequest req) throws TException {
         Preconditions.checkNotNull(req);
         TListTypeUsagesResponse resp = new TListTypeUsagesResponse();

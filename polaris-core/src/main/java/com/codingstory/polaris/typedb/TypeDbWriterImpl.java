@@ -47,6 +47,8 @@ public class TypeDbWriterImpl implements TypeDbWriter {
                     Field.Store.YES, Field.Index.ANALYZED));
             document.add(new Field(TypeDbIndexedField.TYPE_ACRONYM_CASE_INSENSITIVE,
                     getAcronym(typeName.getTypeName()).toLowerCase(), Field.Store.YES, Field.Index.ANALYZED));
+            document.add(new Field(TypeDbIndexedField.FILE_ID, String.valueOf(type.getJumpTarget().getFileId()),
+                    Field.Store.YES, Field.Index.ANALYZED));
             TTypeData typeData = new TTypeData();
             typeData.setClassType(type.toThrift());
             byte[] typeDataBinary = Snappy.compress(SERIALIZER.serialize(typeData));

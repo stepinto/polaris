@@ -96,6 +96,18 @@ public class TypeDbImpl implements TypeDb {
     }
 
     @Override
+    public List<ClassType> queryInFile(long fileId, int n) throws IOException {
+        IdUtils.checkValid(fileId);
+        Query query = new TermQuery(new Term(TypeDbIndexedField.FILE_ID, String.valueOf(fileId)));
+        TopDocs hits = searcher.search(query, n);
+        List<ClassType> result = Lists.newArrayList();
+        for (ScoreDoc scoreDoc: hits.scoreDocs) {
+            result.add(retrieveDocument(scoreDoc.doc));
+        }
+        return result;
+    }
+
+    @Override
     public void close() throws IOException {
         reader.close();
         searcher.close();

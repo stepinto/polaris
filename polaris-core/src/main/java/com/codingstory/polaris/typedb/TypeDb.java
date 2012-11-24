@@ -12,4 +12,5 @@ public interface TypeDb extends Closeable {
     List<ClassType> queryByTypeName(FullTypeName type) throws IOException;
     List<ClassType> queryFuzzy(String project, FullTypeName type, int n) throws IOException;
     List<ClassType> queryForAutoCompletion(String query, int n) throws IOException;
+    List<ClassType> queryInFile(long fileId, int n) throws IOException;
 }

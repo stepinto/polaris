@@ -75,18 +75,26 @@ pre {
   overflow: hidden;
 }
 
-.source_layout_panel {
+.file_tree_panel {
   height: 0px;
-  width: 19%;
+  width: 200px;
   float: left;
+  overflow: auto;
+  border: 1px #CECECE solid;
+}
+
+.code_structure_panel {
+  height: 0px;
+  width: 200px;
+  float: right;
   overflow: auto;
   border: 1px #CECECE solid;
 }
 
 .source_code_panel {
   height: 0px;
-  width: 80%;
-  float: left;
+  margin-left: 200px;
+  margin-right: 200px;
   overflow: auto;
   border: 1px #CECECE solid;
 }
@@ -102,6 +110,17 @@ pre {
   float: left;
   margin: 0px;
   padding: 0px !important;
+}
+
+.class_list {
+  list-style: none;
+  margin: 10px;
+  padding: 0px;
+}
+
+.member_list {
+  list-style: none;
+  padding-left: 20px;
 }
 
 /* about page specific */

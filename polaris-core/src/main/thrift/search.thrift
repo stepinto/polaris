@@ -77,6 +77,16 @@ struct TReadClassTypeResponse {
     2: parser.TClassType classType;
 }
 
+struct TListTypesInFileRequest {
+    1: i64 fileId;
+    2: i32 limit;
+}
+
+struct TListTypesInFileResponse {
+    1: TStatusCode status;
+    2: list<parser.TClassType> classTypes;
+}
+
 struct TListTypeUsagesRequest {
     1: i64 typeId;
 }
@@ -92,5 +102,6 @@ service TCodeSearchService {
     TCompleteResponse complete(1: TCompleteRequest req);
     TLayoutResponse layout(1: TLayoutRequest req);
     TReadClassTypeResponse readClassType(1: TReadClassTypeRequest req);
+    TListTypesInFileResponse listTypesInFile(1: TListTypesInFileRequest req);
     TListTypeUsagesResponse listTypeUsages(1: TListTypeUsagesRequest req);
 }

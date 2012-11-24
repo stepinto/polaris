@@ -7,5 +7,6 @@ public class TypeDbIndexedField {
     public static String FULL_TYPE = "FullType";
     public static String FULL_TYPE_CASE_INSENSITIVE = "FullTypeCaseInsensitive";
     public static String TYPE_ACRONYM_CASE_INSENSITIVE = "TypeAcronymCaseInsensitive";
+    public static String FILE_ID = "FileId";
     public static String TYPE_DATA = "TypeData";
 }

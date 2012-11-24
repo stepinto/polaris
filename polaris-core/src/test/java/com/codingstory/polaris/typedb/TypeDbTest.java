@@ -37,8 +37,12 @@ public class TypeDbTest {
     }
 
     private static class ClassTypeFactory {
+        static final long FAKE_FILE_ID = 100L;
         public static ClassType create(FullTypeName type) throws IOException {
-            long fakeFileId = 100L;
+            return createInFile(type, FAKE_FILE_ID);
+        }
+
+        public static ClassType createInFile(FullTypeName type, long fileId) throws IOException {
             return new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
                     ClassType.Kind.CLASS,
                     Lists.<TypeHandle>newArrayList(),
@@ -46,7 +50,7 @@ public class TypeDbTest {
                     Lists.<Field>newArrayList(),
                     Lists.<Method>newArrayList(),
                     null,
-                    new JumpTarget(fakeFileId, 0));
+                    new JumpTarget(fileId, 0));
         }
     }
 
@@ -120,6 +124,19 @@ public class TypeDbTest {
         doTestQueryForAutoCompletion("FIS", corpus, ImmutableList.of("java.io.FileInputStream"));
         doTestQueryForAutoCompletion("FR", corpus, ImmutableList.of("java.io.FileReader"));
         doTestQueryForAutoCompletion("F", corpus, ImmutableList.of("java.io.FileInputStream", "java.io.FileReader"));
+    }
+
+    @Test
+    public void testQueryInFile() throws IOException {
+        TypeDbWriter w = new TypeDbWriterImpl(tempDir);
+        w.write(ClassTypeFactory.createInFile(FullTypeName.of("A"), 1000L));
+        w.write(ClassTypeFactory.createInFile(FullTypeName.of("B"), 1000L));
+        w.write(ClassTypeFactory.createInFile(FullTypeName.of("C"), 1001L));
+        w.close();
+        TypeDb r = new TypeDbImpl(tempDir);
+        List<ClassType> types = r.queryInFile(1000L, Integer.MAX_VALUE);
+        assertEquals(ImmutableSet.of(FullTypeName.of("A"), FullTypeName.of("B")),
+                ImmutableSet.copyOf(getFullTypeNames(types)));
     }
 
     private void doTestQueryForAutoCompletion(String query,
