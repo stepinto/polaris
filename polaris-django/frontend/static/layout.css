@@ -7,6 +7,16 @@ pre {
   font-size: 12;
 }
 
+/*a:link {
+  text-decoration: underline;
+  color: #002D82;
+}*/
+
+/*a:hover {
+  text-decoration:underline;
+  color: #002D82;
+}*/
+
 .header {
   margin-top: 20px;
 }
@@ -120,9 +130,27 @@ pre {
   white-space: nowrap;
 }
 
+.class_link {
+  text-decoration: none;
+  padding-left: 18px;
+  background: transparent url(/static/images/eclipse-icons/class_obj.gif) no-repeat left;
+}
+
 .member_list {
   list-style: none;
-  padding-left: 20px;
+  padding-left: 10px;
+}
+
+.method_link {
+  text-decoration: none;
+  padding-left: 18px;
+  background: transparent url(/static/images/eclipse-icons/methpub_obj.gif) no-repeat left;
+}
+
+.field_link {
+  text-decoration: none;
+  padding-left: 18px;
+  background: transparent url(/static/images/eclipse-icons/field_public_obj.gif) no-repeat left;
 }
 
 /* about page specific */

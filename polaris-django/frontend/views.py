@@ -23,6 +23,7 @@ import json
 from xml.dom import minidom
 
 SEARCH_RESULT_PER_PAGE = 10
+MAX_TYPES_IN_FILE = 1000
 
 def init_rpc():
   socket = TSocket.TSocket(RPC_SERVER_HOST, RPC_SERVER_PORT)
@@ -117,13 +118,13 @@ def goto_source_helper(req, rpc_req):
   path_parts = [source.project] + filter(lambda x: x != '', source.path.split('/'))
   rpc_req2 = TListTypesInFileRequest()
   rpc_req2.fileId = source.id
-  rpc_req2.limit = sys.maxint
+  rpc_req2.limit = MAX_TYPES_IN_FILE
   rpc_resp2 = rpc.listTypesInFile(rpc_req2)
   check_rpc_status(rpc_resp2.status)
   for class_type in rpc_resp2.classTypes:
     class_type.display_name = trim_package(class_type.handle.name)
     for field in (class_type.fields or []):
-      field.dipslay = trim_type(field.handle.name) + ': ' + trim_package(field.type.name)
+      field.display_name = trim_type(field.handle.name) + ': ' + trim_package(field.type.name)
     for method in (class_type.methods or []):
       name = trim_type(method.handle.name)
       return_type = trim_package(method.returnType.name)
