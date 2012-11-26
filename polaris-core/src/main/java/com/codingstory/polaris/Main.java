@@ -5,6 +5,7 @@ import com.codingstory.polaris.parser.ParserOptions;
 import com.codingstory.polaris.parser.SecondPassProcessor;
 import com.codingstory.polaris.parser.TypeResolver;
 import com.codingstory.polaris.parser.Usage;
+import com.codingstory.polaris.repo.GitHubCrawler;
 import com.codingstory.polaris.search.CodeSearchServiceImpl;
 import com.codingstory.polaris.search.TCodeSearchService;
 import com.codingstory.polaris.search.THit;
@@ -42,6 +43,8 @@ import java.io.InputStream;
 import java.text.Format;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Main {
 
@@ -78,6 +81,8 @@ public class Main {
                 runRpc(RPC_COMMAND_TABLE.get(command), commandArgs);
             } else if (command.equalsIgnoreCase("searchserver")) {
                 runSearchServer(commandArgs);
+            } else if (command.equalsIgnoreCase("crawlgithub")) {
+                runCrawlGitHub(commandArgs);
             } else {
                 printHelp();
             }
@@ -154,6 +159,31 @@ public class Main {
                         .protocolFactory(protocolFactory));
         LOG.info("Starting searcher at port " + port);
         server.serve();
+    }
+
+    private static void runCrawlGitHub(List<String> commandArgs) throws Exception {
+        Options commandLineOptions = new Options();
+        commandLineOptions.addOption(new Option("o", "output", true, "output directory"));
+        CommandLineParser commandLineParser = new GnuParser();
+        CommandLine commandLine = commandLineParser.parse(commandLineOptions, stringListToArray(commandArgs));
+        String outputPath = commandLine.getOptionValue("output");
+        File outputDir = new File(outputPath);
+        Pattern userPattern = Pattern.compile("([A-Za-z0-9]+)");
+        Pattern userRepoPattern = Pattern.compile("([A-Za-z0-9]+)/([A-Za-z0-9]+)");
+        for (String arg : commandLine.getArgs()) {
+            Matcher m;
+            if ((m = userPattern.matcher(arg)).matches()) {
+                String user = m.group(1);
+                GitHubCrawler.crawlRepositoriesOfUser(user, outputDir);
+            } else if ((m = userRepoPattern.matcher(arg)).matches()) {
+                String user = m.group(1);
+                String repo = m.group(2);
+                GitHubCrawler.crawlRepository(user, repo, outputDir);
+            } else {
+                LOG.error("bad repo: " + arg);
+                System.exit(1);
+            }
+        }
     }
 
     private static String[] stringListToArray(List<String> a) {
@@ -233,6 +263,8 @@ public class Main {
         System.out.println("  polaris searchserver");
         System.out.println("  polaris search query");
         System.out.println("  polaris source source");
+        System.out.println("  polaris crawlgithub user -o dir");
+        System.out.println("  polaris crawlgithub user/repo -o dir");
         System.out.println();
     }
 }
