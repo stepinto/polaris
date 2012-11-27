@@ -17,13 +17,14 @@ public class GitHubCrawler {
 
     private static final Log LOG = LogFactory.getLog(GitHubCrawler.class);
     private static final RepositoryService REPOSITORY_SERVICE = new RepositoryService();
+    private static final int RETRY_COUNT = 10;
 
     public static void crawlRepository(String user, String repoName, File outputDir) throws IOException {
         Preconditions.checkNotNull(user);
         Preconditions.checkNotNull(repoName);
         Preconditions.checkNotNull(outputDir);
         Repository gitHubRepo = REPOSITORY_SERVICE.getRepository(user, repoName);
-        gitClone(gitHubRepo.getCloneUrl(), outputDir);
+        gitCloneRetry(gitHubRepo.getCloneUrl(), outputDir);
     }
 
     public static void crawlRepositoriesOfUser(String user, File outputDir) throws IOException {
@@ -32,7 +33,20 @@ public class GitHubCrawler {
         Preconditions.checkArgument(outputDir.isDirectory());
         for (Repository repo : REPOSITORY_SERVICE.getRepositories(user)) {
             File newOutputDir = new File(outputDir, repo.getName());
-            gitClone(repo.getCloneUrl(), newOutputDir);
+            gitCloneRetry(repo.getCloneUrl(), newOutputDir);
+        }
+    }
+
+    private static void gitCloneRetry(String cloneUrl, File outputDir) throws IOException {
+        int currentRetryCount = 0;
+        while (currentRetryCount < RETRY_COUNT) {
+            try {
+                gitClone(cloneUrl, outputDir);
+                return;
+            } catch (IOException e) {
+                LOG.warn(e);
+            }
+            currentRetryCount++;
         }
     }
 
