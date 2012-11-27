@@ -35,8 +35,11 @@ def init_rpc():
 def index(req):
   return render_to_response('index.html')
 
+def index2(req):
+  return render_to_response('index2.html')
+
 def hello(req):
-  return HttpResponse('Hello, world!')
+  return render_to_response('hello-closure.html')
 
 def about(req):
   return render_to_response('about.html')
@@ -148,8 +151,8 @@ def goto_source_helper(req, rpc_req):
 def ajax_complete(req):
   rpc = init_rpc()
   rpc_req = TCompleteRequest()
-  rpc_req.query = req.GET['q']
-  rpc_req.limit = int(req.GET['n'])
+  rpc_req.query = req.GET['token']
+  rpc_req.limit = int(req.GET['max_matches'])
   rpc_resp = rpc.complete(rpc_req)
   check_rpc_status(rpc_resp.status)
   return HttpResponse(json.dumps(rpc_resp.entries))
@@ -174,6 +177,16 @@ def ajax_layout(req, project, path):
           quote(os.path.join(path, child)), quote(child))
     result.append({'text': text, 'hasChildren': has_children})
   return HttpResponse(json.dumps(result))
+
+def ajax_search(req):
+  rpc = init_rpc()
+  rpc_req = TSearchRequest()
+  rpc_req.query = req.GET['query']
+  rpc_req.rankFrom = 0
+  rpc_req.rankTo = int(req.GET['limit'])
+  rpc_resp = rpc.search(rpc_req)
+  check_rpc_status(rpc_resp.status)
+  return HttpResponse(json.dumps(rpc_resp))
 
 def hex_encode(s):
   return s.encode('hex')

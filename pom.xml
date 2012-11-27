@@ -10,5 +10,6 @@
 
     <modules>
         <module>polaris-core</module>
+        <module>polaris-webui</module>
     </modules>
 </project>

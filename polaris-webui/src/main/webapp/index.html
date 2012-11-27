@@ -1,0 +1,155 @@
+<html>
+<head>
+  <link rel="stylesheet" href="css/polaris.css"></link>
+  <script src="js/closure/goog/base.js"></script>
+  <script>
+    goog.require("goog.debug");
+    goog.require("goog.dom");
+    goog.require("goog.events");
+    goog.require("goog.events.EventType");
+    goog.require("goog.ui.decorate");
+    goog.require("goog.ui.ac");
+    goog.require("goog.ui.ac.Remote");
+    goog.require("goog.string");
+    goog.require("goog.string.format");
+    goog.require("goog.style");
+    goog.require("goog.ui.Component");
+  </script>
+  <script src="js/polaris/services.js"></script>
+  <script src="js/polaris/page_controller.js"></script>
+  <script src="js/polaris/code_view.js"></script>
+  <script src="js/polaris/search_box.js"></script>
+  <title>Polaris Code Search</title>
+</head>
+<body>
+  <!-- "#page=index" -->
+  <div id="index" style="display:none">
+    <div id="logo" style="text-align:center; margin:150px 0px 50px 0px;">
+      <img src="images/logo.png"></img>
+    </div>
+    <div style="margin:0px auto 150px auto; width: 475px">
+      <input id="search_box" class="thin_border_edit" style="width: 400px; height: 23px;" type="text" autocomplete="off"></input>
+      <button id="search_button" class="blue_button" style="width: 70px; height: 23px" onclick="onSearchClicked()">Search</button>
+    </div>
+    <div id="footer" style="text-align:center">
+      <p>Powered by <a href="http://lucene.apache.org/">Apache Lucene</a> | <a href="/about">About Us</a></p>
+    </div>
+  </div>
+
+  <!-- "#page=search" -->
+  <div id="search" style="display:none">
+    <div id="search_loading">
+      <p>Loading...</p>
+    </div>
+    <div id="search_results">
+      <ul id="search_result_list" style="padding-left: 0px">
+      </ul>
+    </div>
+  </div>
+
+  <!-- "#page=code" -->
+  <div id="code" style="display:none">
+    <div id="code_loading">
+      <p>Loading...</p>
+    </div>
+    <div id="code_main">
+    </div>
+  </div>
+
+  <!-- "#page=goto" -->
+  <div id="goto" style="display:none"></div>
+
+  <script>
+    var pageController = new polaris.PageController();
+    pageController.registerPage("index", onLoadIndex, goog.dom.getElement("index"));
+    pageController.registerPage("search", onLoadSearch, goog.dom.getElement("search"));
+    pageController.registerPage("code", onLoadCode, goog.dom.getElement("code"));
+    pageController.registerPage("goto", onLoadGoto, goog.dom.getElement("goto"));
+
+    var searchBox = new polaris.SearchBox();
+    searchBox.decorate(goog.dom.getElement("search_box"));
+    var searchButton = goog.dom.getElement("search_button");
+    var autoComplete = new goog.ui.ac.Remote("ajax/complete", searchBox);
+    goog.events.listen(searchBox.getElement(), goog.events.EventType.KEYPRESS, function(event) {
+        if (event.charCode == 13) {
+          onSearchClicked();
+        }
+    });
+
+    function onSearchClicked() {
+      pageController.showPage("search", {query: searchBox.getValue()});
+    }
+
+    function onLoadIndex(parameters) {
+      console.log("onLoadIndex");
+    }
+
+    function onLoadSearch(parameters) {
+      var query = parameters.query;
+      console.log("Search " + query);
+      showSearchLoading(true);
+      polaris.services.search(query, 0, 10, function(resp) {
+          renderSearchResults(resp);
+      });
+    }
+
+    function showSearchLoading(f) {
+      goog.style.showElement(goog.dom.getElement("search_loading"), f);
+      goog.style.showElement(goog.dom.getElement("search_results"), !f);
+    }
+
+    function renderSearchResults(resp) {
+      console.log(resp);
+      var ul = goog.dom.getElement("search_result_list");
+      goog.array.forEach(resp.hits, function(hit) {
+          var url = convertJumpTargetToUrlFragment(hit.jumpTarget);
+          var li = goog.dom.createDom("li", null,
+            goog.dom.createDom("a", {href: url},
+              goog.dom.createTextNode(hit.project + hit.path)),
+            goog.dom.createDom("pre", null,
+              goog.dom.createTextNode(hit.summary)));
+          goog.dom.appendChild(ul, li);
+      });
+      showSearchLoading(false);
+    }
+
+    function onLoadCode(parameters) {
+      console.log("onLoadCode");
+      var fileId = goog.string.parseInt(parameters.file);
+      var offset = goog.string.parseInt(parameters.offset);
+      showCodeLoading(true);
+      polaris.services.readSourceCode(fileId, function(resp) {
+          renderCode(resp);
+      } );
+    }
+
+    function renderCode(resp) {
+      console.log(resp);
+      var codeView = new polaris.CodeView(resp.source.annotatedSource);
+      console.log(codeView);
+      codeView.render(goog.dom.getElement("code_main"));
+      showCodeLoading(false);
+    }
+
+    function showCodeLoading(f) {
+      goog.style.showElement(goog.dom.getElement("code_loading"), f);
+      goog.style.showElement(goog.dom.getElement("code_main"), !f);
+    }
+
+    function convertJumpTargetToUrlFragment(jumpTarget) {
+      return goog.string.format("#page=code&file=%d&offset=%d",
+          jumpTarget.fileId, jumpTarget.offset);
+    }
+
+    function onLoadGoto(parameters) {
+      console.log("onLoadGoto");
+      var typeId = goog.string.parseInt(parameters.type);
+      // TODO show loading
+      polaris.services.readType(typeId, function(resp) {
+          var url = convertJumpTargetToUrlFragment(resp.classType.jumpTarget);
+          pageController.showPageByUrlFragment(url);
+      });
+    }
+  </script>
+</body>
+</html>
