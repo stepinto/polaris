@@ -24,69 +24,98 @@
 <body>
   <!-- "#page=index" -->
   <div id="index" style="display:none">
-    <div id="logo" style="text-align:center; margin:150px 0px 50px 0px;">
+    <div style="text-align:center; margin:150px 0px 50px 0px;">
       <img src="images/logo.png"></img>
     </div>
     <div style="margin:0px auto 150px auto; width: 475px">
       <input id="search_box" class="thin_border_edit" style="width: 400px; height: 23px;" type="text" autocomplete="off"></input>
-      <button id="search_button" class="blue_button" style="width: 70px; height: 23px" onclick="onSearchClicked()">Search</button>
+      <button id="search_button" class="blue_button" style="width: 70px; height: 23px">Search</button>
     </div>
     <div id="footer" style="text-align:center">
       <p>Powered by <a href="http://lucene.apache.org/">Apache Lucene</a> | <a href="/about">About Us</a></p>
     </div>
   </div>
 
-  <!-- "#page=search" -->
-  <div id="search" style="display:none">
-    <div id="search_loading">
-      <p>Loading...</p>
+  <div id="search_or_code" style="display:none">
+    <div>
+      <a href="#"><img src="images/logo.png"></img></a>
     </div>
-    <div id="search_results">
-      <ul id="search_result_list" style="padding-left: 0px">
-      </ul>
+    <div>
+      <input id="search_box2" class="thin_border_edit" style="width: 400px; height: 23px;" type="text" autocomplete="off"></input>
+      <button id="search_button2" class="blue_button" style="width: 70px; height: 23px">Search</button>
+    </div>
+
+    <!-- "#page=search" -->
+    <div id="search" style="display:none">
+      <div id="search_loading">
+        <p>Loading...</p>
+      </div>
+      <div id="search_results">
+        <ul id="search_result_list" style="padding-left: 0px">
+        </ul>
+      </div>
+    </div>
+
+    <!-- "#page=code" -->
+    <div id="code" style="display:none">
+      <div id="code_loading">
+        <p>Loading...</p>
+      </div>
+      <div id="code_main">
+      </div>
     </div>
   </div>
-
-  <!-- "#page=code" -->
-  <div id="code" style="display:none">
-    <div id="code_loading">
-      <p>Loading...</p>
-    </div>
-    <div id="code_main">
-    </div>
-  </div>
-
-  <!-- "#page=goto" -->
-  <div id="goto" style="display:none"></div>
 
   <script>
     var pageController = new polaris.PageController();
-    pageController.registerPage("index", onLoadIndex, goog.dom.getElement("index"));
+    pageController.registerPage("index", onLoadIndex);
     pageController.registerPage("search", onLoadSearch, goog.dom.getElement("search"));
     pageController.registerPage("code", onLoadCode, goog.dom.getElement("code"));
     pageController.registerPage("goto", onLoadGoto, goog.dom.getElement("goto"));
 
-    var searchBox = new polaris.SearchBox();
-    searchBox.decorate(goog.dom.getElement("search_box"));
-    var searchButton = goog.dom.getElement("search_button");
-    var autoComplete = new goog.ui.ac.Remote("ajax/complete", searchBox);
-    goog.events.listen(searchBox.getElement(), goog.events.EventType.KEYPRESS, function(event) {
-        if (event.charCode == 13) {
-          onSearchClicked();
-        }
-    });
+    setUpSearch(goog.dom.getElement("search_box"), goog.dom.getElement("search_button"));
+    setUpSearch(goog.dom.getElement("search_box2"), goog.dom.getElement("search_button2"));
 
-    function onSearchClicked() {
-      pageController.showPage("search", {query: searchBox.getValue()});
+    function setUpSearch(searchBoxElement, searchButtonElement) {
+      var searchBox = new polaris.SearchBox();
+      searchBox.decorate(searchBoxElement);
+      goog.events.listen(searchBoxElement, goog.events.EventType.KEYPRESS, function(event) {
+          if (event.charCode == 13) {
+            onSearchClicked();
+          }
+      });
+      goog.events.listen(searchButtonElement, goog.events.EventType.CLICK, onSearchClicked);
+
+      function onSearchClicked() {
+        pageController.showPage("search", {query: searchBox.getValue()});
+      }
+    }
+
+    function showElementById(id, opt_visible) {
+      if (opt_visible == undefined) {
+        opt_visible = true;
+      }
+      goog.style.showElement(goog.dom.getElement(id), !!opt_visible);
+    }
+
+    function hideAll() {
+      var ids = ["index", "search_or_code", "search", "code"];
+      goog.array.forEach(ids, function(id) {
+          showElementById(id, false);
+      });
     }
 
     function onLoadIndex(parameters) {
-      console.log("onLoadIndex");
+      hideAll();
+      showElementById("index");
     }
 
     function onLoadSearch(parameters) {
       var query = parameters.query;
       console.log("Search " + query);
+      hideAll();
+      showElementById("search_or_code");
+      showElementById("search");
       showSearchLoading(true);
       polaris.services.search(query, 0, 10, function(resp) {
           renderSearchResults(resp);
@@ -117,6 +146,9 @@
       console.log("onLoadCode");
       var fileId = goog.string.parseInt(parameters.file);
       var offset = goog.string.parseInt(parameters.offset);
+      hideAll();
+      showElementById("search_or_code");
+      showElementById("code");
       showCodeLoading(true);
       polaris.services.readSourceCode(fileId, function(resp) {
           renderCode(resp);

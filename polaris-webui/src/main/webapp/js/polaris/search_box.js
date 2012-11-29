@@ -43,7 +43,7 @@ polaris.SearchBox.ArrayMatcher = function() {
 
 polaris.SearchBox.ArrayMatcher.prototype.requestMatchingRows = function(query, n, callback) {
   polaris.services.complete(query, n, function(resp) {
-      callback(query, resp.entries);
+      callback(query, resp.entries == undefined ? [] : resp.entries);
   });
 }
 

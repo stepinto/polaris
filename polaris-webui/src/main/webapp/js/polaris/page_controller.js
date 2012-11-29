@@ -22,11 +22,10 @@ polaris.PageController.createUrlFragment = function(page, parameters) {
       goog.uri.utils.buildQueryDataFromMap(parameters));
 }
 
-polaris.PageController.prototype.registerPage = function(name, loadCallback, dom) {
+polaris.PageController.prototype.registerPage = function(name, callback) {
   this.pages.push({
     name: name,
-    load: loadCallback,
-    dom: dom
+    callback: callback,
   });
 };
 
@@ -76,11 +75,7 @@ polaris.PageController.prototype.doShowPage_ = function(pageName, parameters) {
   } else {
     console.log("switch to page " + page.name);
   }
-  goog.array.forEach(this.pages, function(p) {
-    var visible = (p == page);
-    goog.style.showElement(p.dom, visible);
-  });
-  page.load(parameters);
+  page.callback(parameters);
 };
 
 polaris.PageController.prototype.onLoad_ = function() {
