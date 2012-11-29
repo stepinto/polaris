@@ -11,6 +11,14 @@ li {
   list-style: none;
 }
 
+.fl {
+  float: left;
+}
+
+.fr {
+  float: right;
+}
+
 .thin_border_edit {
   border: 1px solid silver;
 }
@@ -47,5 +55,23 @@ li {
 
 .ac-active {
   background-color: silver;
+}
+
+.class_link {
+  text-decoration: none;
+  padding-left: 18px;
+  background: transparent url(../images/eclipse-icons/class_obj.gif) no-repeat left;
+}
+
+.method_link {
+  text-decoration: none;
+  padding-left: 18px;
+  background: transparent url(../images/eclipse-icons/methpub_obj.gif) no-repeat left;
+}
+
+.field_link {
+  text-decoration: none;
+  padding-left: 18px;
+  background: transparent url(../images/eclipse-icons/field_public_obj.gif) no-repeat left;
 }
 

@@ -30,7 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
-import org.apache.thrift.server.TSimpleServer;
+import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TSocket;
@@ -150,11 +150,14 @@ public class Main {
         File indexDir = new File(commandLine.getOptionValue("index-dir", "index"));
 
         TServerTransport transport = new TServerSocket(port);
-        TCodeSearchService.Processor processor = new TCodeSearchService.Processor(
-                new CodeSearchServiceImpl(indexDir));
+        TCodeSearchService.Processor<TCodeSearchService.Iface> processor =
+                new TCodeSearchService.Processor<TCodeSearchService.Iface>(
+                        new CodeSearchServiceImpl(indexDir));
         TBinaryProtocol.Factory protocolFactory = new TBinaryProtocol.Factory();
-        TSimpleServer server = new TSimpleServer(
-                new TSimpleServer.Args(transport)
+        TThreadPoolServer server = new TThreadPoolServer(
+                new TThreadPoolServer.Args(transport)
+                        .minWorkerThreads(1)
+                        .maxWorkerThreads(10)
                         .processor(processor)
                         .protocolFactory(protocolFactory));
         LOG.info("Starting searcher at port " + port);

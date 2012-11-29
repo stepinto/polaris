@@ -15,10 +15,12 @@
     goog.require("goog.style");
     goog.require("goog.ui.Component");
   </script>
+  <script src="js/polaris/helper.js"></script>
   <script src="js/polaris/services.js"></script>
   <script src="js/polaris/page_controller.js"></script>
   <script src="js/polaris/code_view.js"></script>
   <script src="js/polaris/search_box.js"></script>
+  <script src="js/polaris/class_structure_view.js"></script>
   <title>Polaris Code Search</title>
 </head>
 <body>
@@ -62,6 +64,12 @@
         <p>Loading...</p>
       </div>
       <div id="code_main">
+        <div id="project_structure" class="fl" style="width: 200px">
+        </div>
+        <div id="class_structure" class="fr" style="width: 200px; white-space: nowrap;">
+        </div>
+        <div id="code_content" style="margin: 0px 200px 0px 200px">
+        </div>
       </div>
     </div>
   </div>
@@ -130,8 +138,9 @@
     function renderSearchResults(resp) {
       console.log(resp);
       var ul = goog.dom.getElement("search_result_list");
+      goog.dom.removeChildren(ul);
       goog.array.forEach(resp.hits, function(hit) {
-          var url = convertJumpTargetToUrlFragment(hit.jumpTarget);
+          var url = polaris.helper.convertJumpTargetToUrlFragment(hit.jumpTarget);
           var li = goog.dom.createDom("li", null,
             goog.dom.createDom("a", {href: url},
               goog.dom.createTextNode(hit.project + hit.path)),
@@ -153,14 +162,27 @@
       polaris.services.readSourceCode(fileId, function(resp) {
           renderCode(resp);
       } );
+      polaris.services.listTypesInFile(fileId, 1024, function(resp) {
+          renderClassStructure(resp);
+      });
     }
 
     function renderCode(resp) {
       console.log(resp);
       var codeView = new polaris.CodeView(resp.source.annotatedSource);
       console.log(codeView);
-      codeView.render(goog.dom.getElement("code_main"));
+      var wrapper = goog.dom.getElement("code_content");
+      goog.dom.removeChildren(wrapper);
+      codeView.render(wrapper);
       showCodeLoading(false);
+    }
+
+    function renderClassStructure(resp) {
+      console.log(resp);
+      var classStructureView = new polaris.ClassStructureView(resp.classTypes);
+      var wrapper = goog.dom.getElement("class_structure");
+      goog.dom.removeChildren(wrapper);
+      classStructureView.render(goog.dom.getElement(wrapper));
     }
 
     function showCodeLoading(f) {
@@ -168,17 +190,12 @@
       goog.style.showElement(goog.dom.getElement("code_main"), !f);
     }
 
-    function convertJumpTargetToUrlFragment(jumpTarget) {
-      return goog.string.format("#page=code&file=%d&offset=%d",
-          jumpTarget.fileId, jumpTarget.offset);
-    }
-
     function onLoadGoto(parameters) {
       console.log("onLoadGoto");
       var typeId = goog.string.parseInt(parameters.type);
       // TODO show loading
       polaris.services.readType(typeId, function(resp) {
-          var url = convertJumpTargetToUrlFragment(resp.classType.jumpTarget);
+          var url = polaris.helper.convertJumpTargetToUrlFragment(resp.classType.jumpTarget);
           pageController.showPageByUrlFragment(url);
       });
     }

@@ -5,6 +5,8 @@ import com.codingstory.polaris.search.TCompleteRequest;
 import com.codingstory.polaris.search.TCompleteResponse;
 import com.codingstory.polaris.search.TGetTypeRequest;
 import com.codingstory.polaris.search.TGetTypeResponse;
+import com.codingstory.polaris.search.TListTypesInFileRequest;
+import com.codingstory.polaris.search.TListTypesInFileResponse;
 import com.codingstory.polaris.search.TSearchRequest;
 import com.codingstory.polaris.search.TSearchResponse;
 import com.codingstory.polaris.search.TSourceRequest;
@@ -19,7 +21,6 @@ import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TSimpleJSONProtocol;
 import org.apache.thrift.transport.TIOStreamTransport;
 import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransportException;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -33,25 +34,28 @@ public class AjaxServlet extends HttpServlet {
     private static final String SEARCHER_HOST = "127.0.0.1";
     private static final int SEARCHER_PORT = 5000;
     private static final Log LOG = LogFactory.getLog(AjaxServlet.class);
-    private TCodeSearchService.Iface searcher;
+    private ThreadLocal<TCodeSearchService.Iface> searchers = new ThreadLocal<TCodeSearchService.Iface>();
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
+    }
 
-        try {
+    private TCodeSearchService.Iface getSearcher() throws TException {
+        TCodeSearchService.Iface searcher = searchers.get();
+        if (searcher == null) {
             TSocket socket = new TSocket(SEARCHER_HOST, SEARCHER_PORT);
             socket.open();
             searcher = new TCodeSearchService.Client.Factory().getClient(new TBinaryProtocol(socket));
-        } catch (TTransportException e) {
-            LOG.fatal("Caught exception during initialization", e);
-            System.exit(1);
+            searchers.set(searcher);
         }
+        return searcher;
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         try {
+            LOG.info(req.getRequestURL());
             String path = req.getRequestURI();
             if (Objects.equal(path, "/ajax/complete")) {
                 onComplete(req, resp);
@@ -61,6 +65,8 @@ public class AjaxServlet extends HttpServlet {
                 onReadSourceCode(req, resp);
             } else if (Objects.equal(path, "/ajax/type")) {
                 onReadType(req, resp);
+            } else if (Objects.equal(path, "/ajax/list-types-in-file")) {
+                onListTypesInFile(req, resp);
             } else {
                 LOG.warn("Unknown path: " + path);
                 resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -69,13 +75,14 @@ public class AjaxServlet extends HttpServlet {
             LOG.warn("Caught exception", e);
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
+        LOG.info("done");
     }
 
     private void onComplete(HttpServletRequest req, HttpServletResponse resp) throws TException, IOException {
         TCompleteRequest rpcReq = new TCompleteRequest();
         rpcReq.setQuery(req.getParameter("query"));
         rpcReq.setLimit(Integer.parseInt(req.getParameter("limit")));
-        TCompleteResponse rpcResp = searcher.complete(rpcReq);
+        TCompleteResponse rpcResp = getSearcher().complete(rpcReq);
         setHttpStatus(resp, rpcResp.getStatus());
         writeJson(resp, rpcResp);
     }
@@ -85,7 +92,7 @@ public class AjaxServlet extends HttpServlet {
         rpcReq.setQuery(req.getParameter("query"));
         rpcReq.setRankFrom(Integer.parseInt(req.getParameter("from")));
         rpcReq.setRankTo(Integer.parseInt(req.getParameter("to")));
-        TSearchResponse rpcResp = searcher.search(rpcReq);
+        TSearchResponse rpcResp = getSearcher().search(rpcReq);
         setHttpStatus(resp, rpcResp.getStatus());
         writeJson(resp, rpcResp);
     }
@@ -93,7 +100,7 @@ public class AjaxServlet extends HttpServlet {
     private void onReadSourceCode(HttpServletRequest req, HttpServletResponse resp) throws TException, IOException {
         TSourceRequest rpcReq = new TSourceRequest();
         rpcReq.setFileId(Long.parseLong(req.getParameter("fileId")));
-        TSourceResponse rpcResp = searcher.source(rpcReq);
+        TSourceResponse rpcResp = getSearcher().source(rpcReq);
         setHttpStatus(resp, rpcResp.getStatus());
         writeJson(resp, rpcResp);
     }
@@ -101,7 +108,16 @@ public class AjaxServlet extends HttpServlet {
     private void onReadType(HttpServletRequest req, HttpServletResponse resp) throws TException, IOException {
         TGetTypeRequest rpcReq = new TGetTypeRequest();
         rpcReq.setTypeId(Long.parseLong(req.getParameter("typeId")));
-        TGetTypeResponse rpcResp = searcher.getType(rpcReq);
+        TGetTypeResponse rpcResp = getSearcher().getType(rpcReq);
+        setHttpStatus(resp, rpcResp.getStatus());
+        writeJson(resp, rpcResp);
+    }
+
+    private void onListTypesInFile(HttpServletRequest req, HttpServletResponse resp) throws TException, IOException {
+        TListTypesInFileRequest rpcReq = new TListTypesInFileRequest();
+        rpcReq.setFileId(Long.parseLong(req.getParameter("fileId")));
+        rpcReq.setLimit(Integer.parseInt(req.getParameter("limit")));
+        TListTypesInFileResponse rpcResp = getSearcher().listTypesInFile(rpcReq);
         setHttpStatus(resp, rpcResp.getStatus());
         writeJson(resp, rpcResp);
     }
