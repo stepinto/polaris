@@ -19,3 +19,11 @@ polaris.helper.dropPackageAndClassName = function(fullMemberName) {
   return fullMemberName.substring(pos + 1);
 }
 
+polaris.helper.codeOffsetToLineNum = function(code, offset) {
+  if (offset >= code.length) {
+    console.log("Offset " + offset + " is out of range");
+    offset = code.length;
+  }
+  return goog.string.countOf(code.substring(0, offset), "\n");
+}
+

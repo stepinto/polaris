@@ -13,6 +13,7 @@
     goog.require("goog.string");
     goog.require("goog.string.format");
     goog.require("goog.style");
+    goog.require("goog.Timer");
     goog.require("goog.ui.Component");
   </script>
   <script src="js/polaris/helper.js"></script>
@@ -85,14 +86,8 @@
 
     setUpSearch(goog.dom.getElement("search_box"), goog.dom.getElement("search_button"));
     setUpSearch(goog.dom.getElement("search_box2"), goog.dom.getElement("search_button2"));
-
-    goog.events.listen(window, goog.events.EventType.RESIZE, function(e) {
-        var ids = ["project_structure", "class_structure", "code_content"];
-        goog.array.forEach(ids, function(id) {
-          var element = goog.dom.getElement(id);
-          element.style.height = goog.dom.getViewportSize().height - element.offsetTop;
-        });
-    });
+    goog.events.listen(window, goog.events.EventType.RESIZE, setUpViewHeights);
+    setUpViewHeights();
 
     function setUpSearch(searchBoxElement, searchButtonElement) {
       var searchBox = new polaris.SearchBox();
@@ -107,6 +102,14 @@
       function onSearchClicked() {
         pageController.showPage("search", {query: searchBox.getValue()});
       }
+    }
+
+    function setUpViewHeights() {
+        var ids = ["project_structure", "class_structure", "code_content"];
+        goog.array.forEach(ids, function(id) {
+          var element = goog.dom.getElement(id);
+          element.style.height = goog.dom.getViewportSize().height - element.offsetTop;
+        });
     }
 
     function showElementById(id, opt_visible) {
@@ -170,21 +173,34 @@
       showElementById("code");
       showCodeLoading(true);
       polaris.services.readSourceCode(fileId, function(resp) {
-          renderCode(resp);
+          renderCode(resp, parameters.offset);
       } );
       polaris.services.listTypesInFile(fileId, 1024, function(resp) {
           renderClassStructure(resp);
       });
     }
 
-    function renderCode(resp) {
+    function renderCode(resp, offset) {
       console.log(resp);
-      var codeView = new polaris.CodeView(resp.source.annotatedSource);
+      var codeView = new polaris.CodeView(resp.source);
       console.log(codeView);
       var wrapper = goog.dom.getElement("code_content");
       goog.dom.removeChildren(wrapper);
       codeView.render(wrapper);
       showCodeLoading(false);
+      goog.Timer.callOnce(function() {
+          // Must call this in after codeView is rendered.
+          var windowOffset = codeView.getDisplayOffsetOfLine(
+            polaris.helper.codeOffsetToLineNum(resp.source.source, offset));
+          if (windowOffset > 100) {
+            windowOffset -= 100; // Make that line display at center.
+          }
+          console.log("windowOffset = " + windowOffset);
+          wrapper.scrollTop = windowOffset - wrapper.offsetTop;
+      });
+    }
+
+    function scrollToOffset(offset) {
     }
 
     function renderClassStructure(resp) {
