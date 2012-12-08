@@ -24,7 +24,7 @@ public class GitHubCrawler {
         Preconditions.checkNotNull(repoName);
         Preconditions.checkNotNull(outputDir);
         Repository gitHubRepo = REPOSITORY_SERVICE.getRepository(user, repoName);
-        gitCloneRetry(gitHubRepo.getCloneUrl(), outputDir);
+        gitCloneOrPullRetry(gitHubRepo.getCloneUrl(), outputDir);
     }
 
     public static void crawlRepositoriesOfUser(String user, File outputDir) throws IOException {
@@ -33,21 +33,32 @@ public class GitHubCrawler {
         Preconditions.checkArgument(outputDir.isDirectory());
         for (Repository repo : REPOSITORY_SERVICE.getRepositories(user)) {
             File newOutputDir = new File(outputDir, repo.getName());
-            gitCloneRetry(repo.getCloneUrl(), newOutputDir);
+            gitCloneOrPullRetry(repo.getCloneUrl(), newOutputDir);
         }
     }
 
-    private static void gitCloneRetry(String cloneUrl, File outputDir) throws IOException {
+    private static void gitCloneOrPullRetry(String cloneUrl, File outputDir) throws IOException {
         int currentRetryCount = 0;
         while (currentRetryCount < RETRY_COUNT) {
             try {
-                gitClone(cloneUrl, outputDir);
+                if (new File(outputDir, ".git").isDirectory()) {
+                    // TODO: verify url
+                    gitPull(outputDir);
+                } else {
+                    gitClone(cloneUrl, outputDir);
+                }
                 return;
             } catch (IOException e) {
                 LOG.warn(e);
             }
             currentRetryCount++;
         }
+    }
+
+    private static void gitPull(File outputDir) throws IOException {
+        LOG.info("Updating " + outputDir);
+        Git git = Git.open(outputDir);
+        git.pull();
     }
 
     private static void gitClone(String cloneUrl, File outputDir) throws IOException {
