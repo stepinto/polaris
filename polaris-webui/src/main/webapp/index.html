@@ -39,12 +39,14 @@
   </div>
 
   <div id="search_or_code" style="display:none">
-    <div>
-      <a href="#"><img src="images/logo.png"></img></a>
-    </div>
-    <div>
-      <input id="search_box2" class="thin_border_edit" style="width: 400px; height: 23px;" type="text" autocomplete="off"></input>
-      <button id="search_button2" class="blue_button" style="width: 70px; height: 23px">Search</button>
+    <div id="header2">
+      <div>
+        <a href="#"><img src="images/logo.png"></img></a>
+      </div>
+      <div>
+        <input id="search_box2" class="thin_border_edit" style="width: 400px; height: 23px;" type="text" autocomplete="off"></input>
+        <button id="search_button2" class="blue_button" style="width: 70px; height: 23px">Search</button>
+      </div>
     </div>
 
     <!-- "#page=search" -->
@@ -63,12 +65,12 @@
       <div id="code_loading">
         <p>Loading...</p>
       </div>
-      <div id="code_main">
-        <div id="project_structure" class="fl" style="width: 200px">
+      <div id="code_main" style="overflow: hidden">
+        <div id="project_structure" class="fl" style="width: 200px overflow: auto;">
         </div>
-        <div id="class_structure" class="fr" style="width: 200px; white-space: nowrap;">
+        <div id="class_structure" class="fr" style="width: 200px; white-space: nowrap; overflow: auto;">
         </div>
-        <div id="code_content" style="margin: 0px 200px 0px 200px">
+        <div id="code_content" style="margin: 0px 200px 0px 200px; overflow: auto;">
         </div>
       </div>
     </div>
@@ -83,6 +85,14 @@
 
     setUpSearch(goog.dom.getElement("search_box"), goog.dom.getElement("search_button"));
     setUpSearch(goog.dom.getElement("search_box2"), goog.dom.getElement("search_button2"));
+
+    goog.events.listen(window, goog.events.EventType.RESIZE, function(e) {
+        var ids = ["project_structure", "class_structure", "code_content"];
+        goog.array.forEach(ids, function(id) {
+          var element = goog.dom.getElement(id);
+          element.style.height = goog.dom.getViewportSize().height - element.offsetTop;
+        });
+    });
 
     function setUpSearch(searchBoxElement, searchButtonElement) {
       var searchBox = new polaris.SearchBox();
