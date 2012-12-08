@@ -4,6 +4,7 @@ import com.codingstory.polaris.indexing.IndexBuilder;
 import com.codingstory.polaris.indexing.IndexPathUtils;
 import com.codingstory.polaris.parser.ClassType;
 import com.codingstory.polaris.parser.FullTypeName;
+import com.codingstory.polaris.parser.TFileHandle;
 import com.codingstory.polaris.parser.TTypeUsage;
 import com.codingstory.polaris.parser.TypeUsage;
 import com.codingstory.polaris.search.CodeSearchServiceImpl;
@@ -19,8 +20,8 @@ import com.codingstory.polaris.search.TSourceResponse;
 import com.codingstory.polaris.search.TStatusCode;
 import com.codingstory.polaris.typedb.TypeDb;
 import com.codingstory.polaris.typedb.TypeDbImpl;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
@@ -33,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import static com.codingstory.polaris.TestUtils.assertEqualsIgnoreOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -63,8 +65,8 @@ public class CodeSearchEndToEndTest {
         req.setFileName("/src/java/main/com/java/io/File.java");
         TSourceResponse resp = searcher.source(req);
         assertEquals(TStatusCode.OK, resp.getStatus());
-        assertEquals("jdk", resp.getSource().getProject());
-        assertEquals(fileJavaPath, resp.getSource().getPath());
+        assertEquals("jdk", resp.getSource().getHandle().getProject());
+        assertEquals(fileJavaPath, resp.getSource().getHandle().getPath());
         assertEquals(fileJavaContent, resp.getSource().getSource());
     }
 
@@ -80,8 +82,14 @@ public class CodeSearchEndToEndTest {
         req.setDirectoryName("/src/com/company");
         TLayoutResponse resp = searcher.layout(req);
         assertEquals(TStatusCode.OK, resp.getStatus());
-        assertEquals(ImmutableSet.of("/src/com/company/A.java", "/src/com/company/module1/"),
-                ImmutableSet.copyOf(resp.getChildren()));
+        assertEqualsIgnoreOrder(ImmutableList.of("/src/com/company/module1/"), resp.getDirectories());
+        assertEqualsIgnoreOrder(ImmutableList.of("/src/com/company/A.java"),
+                Lists.transform(resp.getFiles(), new Function<TFileHandle, String>() {
+                    @Override
+                    public String apply(TFileHandle h) {
+                        return h.getPath();
+                    }
+                }));
     }
 
     @Test

@@ -11,6 +11,12 @@ struct TTypeHandle {
     2: string name;
 }
 
+struct TFileHandle {
+    1: i64 id;
+    2: string project;
+    3: string path;
+}
+
 struct TFieldHandle {
     1: i64 id;
     2: string name;
@@ -103,9 +109,7 @@ struct TMethodUsage {
 }
 
 struct TSourceFile {
-    1: i64 id;
-    2: string project;
-    3: string path;
+    6: TFileHandle handle;
     4: string source;
     5: string annotatedSource;
 }

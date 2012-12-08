@@ -1,5 +1,6 @@
 package com.codingstory.polaris.sourcedb;
 
+import com.codingstory.polaris.parser.FileHandle;
 import com.codingstory.polaris.parser.SourceFile;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -23,6 +24,7 @@ import org.xerial.snappy.Snappy;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class SourceDbImpl implements SourceDb {
@@ -37,7 +39,7 @@ public class SourceDbImpl implements SourceDb {
         searcher = new IndexSearcher(reader);
     }
     @Override
-    public List<String> listDirectory(String project, String path) throws IOException {
+    public DirectoryContent listDirectory(String project, String path) throws IOException {
         Preconditions.checkNotNull(project);
         Preconditions.checkNotNull(path);
         path = SourceDbUtils.fixPathForDirectory(path);
@@ -45,14 +47,28 @@ public class SourceDbImpl implements SourceDb {
         booleanQuery.add(new TermQuery(new Term(SourceDbIndxedField.PROJECT_RAW, project)), BooleanClause.Occur.MUST);
         booleanQuery.add(new TermQuery(new Term(SourceDbIndxedField.PARENT_PATH_RAW, path)), BooleanClause.Occur.MUST);
         TopDocs topDocs = searcher.search(booleanQuery, Integer.MAX_VALUE);
-        List<String> result = Lists.newArrayList();
+        List<String> dirs = Lists.newArrayList();
+        List<FileHandle> files = Lists.newArrayList();
         for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
             int docId = scoreDoc.doc;
             Document document = reader.document(docId);
-            result.add(document.get(SourceDbIndxedField.PATH_RAW));
+            if (document.get(SourceDbIndxedField.FILE_ID_RAW) != null) {
+                files.add(new FileHandle(
+                        Long.parseLong(document.get(SourceDbIndxedField.FILE_ID_RAW)),
+                        document.get(SourceDbIndxedField.PROJECT_RAW),
+                        document.get(SourceDbIndxedField.PATH_RAW)));
+            } else {
+                dirs.add(document.get(SourceDbIndxedField.PATH_RAW));
+            }
         }
-        Collections.sort(result);
-        return result;
+        Collections.sort(dirs);
+        Collections.sort(files, new Comparator<FileHandle>() {
+            @Override
+            public int compare(FileHandle left, FileHandle right) {
+                return left.getPath().compareTo(right.getPath());
+            }
+        });
+        return new DirectoryContent(dirs, files);
     }
 
     @Override

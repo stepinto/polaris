@@ -1,23 +1,14 @@
 package com.codingstory.polaris.parser;
 
-import com.codingstory.polaris.IdUtils;
 import com.google.common.base.Preconditions;
 
 public class SourceFile {
-    private final long id;
-    private final String project;
-    private final String path;
+    private final FileHandle handle;
     private final String source;
     private final String annotatedSource;
 
-    public SourceFile(long id, String project, String path, String source, String annotatedSource) {
-        Preconditions.checkNotNull(path);
-        if (!path.startsWith("/")) {
-            path = "/" + path;
-        }
-        this.id = IdUtils.checkValid(id);
-        this.project = Preconditions.checkNotNull(project);
-        this.path = path;
+    public SourceFile(FileHandle handle, String source, String annotatedSource) {
+        this.handle = Preconditions.checkNotNull(handle);
         this.source = Preconditions.checkNotNull(source);
         this.annotatedSource = Preconditions.checkNotNull(annotatedSource);
     }
@@ -25,23 +16,25 @@ public class SourceFile {
     public static SourceFile createFromThrift(TSourceFile t) {
         Preconditions.checkNotNull(t);
         return new SourceFile(
-                t.getId(),
-                t.getProject(),
-                t.getPath(),
+                FileHandle.createFromThrift(t.getHandle()),
                 t.getSource(),
                 t.getAnnotatedSource());
     }
 
+    public FileHandle getHandle() {
+        return handle;
+    }
+
     public long getId() {
-        return id;
+        return handle.getId();
     }
 
     public String getProject() {
-        return project;
+        return handle.getProject();
     }
 
     public String getPath() {
-        return path;
+        return handle.getPath();
     }
 
     public String getSource() {
@@ -54,9 +47,7 @@ public class SourceFile {
 
     public TSourceFile toThrift() {
         TSourceFile t = new TSourceFile();
-        t.setId(id);
-        t.setProject(project);
-        t.setPath(path);
+        t.setHandle(handle.toThrift());
         t.setSource(source);
         t.setAnnotatedSource(annotatedSource);
         return t;

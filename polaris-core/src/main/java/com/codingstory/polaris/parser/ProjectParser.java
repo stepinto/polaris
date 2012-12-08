@@ -229,9 +229,7 @@ public class ProjectParser {
             path = task.file.getPath();
         }
         annotatedSourceCollector.collectSource(new SourceFile(
-                task.fileId,
-                projectName,
-                path,
+                new FileHandle(task.fileId, projectName, path),
                 new String(content),
                 annotatedSource));
     }

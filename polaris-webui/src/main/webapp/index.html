@@ -22,6 +22,7 @@
   <script src="js/polaris/code_view.js"></script>
   <script src="js/polaris/search_box.js"></script>
   <script src="js/polaris/class_structure_view.js"></script>
+  <script src="js/polaris/project_structure_view.js"></script>
   <title>Polaris Code Search</title>
 </head>
 <body>
@@ -67,7 +68,7 @@
         <p>Loading...</p>
       </div>
       <div id="code_main" style="overflow: hidden">
-        <div id="project_structure" class="fl" style="width: 200px overflow: auto;">
+        <div id="project_structure" class="fl" style="width: 200px; overflow: auto;">
         </div>
         <div id="class_structure" class="fr" style="width: 200px; white-space: nowrap; overflow: auto;">
         </div>
@@ -174,7 +175,7 @@
       showCodeLoading(true);
       polaris.services.readSourceCode(fileId, function(resp) {
           renderCode(resp, parameters.offset);
-      } );
+      });
       polaris.services.listTypesInFile(fileId, 1024, function(resp) {
           renderClassStructure(resp);
       });
@@ -198,9 +199,12 @@
           console.log("windowOffset = " + windowOffset);
           wrapper.scrollTop = windowOffset - wrapper.offsetTop;
       });
-    }
 
-    function scrollToOffset(offset) {
+      var wrapper2 = goog.dom.getElement("project_structure");
+      goog.dom.removeChildren(wrapper2);
+      console.log(resp);
+      var projectStructureView = new polaris.ProjectStructureView(resp.source.handle.project, resp.source.handle.path);
+      projectStructureView.render(wrapper2);
     }
 
     function renderClassStructure(resp) {

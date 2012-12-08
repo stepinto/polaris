@@ -43,6 +43,14 @@ polaris.services.listTypesInFile = function(fileId, n, callback) {
   polaris.services.exec_("list-types-in-file", parameters, callback);
 }
 
+polaris.services.listFiles = function(project, path, callback) {
+  var parameters = {
+    "project": project,
+    "path": path
+  };
+  polaris.services.exec_("list-files", parameters, callback);
+}
+
 polaris.services.exec_ = function(command, parameters, callback) {
   var url = goog.string.format("/ajax/%s?%s",
       goog.string.urlEncode(command),

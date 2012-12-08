@@ -5,6 +5,8 @@ goog.require("goog.string");
 goog.require("goog.ui.tree.TreeControl");
 goog.require("polaris.helper");
 
+// TODO: handle click event to expand tree on folders
+
 polaris.ClassStructureView = function(types, opt_domHelper) {
   goog.ui.Component.call(this, opt_domHelper);
   this.tree_ = tree = new goog.ui.tree.TreeControl("");

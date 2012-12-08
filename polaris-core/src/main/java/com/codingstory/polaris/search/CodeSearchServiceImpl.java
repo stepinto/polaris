@@ -3,6 +3,7 @@ package com.codingstory.polaris.search;
 import com.codingstory.polaris.indexing.IndexPathUtils;
 import com.codingstory.polaris.parser.ClassType;
 import com.codingstory.polaris.parser.Field;
+import com.codingstory.polaris.parser.FileHandle;
 import com.codingstory.polaris.parser.Method;
 import com.codingstory.polaris.parser.SourceFile;
 import com.codingstory.polaris.parser.TypeUsage;
@@ -126,13 +127,16 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
                 resp.setStatus(TStatusCode.MISSING_FIELDS);
                 return resp;
             }
-            List<String> children = sourceDb.listDirectory(req.getProjectName(), req.getDirectoryName());
-            if (children == null) {
+            SourceDb.DirectoryContent content = sourceDb.listDirectory(req.getProjectName(), req.getDirectoryName());
+            if (content == null) {
                 resp.setStatus(TStatusCode.FILE_NOT_FOUND);
                 return resp;
             }
             resp.setStatus(TStatusCode.OK);
-            resp.setChildren(children);
+            resp.setDirectories(content.getDirectories());
+            for (FileHandle file : content.getFiles()) {
+                resp.addToFiles(file.toThrift());
+            }
             return resp;
         } catch (Exception e) {
             LOG.error("Caught exception", e);

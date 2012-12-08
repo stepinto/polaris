@@ -65,7 +65,8 @@ struct TLayoutRequest {
 
 struct TLayoutResponse {
     1: TStatusCode status;
-    2: list<string> children;
+    3: list<string> directories;
+    4: list<parser.TFileHandle> files;
 }
 
 struct TGetTypeRequest {

@@ -5,6 +5,8 @@ import com.codingstory.polaris.search.TCompleteRequest;
 import com.codingstory.polaris.search.TCompleteResponse;
 import com.codingstory.polaris.search.TGetTypeRequest;
 import com.codingstory.polaris.search.TGetTypeResponse;
+import com.codingstory.polaris.search.TLayoutRequest;
+import com.codingstory.polaris.search.TLayoutResponse;
 import com.codingstory.polaris.search.TListTypesInFileRequest;
 import com.codingstory.polaris.search.TListTypesInFileResponse;
 import com.codingstory.polaris.search.TSearchRequest;
@@ -67,6 +69,8 @@ public class AjaxServlet extends HttpServlet {
                 onReadType(req, resp);
             } else if (Objects.equal(path, "/ajax/list-types-in-file")) {
                 onListTypesInFile(req, resp);
+            } else if (Objects.equal(path, "/ajax/list-files")) {
+                onListFiles(req, resp);
             } else {
                 LOG.warn("Unknown path: " + path);
                 resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -118,6 +122,15 @@ public class AjaxServlet extends HttpServlet {
         rpcReq.setFileId(Long.parseLong(req.getParameter("fileId")));
         rpcReq.setLimit(Integer.parseInt(req.getParameter("limit")));
         TListTypesInFileResponse rpcResp = getSearcher().listTypesInFile(rpcReq);
+        setHttpStatus(resp, rpcResp.getStatus());
+        writeJson(resp, rpcResp);
+    }
+
+    private void onListFiles(HttpServletRequest req, HttpServletResponse resp) throws TException, IOException {
+        TLayoutRequest rpcReq = new TLayoutRequest();
+        rpcReq.setProjectName(req.getParameter("project"));
+        rpcReq.setDirectoryName(req.getParameter("path"));
+        TLayoutResponse rpcResp = getSearcher().layout(rpcReq);
         setHttpStatus(resp, rpcResp.getStatus());
         writeJson(resp, rpcResp);
     }
