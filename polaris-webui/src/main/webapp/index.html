@@ -33,7 +33,7 @@
       <img src="images/logo.png"></img>
     </div>
     <div style="margin:0px auto 150px auto; width: 475px">
-      <input id="search_box" class="thin_border_edit" style="width: 400px; height: 23px;" type="text" autocomplete="off"></input>
+      <input id="search_box" class="thin_border" style="width: 400px; height: 23px;" type="text" autocomplete="off"></input>
       <button id="search_button" class="blue_button" style="width: 70px; height: 23px">Search</button>
     </div>
     <div id="footer" style="text-align:center">
@@ -47,7 +47,7 @@
         <a href="#"><img src="images/logo.png"></img></a>
       </div>
       <div>
-        <input id="search_box2" class="thin_border_edit" style="width: 400px; height: 23px;" type="text" autocomplete="off"></input>
+        <input id="search_box2" class="thin_border" style="width: 400px; height: 23px;" type="text" autocomplete="off"></input>
         <button id="search_button2" class="blue_button" style="width: 70px; height: 23px">Search</button>
       </div>
     </div>
@@ -70,11 +70,19 @@
       </div>
       <div id="code_main" style="overflow: hidden">
         <div id="path_bar"></div>
-        <div id="project_structure" class="fl" style="width: 200px; overflow: auto;">
+        <div class="fl thin_border2" style="width: 200px">
+          <span class="subwindow_title thin_border bd">Project</span>
+          <div id="project_structure" class="thin_border auto_overflow">
+            <div id="project_structure_placeholder" style="margin: 5px;"></div>
+          </div>
         </div>
-        <div id="class_structure" class="fr" style="width: 200px; white-space: nowrap; overflow: auto;">
+        <div class="fr thin_border2" style="width: 200px;">
+          <span class="subwindow_title thin_border bd">Class</span>
+          <div id="class_structure" class="thin_border auto_overflow">
+            <div id="class_structure_placeholder" style="whitespace: nowrap; margin: 5px;"></div>
+          </div>
         </div>
-        <div id="code_content" style="margin: 0px 200px 0px 200px; overflow: auto;">
+        <div id="code_content" class="auto_overflow" style="margin: 0px 200px 0px 200px;">
         </div>
       </div>
     </div>
@@ -202,7 +210,7 @@
           wrapper.scrollTop = windowOffset - wrapper.offsetTop;
       });
 
-      var wrapper2 = goog.dom.getElement("project_structure");
+      var wrapper2 = goog.dom.getElement("project_structure_placeholder");
       goog.dom.removeChildren(wrapper2);
       console.log(resp);
       var projectStructureView = new polaris.ProjectStructureView(resp.source.handle.project, resp.source.handle.path);
@@ -216,7 +224,7 @@
     function renderClassStructure(resp) {
       console.log(resp);
       var classStructureView = new polaris.ClassStructureView(resp.classTypes);
-      var wrapper = goog.dom.getElement("class_structure");
+      var wrapper = goog.dom.getElement("class_structure_placeholder");
       goog.dom.removeChildren(wrapper);
       classStructureView.render(goog.dom.getElement(wrapper));
     }

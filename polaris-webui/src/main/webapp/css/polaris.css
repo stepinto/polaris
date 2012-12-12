@@ -19,8 +19,12 @@ li {
   float: right;
 }
 
-.thin_border_edit {
+.thin_border {
   border: 1px solid silver;
+}
+
+.thin_border2 {
+  border: 2px solid #EFEFEF;
 }
 
 .blue_button {
@@ -75,3 +79,19 @@ li {
   background: transparent url(../images/eclipse-icons/field_public_obj.gif) no-repeat left;
 }
 
+.subwindow_title {
+  display: block;
+  background-image: -moz-linear-gradient(#FAFAFA, #EAEAEA);
+  background-image: -webkit-linear-gradient(#FAFAFA, #EAEAEA);
+  background-image: linear-gradient(#FAFAFA, #EAEAEA);
+  background-repeat: repeat-x;
+  padding: 5px;
+}
+
+.auto_overflow {
+  overflow: auto;
+}
+
+.bd {
+  font-weight: bold;
+}
