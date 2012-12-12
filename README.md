@@ -3,16 +3,25 @@ Polaris Code Search
 
 A code search engine for Java
 
+Prestique
+---------
+JDK 1.6+
+Maven 2+
+Thrift 0.9.0 (http://thrift.apache.org/)
+
 Build
 -----
-Install Apache Thrift.
-Run mvn package at project root.
+Go to project root and run:
+
+		$ mvn install
 
 Run
 ---
-1. Index
+1. Build index
 
 		$ ./polaris index path-to-project1 path-to-project2 ... 
+
+The index files will be stored in "index/".
 
 2. Start searcher
 
@@ -20,5 +29,4 @@ Run
 
 3. Start web UI
 
-		$ cd polaris-django
-		$ ./manage.py runserver
+		$ mvn jetty:run -pl polaris-webui
