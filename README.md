@@ -3,11 +3,11 @@ Polaris Code Search
 
 A code search engine for Java
 
-Prestique
+Prestiques
 ---------
-JDK 1.6+
-Maven 2+
-Thrift 0.9.0 (http://thrift.apache.org/)
+* JDK 1.6+
+* Maven 2+
+* Thrift 0.9.0 (http://thrift.apache.org/)
 
 Build
 -----
@@ -30,3 +30,5 @@ Run
 3. Start web UI
 
 		$ mvn jetty:run -pl polaris-webui
+		
+	Then a jetty server will be ready at http://localhost:8080.
