@@ -21,7 +21,7 @@ Run
 
 		$ ./polaris index path-to-project1 path-to-project2 ... 
 
-The index files will be stored in "index/".
+	The index files will be stored in "index/".
 
 2. Start searcher
 
