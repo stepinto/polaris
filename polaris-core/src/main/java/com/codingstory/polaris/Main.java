@@ -5,7 +5,9 @@ import com.codingstory.polaris.parser.ParserOptions;
 import com.codingstory.polaris.parser.SecondPassProcessor;
 import com.codingstory.polaris.parser.TypeResolver;
 import com.codingstory.polaris.parser.Usage;
-import com.codingstory.polaris.repo.GitHubCrawler;
+import com.codingstory.polaris.repo.GitHubUtils;
+import com.codingstory.polaris.repo.GitUtils;
+import com.codingstory.polaris.repo.Repository;
 import com.codingstory.polaris.search.CodeSearchServiceImpl;
 import com.codingstory.polaris.search.TCodeSearchService;
 import com.codingstory.polaris.search.THit;
@@ -76,7 +78,9 @@ public class Main {
             if (command.equalsIgnoreCase("parse")) {
                 runParse(commandArgs);
             } else if (command.equalsIgnoreCase("index")) {
-                runIndex(commandArgs);
+                runIndexDir(commandArgs);
+            } else if (command.equalsIgnoreCase("indexrepobase")) {
+                runIndexRepoBase(commandArgs);
             } else if (RPC_COMMAND_TABLE.containsKey(command.toLowerCase())) {
                 runRpc(RPC_COMMAND_TABLE.get(command), commandArgs);
             } else if (command.equalsIgnoreCase("searchserver")) {
@@ -115,7 +119,7 @@ public class Main {
         }
     }
 
-    private static void runIndex(List<String> args) throws IOException {
+    private static void runIndexDir(List<String> args) throws IOException {
         if (args.isEmpty()) {
             printHelp();
             System.exit(1);
@@ -124,12 +128,30 @@ public class Main {
         for (String path : args) {
             projectDirs.add(new File(path));
         }
+        doIndex(projectDirs, new File("index"));
+    }
+
+    private static void runIndexRepoBase(List<String> args) throws IOException {
+        if (args.isEmpty()) {
+            printHelp();
+            System.exit(1);
+        }
+        List<File> repos = Lists.newArrayList();
+        for (String arg : args) {
+            LOG.info("Found repobase: " + arg);
+            for (Repository repo : GitUtils.openRepoBase(new File(arg))) {
+                repos.add(new File(repo.getUrl()));
+            }
+        }
+    }
+
+    private static void doIndex(List<File> projects, File output) throws IOException {
         ParserOptions parserOptions = new ParserOptions();
         parserOptions.setFailFast(false);
         IndexBuilder indexBuilder = new IndexBuilder();
         indexBuilder.setIndexDirectory(new File("index"));
         indexBuilder.setParserOptions(parserOptions);
-        indexBuilder.setProjectDirectories(projectDirs);
+        indexBuilder.setProjectDirectories(projects);
         indexBuilder.build();
     }
 
@@ -171,20 +193,44 @@ public class Main {
         CommandLine commandLine = commandLineParser.parse(commandLineOptions, stringListToArray(commandArgs));
         String outputPath = commandLine.getOptionValue("output");
         File outputDir = new File(outputPath);
+        if (outputDir.isDirectory()) {
+            LOG.info("Reuse existing repo base directory: " + outputPath);
+        } else {
+            outputDir.mkdir();
+        }
         Pattern userPattern = Pattern.compile("([A-Za-z0-9]+)");
         Pattern userRepoPattern = Pattern.compile("([A-Za-z0-9]+)/([A-Za-z0-9]+)");
+        List<Repository> repos = Lists.newArrayList();
         for (String arg : commandLine.getArgs()) {
             Matcher m;
             if ((m = userPattern.matcher(arg)).matches()) {
                 String user = m.group(1);
-                GitHubCrawler.crawlRepositoriesOfUser(user, outputDir);
+                repos.addAll(GitHubUtils.listUserRepositories(user));
             } else if ((m = userRepoPattern.matcher(arg)).matches()) {
                 String user = m.group(1);
                 String repo = m.group(2);
-                GitHubCrawler.crawlRepository(user, repo, outputDir);
+                repos.add(GitHubUtils.getRepository(user, repo));
             } else {
                 LOG.error("bad repo: " + arg);
                 System.exit(1);
+            }
+        }
+        LOG.info("Need to clone " + repos.size() + " repo(s)");
+        for (Repository repo : repos) {
+            int retry = 10;
+            while (retry > 0) {
+                try {
+                    GitUtils.mirrorOrSync(repo, outputDir);
+                    break;
+                } catch (IOException e) {
+                    if (retry >= 0) {
+                        LOG.warn("Retry on exception", e);
+                        Thread.sleep(10);
+                        retry--;
+                    } else {
+                        throw e;
+                    }
+                }
             }
         }
     }
@@ -263,11 +309,12 @@ public class Main {
         System.out.println("Usage:");
         System.out.println("  polaris parse dir/files...");
         System.out.println("  polaris index dir/files...");
+        System.out.println("  polaris indexrepobase repobase...");
         System.out.println("  polaris searchserver");
         System.out.println("  polaris search query");
         System.out.println("  polaris source source");
-        System.out.println("  polaris crawlgithub user -o dir");
-        System.out.println("  polaris crawlgithub user/repo -o dir");
+        System.out.println("  polaris crawlgithub user -o repobase");
+        System.out.println("  polaris crawlgithub user/repo -o repobase");
         System.out.println();
     }
 }
