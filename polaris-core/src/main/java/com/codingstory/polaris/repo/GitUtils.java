@@ -3,7 +3,6 @@ package com.codingstory.polaris.repo;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.eclipse.jgit.api.Git;
@@ -43,15 +42,6 @@ public class GitUtils {
                     .setURI(remote.getUrl())
                     .setDirectory(output)
                     .call();
-
-            // Fix a JGit bug that a bare clone cannot be synced with the remote.
-            FileUtils.write(new File(output, "config"),
-                    "[core]\n" +
-                    "    repositoryformatversion = 0\n" +
-                    "    filemode = true\n" +
-                    "    bare = true\n" +
-                    "[remote \"origin\"]\n" +
-                    "    url = " + remote.getUrl() + "\n");
             return new Repository(remote.getName(), output.getPath());
         } catch (GitAPIException e) {
             throw new IOException(e);
@@ -62,8 +52,12 @@ public class GitUtils {
         Preconditions.checkNotNull(local);
         Preconditions.checkArgument(local.isLocal());
         LOG.info("Updating " + local);
-        Git git = Git.open(new File(local.getUrl()));
-        git.fetch();
+        try {
+            Git git = Git.open(new File(local.getUrl()));
+            git.fetch().call();
+        } catch (GitAPIException e) {
+            throw new IOException(e);
+        }
     }
 
     public static List<Repository> openRepoBase(File repoBase) throws IOException {
