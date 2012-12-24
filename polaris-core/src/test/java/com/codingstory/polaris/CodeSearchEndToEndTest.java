@@ -140,13 +140,10 @@ public class CodeSearchEndToEndTest {
     }
 
     private void buildIndex(List<String> projects) throws IOException {
-        List<File> projectDirs = Lists.newArrayList();
-        for (String project : projects) {
-            projectDirs.add(new File(tempDir, project));
-        }
         IndexBuilder indexBuilder = new IndexBuilder();
         indexBuilder.setIndexDirectory(indexDir);
-        indexBuilder.setProjectDirectories(projectDirs);
-        indexBuilder.build();
+        for (String project : projects) {
+            indexBuilder.indexDirectory(new File(tempDir, project));
+        }
     }
 }

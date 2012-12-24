@@ -25,6 +25,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.FastDateFormat;
@@ -124,11 +125,11 @@ public class Main {
             printHelp();
             System.exit(1);
         }
-        List<File> projectDirs = Lists.newArrayList();
+        IndexBuilder indexer = createIndexer(new File("index"));
         for (String path : args) {
-            projectDirs.add(new File(path));
+            File dir = new File(path);
+            indexer.indexDirectory(dir);
         }
-        doIndex(projectDirs, new File("index"));
     }
 
     private static void runIndexRepoBase(List<String> args) throws IOException {
@@ -136,23 +137,23 @@ public class Main {
             printHelp();
             System.exit(1);
         }
-        List<File> repos = Lists.newArrayList();
+        IndexBuilder indexer = createIndexer(new File("index"));
         for (String arg : args) {
             LOG.info("Found repobase: " + arg);
             for (Repository repo : GitUtils.openRepoBase(new File(arg))) {
-                repos.add(new File(repo.getUrl()));
+                indexer.indexRepository(repo);
             }
         }
     }
 
-    private static void doIndex(List<File> projects, File output) throws IOException {
+    private static IndexBuilder createIndexer(File output) throws IOException {
+        FileUtils.deleteDirectory(output);
         ParserOptions parserOptions = new ParserOptions();
         parserOptions.setFailFast(false);
         IndexBuilder indexBuilder = new IndexBuilder();
-        indexBuilder.setIndexDirectory(new File("index"));
+        indexBuilder.setIndexDirectory(output);
         indexBuilder.setParserOptions(parserOptions);
-        indexBuilder.setProjectDirectories(projects);
-        indexBuilder.build();
+        return indexBuilder;
     }
 
     private static String findSourceFilePath(File projectBaseDir, File sourceFile) {

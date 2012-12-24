@@ -11,6 +11,8 @@ import com.codingstory.polaris.parser.TypeHandle;
 import com.codingstory.polaris.parser.TypeUsage;
 import com.codingstory.polaris.parser.TypeUtils;
 import com.codingstory.polaris.parser.Usage;
+import com.codingstory.polaris.repo.GitUtils;
+import com.codingstory.polaris.repo.Repository;
 import com.codingstory.polaris.sourcedb.SourceDbWriter;
 import com.codingstory.polaris.sourcedb.SourceDbWriterImpl;
 import com.codingstory.polaris.typedb.TypeDb;
@@ -22,11 +24,11 @@ import com.codingstory.polaris.usagedb.UsageDbWriterImpl;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.HiddenFileFilter;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -100,7 +102,6 @@ public final class IndexBuilder {
     }
 
     private File indexDirectory;
-    private List<File> projectDirectories;
     private final Stats stats = new Stats();
     private ParserOptions parserOptions = new ParserOptions();
     private IdGenerator idGenerator = new SimpleIdGenerator(); // TODO: checkpoint it
@@ -111,40 +112,36 @@ public final class IndexBuilder {
         this.indexDirectory = indexDirectory;
     }
 
-    public void setProjectDirectories(List<File> projectDirectories) {
-        this.projectDirectories = projectDirectories;
-    }
-
     public void setParserOptions(ParserOptions parserOptions) {
         this.parserOptions = parserOptions;
     }
 
-    public void build() throws IOException {
-        Preconditions.checkNotNull(indexDirectory);
-        Preconditions.checkNotNull(projectDirectories);
-        StopWatch stopWatch = new StopWatch();
-        stopWatch.start();
-        prepareIndexDirectory();
-        for (File projectDir : projectDirectories) {
-            if (!projectDir.isDirectory()) {
-                throw new IOException("Expect project dir: " + projectDir);
-            }
-            buildIndexForProject(projectDir);
-        }
-        stopWatch.stop();
-        LOG.info("Completed.");
-        LOG.info(String.format("Indexed types: %d", stats.types));
-        LOG.info(String.format("Indexed source files: %d", stats.successes));
-        LOG.info(String.format("Failed: %d", stats.failures));
-        LOG.info(String.format("Time elapsed: %.2fs", stopWatch.getTime() / 1000.0));
+    public void indexRepository(Repository repo) throws IOException {
+        Preconditions.checkNotNull(repo);
+        File dir = checkOutWorkTree(repo);
+        doIndex(repo.getName(), dir);
+        FileUtils.deleteDirectory(dir);
     }
 
-    private void buildIndexForProject(final File projectDir) throws IOException {
-        Preconditions.checkNotNull(projectDir);
-        Preconditions.checkNotNull(projectDir.isDirectory());
-        String projectName = projectDir.getName();
-        LOG.info("Indexing project: " + projectName);
-        List<File> sourceFiles = ImmutableList.copyOf(FileUtils.listFiles(projectDir,
+    public void indexDirectory(File dir) throws IOException {
+        Preconditions.checkNotNull(dir);
+        Preconditions.checkArgument(dir.isDirectory());
+        doIndex(dir.getName(), dir);
+    }
+
+    private File checkOutWorkTree(Repository repo) throws IOException {
+        File tempDir = Files.createTempDir();
+        GitUtils.checkoutWorkTree(repo, tempDir);
+        return tempDir;
+    }
+
+    private void doIndex(String project, File dir) throws IOException {
+        Preconditions.checkNotNull(project);
+        Preconditions.checkNotNull(dir);
+        Preconditions.checkArgument(dir.isDirectory());
+        prepareIndexDirectory();
+        LOG.info("Indexing project: " + project);
+        List<File> sourceFiles = ImmutableList.copyOf(FileUtils.listFiles(dir,
                 JavaFileFilters.JAVA_SOURCE_FILETER, HiddenFileFilter.VISIBLE));
         LOG.info("Found " + sourceFiles.size() + " source file(s)");
         File typeDbPath = IndexPathUtils.getTypeDbPath(indexDirectory);
@@ -175,9 +172,9 @@ public final class IndexBuilder {
             parser.setTypeCollector(collector);
             parser.setAnnotatedSourceCollector(collector);
             parser.setUsageCollector(collector);
-            parser.setProjectName(projectName);
+            parser.setProjectName(project);
             parser.setIdGenerator(idGenerator);
-            parser.setProjectBaseDirectory(projectDir);
+            parser.setProjectBaseDirectory(dir);
             parser.run();
 
             ProjectParser.Stats parserStats = parser.getStats();
@@ -189,7 +186,7 @@ public final class IndexBuilder {
 
             // Index project layout
             final List<File> sourceDirs = Lists.newArrayList();
-            DirectoryTranverser.traverse(projectDir, new DirectoryTranverser.Visitor() {
+            DirectoryTranverser.traverse(dir, new DirectoryTranverser.Visitor() {
                 @Override
                 public void visit(File file) {
                     if (file.isDirectory() && !file.isHidden()) {
@@ -197,8 +194,8 @@ public final class IndexBuilder {
                     }
                 }
             });
-            for (File dir : sourceDirs) {
-                sourceDbWriter.writeDirectory(projectName, findSourceFilePath(projectDir, dir));
+            for (File subDir : sourceDirs) {
+                sourceDbWriter.writeDirectory(project, findSourceFilePath(dir, subDir));
             }
         } catch (SkipCheckingExceptionWrapper e) {
             throw (IOException) e.getCause();
@@ -219,24 +216,30 @@ public final class IndexBuilder {
     }
 
     private void prepareIndexDirectory() throws IOException {
-        if (indexDirectory.exists()) {
-            LOG.info("Cleaning index directory: " + indexDirectory);
-            FileUtils.cleanDirectory(indexDirectory);
-        } else {
+        if (!indexDirectory.exists()) {
             LOG.info("Create index directory: " + indexDirectory);
             if (!indexDirectory.mkdirs()) {
                 throw new IOException("Failed to mkdir: " + indexDirectory);
             }
         }
 
-        TypeDbWriter typeDbCreator = new TypeDbWriterImpl(IndexPathUtils.getTypeDbPath(indexDirectory));
-        typeDbCreator.flush();
-        typeDbCreator.close();
-        SourceDbWriter sourceDbCreator = new SourceDbWriterImpl(IndexPathUtils.getSourceDbPath(indexDirectory));
-        sourceDbCreator.flush();
-        sourceDbCreator.close();
-        UsageDbWriter usageDbCreator = new UsageDbWriterImpl(IndexPathUtils.getUsageDbPath(indexDirectory));
-        usageDbCreator.flush();
-        usageDbCreator.close();
+        File typeDbPath = IndexPathUtils.getTypeDbPath(indexDirectory);
+        if (!typeDbPath.exists()) {
+            TypeDbWriter typeDbCreator = new TypeDbWriterImpl(typeDbPath);
+            typeDbCreator.flush();
+            typeDbCreator.close();
+        }
+        File sourceDbPath = IndexPathUtils.getSourceDbPath(indexDirectory);
+        if (!sourceDbPath.exists()) {
+            SourceDbWriter sourceDbCreator = new SourceDbWriterImpl(sourceDbPath);
+            sourceDbCreator.flush();
+            sourceDbCreator.close();
+        }
+        File usageDbPath = IndexPathUtils.getUsageDbPath(indexDirectory);
+        if (!usageDbPath.exists()) {
+            UsageDbWriter usageDbCreator = new UsageDbWriterImpl(usageDbPath);
+            usageDbCreator.flush();
+            usageDbCreator.close();
+        }
     }
 }
