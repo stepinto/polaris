@@ -5,31 +5,26 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 
 public final class Span implements Comparable<Span> {
-    private final long from;
-    private final long to;
+    private final Position from;
+    private final Position to;
 
-    public Span(long from, long to) {
+    public Span(Position from, Position to) {
         this.from = from;
         this.to = to;
     }
 
     public static Span createFromThrift(TSpan t) {
         Preconditions.checkNotNull(t);
-        return new Span(t.getFrom(), t.getTo());
+        return new Span(
+                Position.createFromThrift(t.getFrom()),
+                Position.createFromThrift(t.getTo()));
     }
 
-    public static Span of(long from, long to) {
-        Preconditions.checkArgument(from >= 0);
-        Preconditions.checkArgument(to >= 0);
-        Preconditions.checkArgument(from <= to);
-        return new Span(from, to);
-    }
-
-    public long getFrom() {
+    public Position getFrom() {
         return from;
     }
 
-    public long getTo() {
+    public Position getTo() {
         return to;
     }
 
@@ -43,11 +38,14 @@ public final class Span implements Comparable<Span> {
         if (this == o) {
             return true;
         }
+        if (o == null) {
+            return false;
+        }
         if (o.getClass() != Span.class) {
             return false;
         }
         Span that = (Span) o;
-        return this.from == that.from && this.to == that.to;
+        return Objects.equal(this.from, that.from) && Objects.equal(this.to, that.to);
     }
 
     @Override
@@ -60,8 +58,8 @@ public final class Span implements Comparable<Span> {
 
     public TSpan toThrift() {
         TSpan t = new TSpan();
-        t.setFrom(from);
-        t.setTo(to);
+        t.setFrom(from.toThrift());
+        t.setTo(to.toThrift());
         return t;
     }
 

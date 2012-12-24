@@ -8,8 +8,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.io.NullOutputStream;
-import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -58,11 +56,11 @@ public class TwoPassProcessorsTest {
         ClassType clazz = Iterables.getOnlyElement(result.getClassTypes());
         assertEquals(FullTypeName.of("pkg.MyClass"), clazz.getName());
         assertEquals(ClassType.Kind.CLASS, clazz.getKind());
-        assertEquals(13, clazz.getJumpTarget().getOffset());
+        assertEquals(new Position(1, 0), clazz.getJumpTarget().getPosition());
         TypeUsage clazzDeclaration = findUniqueTypeUsageByKind(
                 result.getUsages(), TypeUsage.Kind.TYPE_DECLARATION);
         assertEquals(clazz.getHandle(), clazzDeclaration.getType());
-        assertEquals(Span.of(13, 48), clazzDeclaration.getSpan());
+        assertEquals(new Span(new Position(1, 0), new Position(1, 35)), clazzDeclaration.getSpan());
     }
 
     @Test
@@ -98,11 +96,11 @@ public class TwoPassProcessorsTest {
                 superTypeNames);
         List<TypeUsage> usages = filterTypeUsagesByKind(result.getUsages(), TypeUsage.Kind.SUPER_CLASS);
         assertEquals(3, usages.size());
-        assertEquals(Span.of(16, 17), usages.get(0).getSpan());
+        assertEquals(new Span(new Position(0, 16), new Position(0, 17)), usages.get(0).getSpan());
         assertEquals("B", usages.get(0).getType().getName().toString());
-        assertEquals(Span.of(29, 30), usages.get(1).getSpan());
+        assertEquals(new Span(new Position(0, 29), new Position(0, 30)), usages.get(1).getSpan());
         assertEquals("C", usages.get(1).getType().getName().toString());
-        assertEquals(Span.of(32, 33), usages.get(2).getSpan());
+        assertEquals(new Span(new Position(0, 32), new Position(0, 33)), usages.get(2).getSpan());
         assertEquals("D", usages.get(2).getType().getName().toString());
     }
 
@@ -150,7 +148,7 @@ public class TwoPassProcessorsTest {
         assertEquals(FullTypeName.of("pkg.E"), clazz.getName());
         TypeUsage typeDeclaration = findUniqueTypeUsageByKind(result.getUsages(), TypeUsage.Kind.TYPE_DECLARATION);
         assertEquals(clazz.getHandle(), typeDeclaration.getType());
-        assertEquals(Span.of(13, 48), typeDeclaration.getSpan());
+        assertEquals(new Span(new Position(0, 13), new Position(0, 48)), typeDeclaration.getSpan());
     }
 
     // TODO: testEnum_public
@@ -168,7 +166,7 @@ public class TwoPassProcessorsTest {
         MethodUsage methodDeclaration = findUniqueMethodUsageByKind(
                 result.getUsages(), MethodUsage.Kind.METHOD_DECLARATION);
         assertEquals(method.getHandle(), methodDeclaration.getMethod());
-        assertEquals(Span.of(23, 37), methodDeclaration.getSpan());
+        assertEquals(new Span(new Position(0, 23), new Position(0, 37)), methodDeclaration.getSpan());
     }
 
     @Test
@@ -201,15 +199,15 @@ public class TwoPassProcessorsTest {
         assertEquals(FullTypeName.of("F"), exceptionType1.getName());
         List<TypeUsage> usages = filterTypeUsagesByKind(result.getUsages(), TypeUsage.Kind.METHOD_SIGNATURE);
         assertEquals(5, usages.size());
-        assertEquals(Span.of(10, 11), usages.get(0).getSpan());
+        assertEquals(new Span(new Position(0, 10), new Position(0, 11)), usages.get(0).getSpan());
         assertEquals(FullTypeName.of("B"), usages.get(0).getType().getName());
-        assertEquals(Span.of(14, 15), usages.get(1).getSpan());
+        assertEquals(new Span(new Position(0, 14), new Position(0, 15)), usages.get(1).getSpan());
         assertEquals(FullTypeName.of("C"), usages.get(1).getType().getName());
-        assertEquals(Span.of(19, 20), usages.get(2).getSpan());
+        assertEquals(new Span(new Position(0, 19), new Position(0, 20)), usages.get(2).getSpan());
         assertEquals(FullTypeName.of("D"), usages.get(2).getType().getName());
-        assertEquals(Span.of(31, 32), usages.get(3).getSpan());
+        assertEquals(new Span(new Position(0, 31), new Position(0, 32)), usages.get(3).getSpan());
         assertEquals(FullTypeName.of("E"), usages.get(3).getType().getName());
-        assertEquals(Span.of(34, 35), usages.get(4).getSpan());
+        assertEquals(new Span(new Position(0, 34), new Position(0, 35)), usages.get(4).getSpan());
         assertEquals(FullTypeName.of("F"), usages.get(4).getType().getName());
     }
 
@@ -244,9 +242,9 @@ public class TwoPassProcessorsTest {
         assertEquals(PrimitiveType.INTEGER.getHandle(), field.getType());
         FieldUsage fieldDeclaration = findUniqueFieldUsageByKind(result.getUsages(), FieldUsage.Kind.FIELD_DECLARATION);
         assertEquals(field.getHandle(), fieldDeclaration.getField());
-        assertEquals(Span.of(27, 28), fieldDeclaration.getSpan());
+        assertEquals(new Span(new Position(0, 27), new Position(0, 28)), fieldDeclaration.getSpan());
         TypeUsage usage = findUniqueTypeUsageByKind(result.getUsages(), TypeUsage.Kind.FIELD);
-        assertEquals(Span.of(23, 26), usage.getSpan());
+        assertEquals(new Span(new Position(0, 23), new Position(0, 26)), usage.getSpan());
         assertEquals(PrimitiveType.INTEGER.getHandle(), usage.getType());
     }
 
@@ -285,7 +283,7 @@ public class TwoPassProcessorsTest {
         List<Token> tokens = extractFromCode(code);
         LocalVariableDeclaration var = (LocalVariableDeclaration)
                 findUniqueTokenOfClass(tokens, Token.Kind.LOCAL_VARIABLE_DECLARATION);
-        assertEquals(Token.Span.of(38, 39), var.getSpan());
+        assertEquals(new Span(new Position(0, 38), new Position(0, 39)), var.getSpan());
         assertEquals(FullLocalName.of("pkg.A.f.n"), var.getName());
         assertEquals("n", var.getVariableName());
         assertEquals("int", var.getTypeReference().getUnqualifiedName());
@@ -294,24 +292,6 @@ public class TwoPassProcessorsTest {
     // TODO: testLocalVariable_multiple
     // TODO: testLocalVariable_array
     */
-
-    @Test
-    public void testLineMonitorInputStream() throws IOException {
-        String code = "a\nbcd\nef\ng\nhij\n";
-        SecondPassProcessor.LineMonitorInputStream in = new SecondPassProcessor.LineMonitorInputStream(
-                new ByteArrayInputStream(code.getBytes()));
-        IOUtils.copy(in, new NullOutputStream());
-        assertEquals(0, in.translateLineColumnToOffset(0, 0));
-        assertEquals(2, in.translateLineColumnToOffset(1, 0));
-        assertEquals(3, in.translateLineColumnToOffset(1, 1));
-        assertEquals(4, in.translateLineColumnToOffset(1, 2));
-        assertEquals(6, in.translateLineColumnToOffset(2, 0));
-        assertEquals(7, in.translateLineColumnToOffset(2, 1));
-        assertEquals(9, in.translateLineColumnToOffset(3, 0));
-        assertEquals(11, in.translateLineColumnToOffset(4, 0));
-        assertEquals(12, in.translateLineColumnToOffset(4, 1));
-        assertEquals(13, in.translateLineColumnToOffset(4, 2));
-    }
 
     public static SecondPassProcessor.Result extractFromCode(String code) throws IOException {
         long fakeFileId = 100;

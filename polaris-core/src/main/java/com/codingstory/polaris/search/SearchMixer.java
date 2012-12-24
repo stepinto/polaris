@@ -2,6 +2,7 @@ package com.codingstory.polaris.search;
 
 import com.codingstory.polaris.JumpTarget;
 import com.codingstory.polaris.parser.ClassType;
+import com.codingstory.polaris.parser.Position;
 import com.codingstory.polaris.parser.SourceFile;
 import com.codingstory.polaris.sourcedb.SourceDb;
 import com.codingstory.polaris.typedb.TypeDb;
@@ -59,30 +60,22 @@ public class SearchMixer {
         hit.setProject(source.getProject());
         hit.setPath(source.getPath());
         hit.setJumpTarget(jumpTarget.toThrift());
-        hit.setSummary(getSummary(source.getSource(), jumpTarget.getOffset()));
+        hit.setSummary(getSummary(source.getSource(), jumpTarget.getPosition()));
         hit.setScore(1); // TODO: set a reasonable score
         hit.setClassType(type.toThrift());
         hit.setQueryHint(type.getName().toString());
         return hit;
     }
 
-    public static String getSummary(String content, long offset) {
+    public static String getSummary(String content, Position position) {
         String[] lines = content.split("\n");
-        int i = 0;
-        int lengthTillNow = 0;
-        for (; i < lines.length; ++i) {
-            if (lengthTillNow > offset) {
-                break;
-            }
-            lengthTillNow += lines[i].length() + 1;
+        int from = Math.max(position.getLine() - 2, 0);
+        int to = Math.min(position.getLine() + 3, lines.length);
+        StringBuilder result = new StringBuilder();
+        for (int i = from; i < to; i++) {
+            result.append(lines[i]);
+            result.append("\n");
         }
-        StringBuilder builder = new StringBuilder();
-        for (int j = i - 2; j < i + 3; ++j) {
-            if (j >= 0 && j < lines.length) {
-                builder.append(lines[j]);
-                builder.append("\n");
-            }
-        }
-        return builder.toString();
+        return result.toString();
     }
 }

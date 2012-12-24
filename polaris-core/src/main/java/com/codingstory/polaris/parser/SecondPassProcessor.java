@@ -4,7 +4,6 @@ import com.codingstory.polaris.IdGenerator;
 import com.codingstory.polaris.IdUtils;
 import com.codingstory.polaris.JumpTarget;
 import com.codingstory.polaris.SkipCheckingExceptionWrapper;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -24,7 +23,6 @@ import japa.parser.ast.expr.VariableDeclarationExpr;
 import japa.parser.ast.type.ClassOrInterfaceType;
 import japa.parser.ast.visitor.VoidVisitorAdapter;
 
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.EnumSet;
@@ -55,7 +53,6 @@ public final class SecondPassProcessor {
     private static class ASTVisitor extends VoidVisitorAdapter {
         private final String project;
         private final long fileId;
-        private final LineMonitorInputStream in;
         private final TypeResolver typeResolver;
         private final List<Usage> usages = Lists.newArrayList();
         private final List<ClassType> discoveredTypes = Lists.newArrayList();
@@ -70,11 +67,10 @@ public final class SecondPassProcessor {
         private final Map<String, TypeTable.Frame> typeTableFramesForPackage = Maps.newHashMap();
         // TODO: symbol table for variables
 
-        private ASTVisitor(String project, long fileId, LineMonitorInputStream in,
+        private ASTVisitor(String project, long fileId,
                 TypeResolver typeResolver, IdGenerator idGenerator) {
             this.project = Preconditions.checkNotNull(project);
             this.fileId = IdUtils.checkValid(fileId);
-            this.in = Preconditions.checkNotNull(in);
             this.typeResolver = new CascadeTypeResolver(ImmutableList.of(
                     PrimitiveTypeResolver.getInstance(),
                     typeTable.getTypeResolver(),
@@ -365,9 +361,9 @@ public final class SecondPassProcessor {
 
         private Span findTokenSpan(Node node) {
             Preconditions.checkNotNull(node);
-            long from = in.translateLineColumnToOffset(node.getBeginLine() - 1, node.getBeginColumn() - 1);
-            long to = in.translateLineColumnToOffset(node.getEndLine() - 1, node.getEndColumn() - 1) + 1;
-            return Span.of(from, to);
+            Position from = new Position(node.getBeginLine() - 1, node.getBeginColumn() - 1);
+            Position to = new Position(node.getEndLine() - 1, node.getEndColumn());
+            return new Span(from, to);
         }
 
         private Method currentMethod() {
@@ -395,64 +391,6 @@ public final class SecondPassProcessor {
         }
     }
 
-    @VisibleForTesting
-    static class LineMonitorInputStream extends FilterInputStream {
-
-        private final List<Integer> lengths = Lists.newArrayList();
-        private int currentLineLength = 0;
-
-        public LineMonitorInputStream(InputStream in) {
-            super(in);
-        }
-
-        public long translateLineColumnToOffset(int line, int col) {
-            Preconditions.checkArgument(line >= 0);
-            Preconditions.checkArgument(line <= lengths.size());
-            Preconditions.checkArgument(col >= 0);
-            long offset = col;
-            for (int i = 0; i < line; i++) {
-                offset += lengths.get(i);
-            }
-            return offset;
-        }
-
-        @Override
-        public int read() throws IOException {
-            int ch = super.read();    //To change body of overridden methods use File | Settings | File Templates.
-            if (ch >= 0) {
-                process((byte) ch);
-            }
-            return ch;
-        }
-
-        @Override
-        public int read(byte[] bytes) throws IOException {
-            int n = super.read(bytes);
-            for (int i = 0; i < n; i++) {
-                process(bytes[i]);
-            }
-            return n;
-        }
-
-        @Override
-        public int read(byte[] bytes, int offset, int len) throws IOException {
-            int n = super.read(bytes, offset, len);
-            for (int i = 0; i < n; i++) {
-                process(bytes[i]);
-            }
-            return n;
-        }
-
-        private void process(byte ch) throws IOException {
-            if (ch == '\n') {
-                lengths.add(currentLineLength + 1); // +1 for '\n'
-                currentLineLength = 0;
-            } else {
-                currentLineLength++;
-            }
-        }
-    }
-
     private SecondPassProcessor() {}
 
     public static Result extract(String project,
@@ -465,9 +403,8 @@ public final class SecondPassProcessor {
         Preconditions.checkNotNull(in);
         Preconditions.checkNotNull(externalTypeResolver);
         Preconditions.checkNotNull(idGenerator);
-        LineMonitorInputStream lmin = new LineMonitorInputStream(in);
-        ASTVisitor visitor = new ASTVisitor(project, fileId, lmin, externalTypeResolver, idGenerator);
-        ParserUtils.safeVisit(lmin, visitor);
+        ASTVisitor visitor = new ASTVisitor(project, fileId, externalTypeResolver, idGenerator);
+        ParserUtils.safeVisit(in, visitor);
         return new Result(visitor.getClassTypes(), visitor.getUsages());
     }
 }

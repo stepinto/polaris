@@ -201,8 +201,7 @@
       showCodeLoading(false);
       goog.Timer.callOnce(function() {
           // Must call this in after codeView is rendered.
-          var windowOffset = codeView.getDisplayOffsetOfLine(
-            polaris.helper.codeOffsetToLineNum(resp.source.source, offset));
+          var windowOffset = codeView.getDisplayOffsetOfLine(offset);
           if (windowOffset > 100) {
             windowOffset -= 100; // Make that line display at center.
           }

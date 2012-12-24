@@ -1,9 +1,19 @@
 namespace java com.codingstory.polaris.parser
 namespace py polaris.parser
 
+struct TPosition {
+    1: i32 line;
+    2: i32 column;
+}
+
+struct TSpan {
+    1: TPosition from;
+    2: TPosition to;
+}
+
 struct TJumpTarget {
     1: i64 fileId;
-    2: i64 offset;
+    2: TPosition position;
 }
 
 struct TTypeHandle {
@@ -63,11 +73,6 @@ struct TClassType {
     5: list<TMethod> methods;
     6: string javaDoc;
     7: TJumpTarget jumpTarget;
-}
-
-struct TSpan {
-    1: i64 from;
-    2: i64 to;
 }
 
 enum TTypeUsageKind {

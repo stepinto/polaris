@@ -11,6 +11,7 @@ import com.codingstory.polaris.parser.FullTypeName;
 import com.codingstory.polaris.parser.Method;
 import com.codingstory.polaris.parser.MethodHandle;
 import com.codingstory.polaris.parser.Modifier;
+import com.codingstory.polaris.parser.Position;
 import com.codingstory.polaris.parser.PrimitiveType;
 import com.codingstory.polaris.parser.TypeHandle;
 import com.google.common.collect.ImmutableList;
@@ -201,7 +202,7 @@ public class TypeDbTest {
                 Lists.<Field>newArrayList(),
                 Lists.<Method>newArrayList(),
                 null,
-                new JumpTarget(FAKE_FILE_ID, 0));
+                new JumpTarget(FAKE_FILE_ID, Position.ZERO));
     }
 
     private static ClassType createClassInFile(FullTypeName type, long fileId) throws IOException {
@@ -212,7 +213,7 @@ public class TypeDbTest {
                 Lists.<Field>newArrayList(),
                 Lists.<Method>newArrayList(),
                 null,
-                new JumpTarget(fileId, 0));
+                new JumpTarget(fileId, Position.ZERO));
     }
 
     private ClassType createClassWithOneField(FullTypeName type, String fieldName) throws IOException {
@@ -220,7 +221,7 @@ public class TypeDbTest {
                 new FieldHandle(ID_GENERATOR.next(), FullMemberName.of(type, fieldName)),
                 PrimitiveType.INTEGER.getHandle(),
                 EnumSet.noneOf(Modifier.class),
-                new JumpTarget(FAKE_FILE_ID, 0));
+                new JumpTarget(FAKE_FILE_ID, Position.ZERO));
         return new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
                 ClassType.Kind.CLASS,
                 Lists.<TypeHandle>newArrayList(),
@@ -228,7 +229,7 @@ public class TypeDbTest {
                 ImmutableList.of(field),
                 Lists.<Method>newArrayList(),
                 null,
-                new JumpTarget(FAKE_FILE_ID, 0));
+                new JumpTarget(FAKE_FILE_ID, Position.ZERO));
     }
 
     private ClassType createClassWithOneMethod(FullTypeName type, String methodName) throws IOException {
@@ -239,7 +240,7 @@ public class TypeDbTest {
                 ImmutableList.<Method.Parameter>of(),
                 ImmutableList.<TypeHandle>of(),
                 EnumSet.noneOf(Modifier.class),
-                new JumpTarget(FAKE_FILE_ID, 0));
+                new JumpTarget(FAKE_FILE_ID, Position.ZERO));
         return new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
                 ClassType.Kind.CLASS,
                 Lists.<TypeHandle>newArrayList(),
@@ -247,6 +248,6 @@ public class TypeDbTest {
                 ImmutableList.<Field>of(),
                 ImmutableList.of(method),
                 null,
-                new JumpTarget(FAKE_FILE_ID, 0));
+                new JumpTarget(FAKE_FILE_ID, Position.ZERO));
     }
 }

@@ -1,6 +1,7 @@
 package com.codingstory.polaris.usagedb;
 
 import com.codingstory.polaris.parser.FullTypeName;
+import com.codingstory.polaris.parser.Position;
 import com.codingstory.polaris.parser.Span;
 import com.codingstory.polaris.parser.TypeHandle;
 import com.codingstory.polaris.parser.TypeUsage;
@@ -32,8 +33,10 @@ public class UsageDbTest {
         UsageDbWriter w = new UsageDbWriterImpl(tempDir);
         long typeId = 100;
         TypeHandle handle = new TypeHandle(typeId, FullTypeName.of("MyClass"));
-        TypeUsage usage1 = new TypeUsage(handle, Span.of(10, 20), TypeUsage.Kind.METHOD_SIGNATURE);
-        TypeUsage usage2 = new TypeUsage(handle, Span.of(20, 30), TypeUsage.Kind.METHOD_SIGNATURE);
+        TypeUsage usage1 = new TypeUsage(
+                handle, new Span(new Position(0, 10), new Position(0, 20)), TypeUsage.Kind.METHOD_SIGNATURE);
+        TypeUsage usage2 = new TypeUsage(
+                handle, new Span(new Position(0, 20), new Position(0, 30)), TypeUsage.Kind.METHOD_SIGNATURE);
         w.write(usage1);
         w.write(usage2);
         w.close();

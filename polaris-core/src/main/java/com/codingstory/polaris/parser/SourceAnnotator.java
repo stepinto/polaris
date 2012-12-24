@@ -1,10 +1,10 @@
 package com.codingstory.polaris.parser;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.primitives.Longs;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,7 +18,7 @@ public class SourceAnnotator {
     private static final Comparator<Usage> USAGE_COMPARATOR = new Comparator<Usage>() {
         @Override
         public int compare(Usage left, Usage right) {
-            return Longs.compare(left.getSpan().getFrom(), right.getSpan().getFrom());
+            return left.getSpan().compareTo(right.getSpan());
         }
     };
 
@@ -27,8 +27,6 @@ public class SourceAnnotator {
         PrintWriter pw = new PrintWriter(sw);
         List<Usage> sortedUsages = Lists.newArrayList(usages);
         Collections.sort(sortedUsages, USAGE_COMPARATOR);
-        long i = 0;
-        int j = 0;
         pw.print("<source>");
         sortedUsages= ImmutableList.copyOf(Iterables.filter(sortedUsages, new Predicate<Usage>() {
             @Override
@@ -37,33 +35,32 @@ public class SourceAnnotator {
             }
         }));
 
-        int ch = in.read();
+        PositionAwareInputStream in2 = new PositionAwareInputStream(in);
+        int ch = in2.read();
+        int j = 0;
         while (ch != -1 && j < sortedUsages.size()) {
             Usage currentUsage = sortedUsages.get(j);
-            long currentUsageFrom = currentUsage.getSpan().getFrom();
-            if (i < currentUsageFrom) {
+            Position currentUsageFrom = currentUsage.getSpan().getFrom();
+            Position currentPosition = in2.getPosition();
+            int cmp = currentPosition.compareTo(currentUsageFrom);
+            if (cmp < 0) {
                 pw.write(escape((char) ch));
-                ch = in.read();
-                i++;
-            } else if (i > currentUsageFrom) {
+                ch = in2.read();
+            } else if (cmp > 0) {
                 j++;
             } else {
-                long currentUsageTo = currentUsage.getSpan().getTo();
-                byte[] text = new byte [(int)(currentUsageTo - currentUsageFrom)];
-                int k = 0;
-                while (i < currentUsageTo && ch != -1) {
-                    text[k] = (byte) ch;
-                    ch = in.read();
-                    k++;
-                    i++;
+                Position currentUsageTo = currentUsage.getSpan().getTo();
+                StringBuilder text = new StringBuilder();
+                while (in2.getPosition().compareTo(currentUsageTo) < 0 && ch != 1) {
+                    text.append(ch);
+                    ch = in2.read();
                 }
                 emit(pw, new String(text), currentUsage);
-                i = currentUsageTo;
             }
         }
         while (ch != -1) {
             pw.write(escape((char) ch));
-            ch = in.read();
+            ch = in2.read();
         }
         pw.print("</source>");
         pw.close();
@@ -117,6 +114,35 @@ public class SourceAnnotator {
             return "&apos;";
         } else {
             return String.valueOf(ch);
+        }
+    }
+
+    private static class PositionAwareInputStream extends InputStream {
+        private InputStream in;
+        private int line;
+        private int column;
+
+        private PositionAwareInputStream(InputStream in) {
+            this.in = Preconditions.checkNotNull(in);
+        }
+
+        @Override
+        public int read() throws IOException {
+            int ch = in.read();
+            if (ch < 0) {
+                return ch;
+            }
+            if (ch == '\n') {
+                line++;
+                line = 0;
+            } else {
+                column++;
+            }
+            return ch;
+        }
+
+        public Position getPosition() {
+            return new Position(line, column);
         }
     }
 }

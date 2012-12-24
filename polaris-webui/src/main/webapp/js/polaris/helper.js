@@ -10,7 +10,7 @@ polaris.helper.convertJumpTargetToUrlFragment = function(jumpTarget) {
   return goog.string.format(
       "#page=code&file=%d&offset=%d",
       jumpTarget.fileId,
-      jumpTarget.offset);
+      jumpTarget.position.line);
 }
 
 polaris.helper.dropPackageName = function(fullTypeName) {
