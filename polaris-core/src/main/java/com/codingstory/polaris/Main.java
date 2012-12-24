@@ -259,6 +259,8 @@ public class Main {
                     System.out.println(">> " + query);
                     TSearchRequest req = new TSearchRequest();
                     req.setQuery(query);
+                    req.setRankFrom(0);
+                    req.setRankTo(20);
                     TSearchResponse resp = client.search(req);
                     checkRpcStatus(resp.getStatus());
                     int i = 1;
@@ -268,6 +270,9 @@ public class Main {
                         System.out.println("Result #" + i + ": ");
                         System.out.println(hit.getSummary());
                         i++;
+                    }
+                    if (resp.getHitsSize() == 20) {
+                        System.out.println("Only top 20 hits are displayed.");
                     }
                 }
             } else if (command == RpcCommand.SOURCE) {
