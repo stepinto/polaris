@@ -21,8 +21,10 @@ import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TSimpleJSONProtocol;
+import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TIOStreamTransport;
 import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -46,9 +48,9 @@ public class AjaxServlet extends HttpServlet {
     private TCodeSearchService.Iface getSearcher() throws TException {
         TCodeSearchService.Iface searcher = searchers.get();
         if (searcher == null) {
-            TSocket socket = new TSocket(SEARCHER_HOST, SEARCHER_PORT);
-            socket.open();
-            searcher = new TCodeSearchService.Client.Factory().getClient(new TBinaryProtocol(socket));
+            TTransport transport = new TFramedTransport(new TSocket(SEARCHER_HOST, SEARCHER_PORT));
+            transport.open();
+            searcher = new TCodeSearchService.Client.Factory().getClient(new TBinaryProtocol(transport));
             searchers.set(searcher);
         }
         return searcher;

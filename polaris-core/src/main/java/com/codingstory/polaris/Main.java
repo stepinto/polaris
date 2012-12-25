@@ -34,6 +34,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.server.TThreadPoolServer;
+import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TSocket;
@@ -182,6 +183,7 @@ public class Main {
                         .minWorkerThreads(1)
                         .maxWorkerThreads(10)
                         .processor(processor)
+                        .transportFactory(new TFramedTransport.Factory())
                         .protocolFactory(protocolFactory));
         LOG.info("Starting searcher at port " + port);
         server.serve();
@@ -248,7 +250,7 @@ public class Main {
         CommandLine commandLine = commandLineParser.parse(commandLineOptions, stringListToArray(args));
         String host = commandLine.getOptionValue("host", "127.0.0.1");
         int port = Integer.parseInt(commandLine.getOptionValue("port", String.valueOf(SERVER_DEFAULT_PORT)));
-        TTransport transport = new TSocket(host, port);
+        TTransport transport = new TFramedTransport(new TSocket(host, port));
         TProtocol protocol = new TBinaryProtocol(transport);
         transport.open();
 
