@@ -1,5 +1,6 @@
 package com.codingstory.polaris.usagedb;
 
+import com.codingstory.polaris.SnappyUtils;
 import com.codingstory.polaris.parser.TypeHandle;
 import com.codingstory.polaris.parser.TypeUsage;
 import com.google.common.base.Preconditions;
@@ -13,7 +14,6 @@ import org.apache.lucene.util.Version;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
-import org.xerial.snappy.Snappy;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,7 +42,7 @@ public class UsageDbWriterImpl implements UsageDbWriter {
             TUsageData usageData = new TUsageData();
             usageData.setTypeUsage(usage.toThrift());
             byte[] usageDataBinary = SERIALIZER.serialize(usageData);
-            document.add(new Field(UsageDbIndexedField.USAGE_DATA, Snappy.compress(usageDataBinary)));
+            document.add(new Field(UsageDbIndexedField.USAGE_DATA, SnappyUtils.compress(usageDataBinary)));
             writer.addDocument(document);
         } catch (TException e) {
             throw new AssertionError(e);

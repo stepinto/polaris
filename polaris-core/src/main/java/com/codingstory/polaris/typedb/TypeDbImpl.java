@@ -1,6 +1,7 @@
 package com.codingstory.polaris.typedb;
 
 import com.codingstory.polaris.IdUtils;
+import com.codingstory.polaris.SnappyUtils;
 import com.codingstory.polaris.parser.ClassType;
 import com.codingstory.polaris.parser.Field;
 import com.codingstory.polaris.parser.FullTypeName;
@@ -25,7 +26,6 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
-import org.xerial.snappy.Snappy;
 
 import java.io.File;
 import java.io.IOException;
@@ -162,7 +162,7 @@ public class TypeDbImpl implements TypeDb {
             Document document = reader.document(docId);
             byte[] binaryData = document.getBinaryValue(TypeDbIndexedField.TYPE_DATA);
             TTypeData typeData = new TTypeData();
-            DESERIALIZER.deserialize(typeData, Snappy.uncompress(binaryData));
+            DESERIALIZER.deserialize(typeData, SnappyUtils.uncompress(binaryData));
             return ClassType.createFromThrift(typeData.getClassType());
         } catch (TException e) {
             throw new IOException(e);

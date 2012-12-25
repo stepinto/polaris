@@ -1,5 +1,6 @@
 package com.codingstory.polaris.sourcedb;
 
+import com.codingstory.polaris.SnappyUtils;
 import com.codingstory.polaris.parser.FileHandle;
 import com.codingstory.polaris.parser.SourceFile;
 import com.google.common.base.Preconditions;
@@ -19,7 +20,6 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
-import org.xerial.snappy.Snappy;
 
 import java.io.File;
 import java.io.IOException;
@@ -109,7 +109,7 @@ public class SourceDbImpl implements SourceDb {
             Document document = reader.document(docId);
             byte[] binaryData = document.getBinaryValue(SourceDbIndxedField.SOURCE_DATA);
             TSourceData sourceData = new TSourceData();
-            DESERIALIZER.deserialize(sourceData, Snappy.uncompress(binaryData));
+            DESERIALIZER.deserialize(sourceData, SnappyUtils.uncompress(binaryData));
             return SourceFile.createFromThrift(sourceData.getSourceFile());
         } catch (TException e) {
             throw new IOException(e);

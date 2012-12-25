@@ -1,5 +1,6 @@
 package com.codingstory.polaris.sourcedb;
 
+import com.codingstory.polaris.SnappyUtils;
 import com.codingstory.polaris.parser.SourceFile;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -14,7 +15,6 @@ import org.apache.lucene.util.Version;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
-import org.xerial.snappy.Snappy;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,7 +44,7 @@ public class SourceDbWriterImpl implements SourceDbWriter {
                     Field.Store.YES, Field.Index.ANALYZED));
             TSourceData sourceData = new TSourceData();
             sourceData.setSourceFile(sourceFile.toThrift());
-            byte[] sourceDataBinary = Snappy.compress(SERIALIZER.serialize(sourceData));
+            byte[] sourceDataBinary = SnappyUtils.compress(SERIALIZER.serialize(sourceData));
             document.add(new Field(SourceDbIndxedField.SOURCE_DATA, sourceDataBinary));
             writer.addDocument(document);
         } catch (TException e) {

@@ -1,5 +1,6 @@
 package com.codingstory.polaris.usagedb;
 
+import com.codingstory.polaris.SnappyUtils;
 import com.codingstory.polaris.parser.TypeUsage;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -14,7 +15,6 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
-import org.xerial.snappy.Snappy;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,7 +53,7 @@ public class UsageDbImpl implements UsageDb {
             Document document = reader.document(docId);
             byte[] binaryData = document.getBinaryValue(UsageDbIndexedField.USAGE_DATA);
             TUsageData usageData = new TUsageData();
-            DESERIALIZER.deserialize(usageData, Snappy.uncompress(binaryData));
+            DESERIALIZER.deserialize(usageData, SnappyUtils.uncompress(binaryData));
             return TypeUsage.createFromThrift(usageData.getTypeUsage());
         } catch (TException e) {
             throw new IOException(e);
