@@ -5,10 +5,10 @@ namespace py polaris.search
 
 enum TStatusCode {
     OK = 0,
-    FILE_NOT_FOUND = -1,
-    MISSING_FIELDS = -2,
-    NOT_IMPLEMENTED = -3,
-    UNKNOWN_ERROR = -99,
+    FILE_NOT_FOUND = 1001,
+    MISSING_FIELDS = 1002,
+    NOT_IMPLEMENTED = 1003,
+    UNKNOWN_ERROR = 1099,
 }
 
 struct THit {
