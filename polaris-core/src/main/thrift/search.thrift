@@ -1,4 +1,3 @@
-include "layout.thrift"
 include "parser.thrift"
 
 namespace java com.codingstory.polaris.search
