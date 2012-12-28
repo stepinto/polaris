@@ -9,13 +9,11 @@
   <version>0.1-SNAPSHOT</version>
 
   <dependencies>
-    <!--
     <dependency>
       <groupId>com.codingstory.polaris</groupId>
       <artifactId>polaris-core</artifactId>
       <version>${project.version}</version>
     </dependency>
-    -->
   </dependencies>
 
   <build>
