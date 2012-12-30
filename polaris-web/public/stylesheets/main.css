@@ -1,0 +1,29 @@
+html,
+body {
+  height: 100%;
+}
+.wrapper {
+  position: relative;
+  min-height: 100%;
+}
+.footer {
+  position: absolute;
+  bottom: 0;
+  text-align: center;
+  width: 100%;
+}
+.bonjour {
+  margin-top: 150px;
+  text-align: center;
+}
+.bonjour .logo {
+  display: block;
+  margin: 0 auto 10px;
+}
+.bonjour .search-button,
+.bonjour .search-query {
+  margin-bottom: 10px;
+}
+.bonjour .search-query {
+  margin-right: 10px;
+}

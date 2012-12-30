@@ -3,3 +3,5 @@
 *.iml
 /index/
 target/
+node_modules/
+gen-nodejs/
