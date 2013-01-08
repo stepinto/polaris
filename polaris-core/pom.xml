@@ -70,9 +70,9 @@
             <version>1.6</version>
         </dependency>
         <dependency>
-            <groupId>com.google.code.javaparser</groupId>
+            <groupId>japa.javaparser</groupId>
             <artifactId>javaparser</artifactId>
-            <version>1.0.8</version>
+            <version>1.0.9-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>

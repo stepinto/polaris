@@ -1,6 +1,6 @@
 #!/bin/sh
 
 class='com.codingstory.polaris.Main'
-mvn exec:java -e -q -Dexec.mainClass=$class -Dexec.classpathScope=runtime -Dexec.args="$*" -f polaris-core/pom.xml
+env MAVEN_OPTS=-Xmx1g mvn exec:java -e -q -Dexec.mainClass=$class -Dexec.classpathScope=runtime -Dexec.args="$*" -f polaris-core/pom.xml
 
 # vim: ts=2 sw=2 et
