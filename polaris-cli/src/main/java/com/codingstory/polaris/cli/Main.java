@@ -1,6 +1,7 @@
 package com.codingstory.polaris.cli;
 
 import com.codingstory.polaris.cli.command.Search;
+import com.codingstory.polaris.cli.command.SearchServer;
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -20,7 +21,8 @@ import static com.codingstory.polaris.cli.CommandUtils.die;
 
 public class Main {
 
-    private static final List<Class<?>> COMMANDS = ImmutableList.<Class<?>>of(Search.class);
+    private static final List<Class<?>> COMMANDS = ImmutableList.<Class<?>>of(
+            Search.class, SearchServer.class);
 
     public static void main(String[] args) {
         if (args.length == 0) {

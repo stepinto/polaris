@@ -28,7 +28,7 @@ public class Search {
     @Option(name = "index", shortName = "i", defaultValue = "index")
     public String index;
 
-    @Option(name = "server", shortName = "s", defaultValue = "")
+    @Option(name = "server", shortName = "s")
     public String server;
 
     @Run
@@ -37,19 +37,16 @@ public class Search {
             die("Require exactly one query");
         }
         String query = args[0];
-        if (!(Strings.isNullOrEmpty(index) ^ Strings.isNullOrEmpty(server))) {
-            die("Require either --index=<dir> or --server=<ip:port> is specified");
-        }
         TTransport transport = null;
         try {
             TCodeSearchService.Iface client;
-            if (!Strings.isNullOrEmpty(index)) {
-                client = new CodeSearchServiceImpl(new File(index));
-            } else {
+            if (!Strings.isNullOrEmpty(server)) {
                 TSocket socket = openSocket(server);
                 socket.open();
                 transport = new TFramedTransport(socket);
                 client = new TCodeSearchService.Client(new TBinaryProtocol(transport));
+            } else {
+                client = new CodeSearchServiceImpl(new File(index));
             }
 
             TSearchRequest req = new TSearchRequest()
@@ -81,8 +78,8 @@ public class Search {
                 "  polaris search <query> [--index=<dir>] [--server=<ip:port>]\n" +
                 "\n" +
                 "Options:\n" +
-                "  --index=<dir>        the index directory, default: ./index\n" +
-                "  --server=<ip:port>   the search server to request from, default: null\n" +
+                "  -i, --index=<dir>        the index directory, default: ./index\n" +
+                "  -s, --server=<ip:port>   the search server to request from, default: null\n" +
                 "\n");
     }
 }
