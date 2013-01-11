@@ -1,9 +1,13 @@
 package com.codingstory.polaris.cli;
 
+import com.codingstory.polaris.indexing.IndexBuilder;
+import com.codingstory.polaris.parser.ParserOptions;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.thrift.transport.TSocket;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,5 +31,14 @@ public final class CommandUtils {
         int port = Integer.parseInt(m.group(2));
         LOG.info("Connect to " + host + ":" + port);
         return new TSocket(host, port);
+    }
+
+    public static IndexBuilder createIndexer(File output) throws IOException {
+        ParserOptions parserOptions = new ParserOptions();
+        parserOptions.setFailFast(false);
+        IndexBuilder indexBuilder = new IndexBuilder();
+        indexBuilder.setIndexDirectory(output);
+        indexBuilder.setParserOptions(parserOptions);
+        return indexBuilder;
     }
 }

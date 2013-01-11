@@ -1,5 +1,8 @@
 package com.codingstory.polaris.cli;
 
+import com.codingstory.polaris.cli.command.CrawlGitHub;
+import com.codingstory.polaris.cli.command.Index;
+import com.codingstory.polaris.cli.command.IndexRepoBase;
 import com.codingstory.polaris.cli.command.Search;
 import com.codingstory.polaris.cli.command.SearchServer;
 import com.google.common.base.Objects;
@@ -22,7 +25,7 @@ import static com.codingstory.polaris.cli.CommandUtils.die;
 public class Main {
 
     private static final List<Class<?>> COMMANDS = ImmutableList.<Class<?>>of(
-            Search.class, SearchServer.class);
+            CrawlGitHub.class, Index.class, IndexRepoBase.class, Search.class, SearchServer.class);
 
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -126,7 +129,7 @@ public class Main {
 
     private static boolean isBooleanField(Field field) {
         Class<?> type = field.getType();
-        return type.isPrimitive() && Objects.equal(type, Boolean.class);
+        return type.isPrimitive() && Objects.equal(type.getName(), "boolean");
     }
 
     private static boolean isRequired(Option option) {
