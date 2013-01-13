@@ -1,9 +1,4 @@
 extends layout/default
 
 block content
-  .bonjour
-    a.logo(href='/')
-      img(src='/img/logo.png', width='410', height='46')
-    form.form-search(ng-controller='SearchCtrl', ng-submit='submit()')
-      input.input-xxlarge.search-query(type='text', placeholder='Search your code here.', ng-model='searchQuery')
-      button.btn.search-button(type='submit') Search
+  div(ng-view)

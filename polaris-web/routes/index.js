@@ -7,3 +7,7 @@ exports.index = function (req, res) {
         title: 'Express'
     });
 };
+
+exports.partials = function(req, res) {
+    res.render('partials/' + req.params.name);
+};
