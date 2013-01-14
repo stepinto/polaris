@@ -2,11 +2,19 @@
 
 /*global angular*/
 
-angular.module('polaris', []).
+angular.module('polaris', ['polarisServices']).
     config(function ($routeProvider) {
-        $routeProvider.
-            when('/', {
-                controller: SearchCtrl,
+        $routeProvider
+            .when('/', {
+                controller: IndexCtrl,
                 templateUrl: 'partials/index'
+            })
+            .when('/search', {
+                controller: SearchCtrl,
+                templateUrl: 'partials/search'
+            })
+            .when('/source', {
+                controller: SourceCtrl,
+                templateUrl: 'partials/source'
             });
     });

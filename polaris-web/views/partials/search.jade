@@ -1,0 +1,10 @@
+form(ng-submit='search()')
+  input.input-xlarge.search-query(type='text', ng-model='query')
+  button.btn.search-button(type='submit') Search
+div
+  p Results: {{count}}
+  p Latency: {{latency}}
+  ul
+    li(ng-repeat='hit in results')
+      a(ng-href='#/source/?file={{hit.jumpTarget.fileId}}&line={{hit.jumpTarget.position.line}}') {{hit.project + hit.path}}
+      pre {{hit.summary}}

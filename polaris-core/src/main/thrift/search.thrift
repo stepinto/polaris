@@ -25,7 +25,6 @@ struct TSearchRequest {
     1: string query;
     2: i32 rankFrom;
     3: i32 rankTo;
-    // TODO: support paging
 }
 
 struct TSearchResponse {
