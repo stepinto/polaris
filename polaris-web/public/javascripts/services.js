@@ -9,6 +9,10 @@ angular.module('polarisServices', [])
                 var req = {'query': query, 'rankFrom': rankFrom, 'rankTo': rankTo};
                 $http.post('/api/search', req).success(callback);
             },
+            complete: function(query, limit, callback) {
+                var req = {'query': query, 'limit': limit};
+                $http.post('/api/complete', req).success(callback);
+            },
             readSourceByPath: function (project, path, callback) {
                 var req = {'projectName': project, 'fileName': path};
                 $http.post('/api/source', req).success(callback);

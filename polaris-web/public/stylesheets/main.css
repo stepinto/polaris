@@ -27,3 +27,18 @@ body {
 .bonjour .search-query {
   margin-right: 10px;
 }
+.search-box .choice-box {
+  position: absolute;
+  border: 1px solid #666;
+  background: #fff;
+  list-style: none;
+  text-align: left;
+  overflow: hidden;
+}
+.search-box .choice-box .row {
+  position: relative;
+  margin: 0px 5px 0px 5px;
+}
+.search-box .choice-box .active {
+  background-color: #EEE;
+}

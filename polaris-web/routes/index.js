@@ -32,6 +32,8 @@ exports.api = function (req, res) {
     }
     if (method == "search") {
         client.search(new ttypes.TSearchRequest(req.body), callback);
+    } else if (method == "complete") {
+        client.complete(new ttypes.TCompleteRequest(req.body), callback);
     } else if (method == "source") {
         client.source(new ttypes.TSourceRequest(req.body), callback);
     } else {

@@ -2,7 +2,7 @@
 
 /*global angular*/
 
-angular.module('polaris', ['polarisServices']).
+angular.module('polaris', ['polarisServices', 'polarisDirectives']).
     config(function ($routeProvider) {
         $routeProvider
             .when('/', {
