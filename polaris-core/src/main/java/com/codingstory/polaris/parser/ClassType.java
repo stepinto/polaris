@@ -45,51 +45,43 @@ public class ClassType implements Type {
     public ClassType(
             TypeHandle handle,
             Kind kind,
-            List<TypeHandle> superTypes,
             Set<Modifier> modifiers,
-            List<Field> fields,
-            List<Method> methods,
             String javaDoc,
             JumpTarget jumpTarget) {
         this.handle = Preconditions.checkNotNull(handle);
         this.kind = Preconditions.checkNotNull(kind);
-        this.superTypes = Preconditions.checkNotNull(superTypes);
+        this.superTypes = Lists.newArrayList();
         this.modifiers = Preconditions.checkNotNull(modifiers);
-        this.fields = Preconditions.checkNotNull(fields);
-        this.methods = Preconditions.checkNotNull(methods);
+        this.fields = Lists.newArrayList();
+        this.methods = Lists.newArrayList();
         this.javaDoc = javaDoc;
         this.jumpTarget = Preconditions.checkNotNull(jumpTarget);
     }
 
     public static ClassType createFromThrift(TClassType t) {
         Preconditions.checkNotNull(t);
-        List<TypeHandle> superTypes = Lists.newArrayList();
-        if (t.isSetSuperTypes()) {
-            for (TTypeHandle ts : t.getSuperTypes()) {
-                superTypes.add(TypeHandle.createFromThrift(ts));
-            }
-        }
-        List<Field> fields = Lists.newArrayList();
-        if (t.isSetFields()) {
-            for (TField tfield : t.getFields()) {
-                fields.add(Field.createFromThrift(tfield));
-            }
-        }
-        List<Method> methods = Lists.newArrayList();
-        if (t.isSetMethods()) {
-            for (TMethod tmethod : t.getMethods()) {
-                methods.add(Method.createFromThrift(tmethod));
-            }
-        }
-        return new ClassType(
+        ClassType clazz = new ClassType(
                 TypeHandle.createFromThrift(t.getHandle()),
                 Kind.createFromThrift(t.getKind()),
-                superTypes,
                 EnumSet.noneOf(Modifier.class),
-                fields,
-                methods,
                 t.getJavaDoc(),
                 JumpTarget.createFromThrift(t.jumpTarget));
+        if (t.isSetSuperTypes()) {
+            for (TTypeHandle ts : t.getSuperTypes()) {
+                clazz.addSuperType(TypeHandle.createFromThrift(ts));
+            }
+        }
+        if (t.isSetMethods()) {
+            for (TMethod tmethod : t.getMethods()) {
+                clazz.addMethod(Method.createFromThrift(tmethod));
+            }
+        }
+        if (t.isSetFields()) {
+            for (TField tfield : t.getFields()) {
+                clazz.addField(Field.createFromThrift(tfield));
+            }
+        }
+        return clazz;
     }
 
     @Override
@@ -110,6 +102,10 @@ public class ClassType implements Type {
         return superTypes;
     }
 
+    public void addSuperType(TypeHandle superType) {
+        superTypes.add(Preconditions.checkNotNull(superType));
+    }
+
     public Set<Modifier> getModifiers() {
         return modifiers;
     }
@@ -118,8 +114,16 @@ public class ClassType implements Type {
         return fields;
     }
 
+    public void addField(Field field) {
+        fields.add(Preconditions.checkNotNull(field));
+    }
+
     public List<Method> getMethods() {
         return methods;
+    }
+
+    public void addMethod(Method method) {
+        methods.add(Preconditions.checkNotNull(method));
     }
 
     public String getJavaDoc() {

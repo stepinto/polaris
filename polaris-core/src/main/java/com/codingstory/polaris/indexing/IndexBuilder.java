@@ -164,7 +164,6 @@ public final class IndexBuilder {
             // Index source files
             PushToDbCollector collector = new PushToDbCollector(typeDbWriter, sourceDbWriter, usageDbWriter);
             ProjectParser parser = new ProjectParser();
-            parser.setExternalTypeResolver(new CrossTypeResolver(typeDb));
             parser.setParserOptions(parserOptions);
             for (File sourceFile : sourceFiles) {
                 parser.addSourceFile(sourceFile);

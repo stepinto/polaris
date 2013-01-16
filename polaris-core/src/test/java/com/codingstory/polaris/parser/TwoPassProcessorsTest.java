@@ -2,43 +2,21 @@ package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.IdGenerator;
 import com.codingstory.polaris.SimpleIdGenerator;
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class TwoPassProcessorsTest {
-    private static class SimpleTypeResolver implements TypeResolver {
-        private Map<FullTypeName, TypeHandle> table;
-
-        public SimpleTypeResolver(Iterable<TypeHandle> types) {
-            table = Maps.uniqueIndex(types, new Function<TypeHandle, FullTypeName>() {
-                @Override
-                public FullTypeName apply(TypeHandle type) {
-                    return type.getName();
-                }
-            });
-        }
-
-        @Override
-        public TypeHandle resolve(FullTypeName name) {
-            Preconditions.checkNotNull(name);
-            return table.get(name);
-        }
-    }
 
     private static final String TEST_PROJECT = "TestProject";
     private static final IdGenerator ID_GENERATOR = new SimpleIdGenerator();
@@ -297,15 +275,19 @@ public class TwoPassProcessorsTest {
 
     public static SecondPassProcessor.Result extractFromCode(String code) throws IOException {
         long fakeFileId = 100;
-        List<TypeHandle> types = FirstPassProcessor.process(
+        SymbolTable symbolTable = new SymbolTable();
+        FirstPassProcessor.Result result = FirstPassProcessor.process(
+                fakeFileId,
                 new ByteArrayInputStream(code.getBytes()),
-                ID_GENERATOR);
+                ID_GENERATOR,
+                symbolTable);
         return SecondPassProcessor.extract(
                 TEST_PROJECT,
                 fakeFileId,
                 new ByteArrayInputStream(code.getBytes()),
-                new SimpleTypeResolver(types),
-                ID_GENERATOR);
+                symbolTable,
+                ID_GENERATOR,
+                result.getPackage());
     }
 
     public static ClassType extractUniqueTypeFromCode(String code) throws IOException {
