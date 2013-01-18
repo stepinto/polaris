@@ -20,12 +20,12 @@ body {
   display: block;
   margin: 0 auto 10px;
 }
-.bonjour .search-button,
-.bonjour .search-query {
-  margin-top: 25px;
+.bonjour .form-search {
+  width: 400px;
+  margin: 0 auto 10px;
 }
-.bonjour .search-query {
-  margin-right: 10px;
+.search-box .query-input {
+  width: 100%;
 }
 .search-box .choice-box {
   position: absolute;

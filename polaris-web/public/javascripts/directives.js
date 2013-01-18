@@ -11,8 +11,8 @@ angular.module('polarisDirectives', ['polarisServices'])
                 placeholder: '@placeholder',
             },
             template:
-                '<div class="search-box">\n' + 
-                '  <input type="text" ng-model="query" ng-placeholder="placeholder"\n' + 
+                '<span class="search-box">\n' + 
+                '  <input class="query-input" type="text" ng-model="query" ng-placeholder="placeholder"\n' + 
                 '    tabindex="1" accesskey="s" class="input-medium search-query" focused="focused">\n' + 
                 '  <ul class="choice-box" ng-show="choices.length > 0">\n' + 
                 '    <li class="row" ng-repeat="choice in choices">\n' + 
@@ -74,7 +74,6 @@ angular.module('polarisDirectives', ['polarisServices'])
                     scope.$apply();
                 });
                 var choiceBox = angular.element(iElement.children()[1]);
-                choiceBox.css({'left': input.offset().left + 'px'});
                 choiceBox.width(input.width());
                 scope.$watch('query', scope.update);
             }
