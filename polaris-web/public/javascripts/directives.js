@@ -11,10 +11,10 @@ angular.module('polarisDirectives', ['polarisServices'])
                 placeholder: '@placeholder',
             },
             template:
-                '<span class="search-box">\n' + 
+                '<div class="search-box">\n' + 
                 '  <input class="query-input" type="text" ng-model="query" ng-placeholder="placeholder"\n' + 
                 '    tabindex="1" accesskey="s" class="input-medium search-query" focused="focused">\n' + 
-                '  <ul class="choice-box" ng-show="choices.length > 0">\n' + 
+                '  <ul class="choice-box" ng-show="choices.length > 0 && visible">\n' + 
                 '    <li class="row" ng-repeat="choice in choices">\n' + 
                 '      <a ng-click="select(choice)" ng-class="{active: choice.index == selected}">{{choice.display}}</a>\n' +
                 '    </li>\n' + 
@@ -22,6 +22,7 @@ angular.module('polarisDirectives', ['polarisServices'])
                 '</div>\n',
             link: function(scope, iElement, iAttrs, controller) {
                 scope.loading = false;
+                scope.visible = true;
                 scope.click = function (choice) {
                     console.log("click", choice);
                 };
@@ -60,6 +61,12 @@ angular.module('polarisDirectives', ['polarisServices'])
                         scope.selected++;
                     }
                 }
+                scope.blur = function () {
+                    scope.visible = false;
+                }
+                scope.focus = function() {
+                    scope.visible = true;
+                }
 
                 var input = angular.element(iElement.children()[0]);
                 input.keydown(function (e) {
@@ -73,6 +80,8 @@ angular.module('polarisDirectives', ['polarisServices'])
                     }
                     scope.$apply();
                 });
+                input.blur(function (e) { scope.blur(); scope.$apply(); });
+                input.focus(function (e) { scope.focus(); scope.$apply(); });
                 var choiceBox = angular.element(iElement.children()[1]);
                 choiceBox.width(input.width());
                 scope.$watch('query', scope.update);
