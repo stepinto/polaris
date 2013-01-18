@@ -1,0 +1,6 @@
+.search-box
+  input.query(type="text", ng-model="query", ng-placeholder="placeholder")
+  ul.choice-box(ng-show="choices.length > 0 && visible")
+    li.row(ng-repeat="choice in choices")
+      a(ng-click="select(choice)", ng-class="{active: choice.index == selected}"){{choice.display}}
+

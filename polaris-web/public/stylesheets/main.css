@@ -13,7 +13,7 @@ body {
   width: 100%;
 }
 .bonjour {
-  margin-top: 150px;
+  margin-top: 130px;
   text-align: center;
 }
 .bonjour .logo {
@@ -21,13 +21,13 @@ body {
   margin: 0 auto 10px;
 }
 .bonjour .form-search {
-  width: 400px;
+  width: 500px;
   margin: 0 auto 10px;
 }
 .bonjour .form-search .search-input {
-  margin-top: 20px;
+  margin-top: 50px;
 }
-.search-box .query-input {
+.search-box .query {
   width: 100%;
 }
 .search-box .choice-box {

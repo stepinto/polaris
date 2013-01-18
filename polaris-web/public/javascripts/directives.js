@@ -10,16 +10,7 @@ angular.module('polarisDirectives', ['polarisServices'])
             scope: {
                 placeholder: '@placeholder',
             },
-            template:
-                '<div class="search-box">\n' + 
-                '  <input class="query-input" type="text" ng-model="query" ng-placeholder="placeholder"\n' + 
-                '    tabindex="1" accesskey="s" class="input-medium search-query" focused="focused">\n' + 
-                '  <ul class="choice-box" ng-show="choices.length > 0 && visible">\n' + 
-                '    <li class="row" ng-repeat="choice in choices">\n' + 
-                '      <a ng-click="select(choice)" ng-class="{active: choice.index == selected}">{{choice.display}}</a>\n' +
-                '    </li>\n' + 
-                '  </ul>\n' + 
-                '</div>\n',
+            templateUrl: 'partials/search-box',
             link: function(scope, iElement, iAttrs, controller) {
                 scope.loading = false;
                 scope.visible = true;
