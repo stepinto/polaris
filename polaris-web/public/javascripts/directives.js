@@ -17,7 +17,7 @@ angular.module('polarisDirectives', ['polarisServices'])
                 scope.click = function (choice) {
                     console.log("click", choice);
                 };
-                scope.selected = 0;
+                scope.selected = -1;
                 scope.update = function () {
                     if (scope.loading) {
                         return; // Allow at most one outstanding query.
@@ -26,11 +26,17 @@ angular.module('polarisDirectives', ['polarisServices'])
                         return;
                     }
                     scope.loading = true;
-                    CodeSearch.complete(scope.query, 10, function (resp) {
+                    CodeSearch.complete(scope.query, 8, function (resp) {
                         scope.choices = []
-                        if (resp.entries) {
-                            for (var i = 0; i < resp.entries.length; i++) {
-                                scope.choices.push({"index": i, "display": resp.entries[i]});
+                        if (resp.hits) {
+                            for (var i = 0; i < resp.hits.length; i++) {
+                                var hit  = resp.hits[i];
+                                scope.choices.push({
+                                    "index": i,
+                                    "display": hit.queryHint,
+                                    "path": hit.project + hit.path,
+                                    "url": "source/?file=" + hit.jumpTarget.fileId + "&line=" + hit.jumpTarget.position.line
+                                });
                             }
                         }
                         if (scope.selected >= scope.choices.length) {
@@ -39,11 +45,16 @@ angular.module('polarisDirectives', ['polarisServices'])
                         scope.loading = false;
                     });
                 }
-                scope.select = function(choice) {
-                    $location.url('search?query=' + choice.display);
+                scope.search = function() {
+                    if (scope.visible && 0 <= scope.selected && scope.selected < scope.choices.length) {
+                        var choice = scope.choices[scope.selected];
+                        $location.url(choice.url);
+                    } else {
+                        $location.url('search?query=' + scope.query);
+                    }
                 }
                 scope.moveUp = function () {
-                    if (scope.selected > 0) {
+                    if (scope.selected >= 0) { // Allow -1
                         scope.selected--;
                     }
                 }
@@ -66,7 +77,7 @@ angular.module('polarisDirectives', ['polarisServices'])
                     } else if (e.keyCode == 40) {
                         scope.moveDown();
                     } else if (e.keyCode == 13) {
-                        scope.select(scope.choices[scope.selected]);
+                        scope.search();
                         e.preventDefault();
                     }
                     scope.$apply();

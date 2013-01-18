@@ -108,9 +108,7 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
             int n = req.isSetLimit() ? req.getLimit() : 20;
             List<THit> hits = mixer.complete(req.getQuery(), n);
             resp.setStatus(TStatusCode.OK);
-            for (THit hit : hits) {
-                resp.addToEntries(hit.getQueryHint());
-            }
+            resp.setHits(hits);
         } catch (Exception e) {
             LOG.warn("Caught exception", e);
             resp.setStatus(TStatusCode.UNKNOWN_ERROR);

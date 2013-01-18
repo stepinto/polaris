@@ -52,8 +52,9 @@ struct TCompleteRequest {
 
 struct TCompleteResponse {
     1: TStatusCode status;
-    2: list<string> entries;
+    4: list<THit> hits;
     3: i64 latency;
+    // OBSOLETED 2: list<string> entries;
 }
 
 struct TLayoutRequest {
