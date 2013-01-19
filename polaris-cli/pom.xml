@@ -34,8 +34,6 @@
           <archive>
             <manifestFile>${bundle-manifest}</manifestFile>
           </archive>
-          <source>1.6</source>
-          <target>1.6</target>
         </configuration>
       </plugin>
 
