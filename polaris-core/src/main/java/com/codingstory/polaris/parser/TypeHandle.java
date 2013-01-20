@@ -17,6 +17,10 @@ public final class TypeHandle {
         return new TypeHandle(t.getId(), FullTypeName.of(t.getName()));
     }
 
+    public static TypeHandle createUnresolved(FullTypeName name) {
+        return new TypeHandle(Type.UNRESOLVED_TYPE_ID, Preconditions.checkNotNull(name));
+    }
+
     public long getId() {
         return id;
     }
@@ -55,6 +59,10 @@ public final class TypeHandle {
 
     @Override
     public String toString() {
-        return String.format("%s@%d", name, id);
+        if (isResolved()) {
+            return String.format("%s@%d", name, id);
+        } else {
+            return String.format("%s@unresolved", name);
+        }
     }
 }

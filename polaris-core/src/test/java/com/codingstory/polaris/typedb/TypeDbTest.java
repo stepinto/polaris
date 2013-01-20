@@ -197,10 +197,7 @@ public class TypeDbTest {
     private static ClassType createEmptyClass(FullTypeName type) throws IOException {
         return new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
                 ClassType.Kind.CLASS,
-                Lists.<TypeHandle>newArrayList(),
                 EnumSet.noneOf(Modifier.class),
-                Lists.<Field>newArrayList(),
-                Lists.<Method>newArrayList(),
                 null,
                 new JumpTarget(FAKE_FILE_ID, Position.ZERO));
     }
@@ -208,10 +205,7 @@ public class TypeDbTest {
     private static ClassType createClassInFile(FullTypeName type, long fileId) throws IOException {
         return new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
                 ClassType.Kind.CLASS,
-                Lists.<TypeHandle>newArrayList(),
                 EnumSet.noneOf(Modifier.class),
-                Lists.<Field>newArrayList(),
-                Lists.<Method>newArrayList(),
                 null,
                 new JumpTarget(fileId, Position.ZERO));
     }
@@ -222,14 +216,13 @@ public class TypeDbTest {
                 PrimitiveType.INTEGER.getHandle(),
                 EnumSet.noneOf(Modifier.class),
                 new JumpTarget(FAKE_FILE_ID, Position.ZERO));
-        return new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
+        ClassType clazz = new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
                 ClassType.Kind.CLASS,
-                Lists.<TypeHandle>newArrayList(),
                 EnumSet.noneOf(Modifier.class),
-                ImmutableList.of(field),
-                Lists.<Method>newArrayList(),
                 null,
                 new JumpTarget(FAKE_FILE_ID, Position.ZERO));
+        clazz.addField(field);
+        return clazz;
     }
 
     private ClassType createClassWithOneMethod(FullTypeName type, String methodName) throws IOException {
@@ -241,13 +234,12 @@ public class TypeDbTest {
                 ImmutableList.<TypeHandle>of(),
                 EnumSet.noneOf(Modifier.class),
                 new JumpTarget(FAKE_FILE_ID, Position.ZERO));
-        return new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
+        ClassType clazz = new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
                 ClassType.Kind.CLASS,
-                Lists.<TypeHandle>newArrayList(),
                 EnumSet.noneOf(Modifier.class),
-                ImmutableList.<Field>of(),
-                ImmutableList.of(method),
                 null,
                 new JumpTarget(FAKE_FILE_ID, Position.ZERO));
+        clazz.addMethod(method);
+        return clazz;
     }
 }

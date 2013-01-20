@@ -1,6 +1,8 @@
 package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.IdGenerator;
+import com.codingstory.polaris.IdUtils;
+import com.codingstory.polaris.JumpTarget;
 import com.codingstory.polaris.SkipCheckingExceptionWrapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -12,74 +14,97 @@ import japa.parser.ast.visitor.VoidVisitorAdapter;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.EnumSet;
 import java.util.LinkedList;
-import java.util.List;
+
+import static com.codingstory.polaris.parser.ParserUtils.nodeSpan;
 
 /** Extracts full type names with assigned type ids. */
 public class FirstPassProcessor {
+    public static class Result {
+        private final String pkg;
+
+        public Result(String pkg) {
+            this.pkg = pkg;
+        }
+
+        public String getPackage() {
+            return pkg;
+        }
+    }
+
     private static class FirstPassVisitor extends VoidVisitorAdapter<Void> {
-        private String packageName = "";
-        private final List<TypeHandle> types = Lists.newArrayList();
+        private String pkg = "";
+        private long fileId;
         private final IdGenerator idGenerator;
         private final LinkedList<TypeHandle> typeStack = Lists.newLinkedList();
+        private final SymbolTable symbolTable;
 
-        private FirstPassVisitor(IdGenerator idGenerator) {
+        private FirstPassVisitor(long fileId, IdGenerator idGenerator, SymbolTable symbolTable) {
+            this.fileId = IdUtils.checkValid(fileId);
             this.idGenerator = Preconditions.checkNotNull(idGenerator);
+            this.symbolTable = Preconditions.checkNotNull(symbolTable);
         }
 
         @Override
         public void visit(PackageDeclaration ast, Void arg) {
-            packageName = ast.getName().toString();
+            pkg = ast.getName().toString();
             super.visit(ast, arg);
         }
 
         @Override
         public void visit(AnnotationDeclaration ast, Void arg) {
-            processTypeAndPushStack(ast.getName());
+            processTypeAndPushStack(ast.getName(), ClassType.Kind.ANNOTATION, nodeSpan(ast));
             super.visit(ast, arg);
             typeStack.pop();
         }
 
         @Override
         public void visit(ClassOrInterfaceDeclaration ast, Void arg) {
-            processTypeAndPushStack(ast.getName());
+            processTypeAndPushStack(
+                    ast.getName(),
+                    ast.isInterface() ? ClassType.Kind.INTERFACE : ClassType.Kind.CLASS,
+                    nodeSpan(ast));
             super.visit(ast, arg);
             typeStack.pop();
         }
 
         @Override
         public void visit(EnumDeclaration ast, Void arg) {
-            processTypeAndPushStack(ast.getName());
+            processTypeAndPushStack(ast.getName(), ClassType.Kind.ENUM, nodeSpan(ast));
             super.visit(ast, arg);
             typeStack.pop();
         }
 
-        private void processTypeAndPushStack(String name) {
+        private void processTypeAndPushStack(String name, ClassType.Kind kind, Span span) {
             try {
                 FullTypeName typeName;
                 if (typeStack.isEmpty()) {
-                    typeName = FullTypeName.of(packageName, name);
+                    typeName = FullTypeName.of(pkg, name);
                 } else {
-                    typeName = FullTypeName.of(packageName, typeStack.getFirst().getName().getTypeName() + "$" + name);
+                    typeName = FullTypeName.of(pkg, typeStack.getFirst().getName().getTypeName() + "$" + name);
                 }
-                TypeHandle type = new TypeHandle(idGenerator.next(), typeName);
-                typeStack.push(type);
-                types.add(type);
+                TypeHandle handle = new TypeHandle(idGenerator.next(), typeName);
+                ClassType clazz = new ClassType(
+                        handle, kind, EnumSet.noneOf(Modifier.class),  null, new JumpTarget(fileId, span.getFrom()));
+                typeStack.push(handle);
+                symbolTable.registerClassType(clazz);
             } catch (IOException e) {
                 throw new SkipCheckingExceptionWrapper(e);
             }
         }
 
-        public List<TypeHandle> getTypes() {
-            return types;
+        public Result getResult() {
+            return new Result(pkg);
         }
     }
 
-    public static List<TypeHandle> process(InputStream in, IdGenerator idGenerator) throws IOException {
-        Preconditions.checkNotNull(in);
-        Preconditions.checkNotNull(idGenerator);
-        FirstPassVisitor visitor = new FirstPassVisitor(idGenerator);
+    public static Result process(long fileId, InputStream in, IdGenerator idGenerator, SymbolTable symbolTable) throws IOException {
+        FirstPassVisitor visitor = new FirstPassVisitor(
+                IdUtils.checkValid(fileId),
+                Preconditions.checkNotNull(idGenerator),
+                Preconditions.checkNotNull(symbolTable));
         ParserUtils.safeVisit(in, visitor);
-        return visitor.getTypes();
+        return visitor.getResult();
     }
 }
