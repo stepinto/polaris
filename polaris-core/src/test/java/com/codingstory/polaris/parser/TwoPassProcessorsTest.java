@@ -2,43 +2,21 @@ package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.IdGenerator;
 import com.codingstory.polaris.SimpleIdGenerator;
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class TwoPassProcessorsTest {
-    private static class SimpleTypeResolver implements TypeResolver {
-        private Map<FullTypeName, TypeHandle> table;
-
-        public SimpleTypeResolver(Iterable<TypeHandle> types) {
-            table = Maps.uniqueIndex(types, new Function<TypeHandle, FullTypeName>() {
-                @Override
-                public FullTypeName apply(TypeHandle type) {
-                    return type.getName();
-                }
-            });
-        }
-
-        @Override
-        public TypeHandle resolve(FullTypeName name) {
-            Preconditions.checkNotNull(name);
-            return table.get(name);
-        }
-    }
 
     private static final String TEST_PROJECT = "TestProject";
     private static final IdGenerator ID_GENERATOR = new SimpleIdGenerator();
@@ -57,11 +35,11 @@ public class TwoPassProcessorsTest {
         ClassType clazz = Iterables.getOnlyElement(result.getClassTypes());
         assertEquals(FullTypeName.of("pkg.MyClass"), clazz.getName());
         assertEquals(ClassType.Kind.CLASS, clazz.getKind());
-        assertEquals(new Position(1, 0), clazz.getJumpTarget().getPosition());
+        assertEquals(new Position(1, 0), clazz.getJumpTarget().getSpan().getFrom());
         TypeUsage clazzDeclaration = findUniqueTypeUsageByKind(
                 result.getUsages(), TypeUsage.Kind.TYPE_DECLARATION);
         assertEquals(clazz.getHandle(), clazzDeclaration.getType());
-        assertEquals(new Span(new Position(1, 0), new Position(1, 35)), clazzDeclaration.getSpan());
+        assertEquals(new Span(new Position(1, 0), new Position(1, 35)), clazzDeclaration.getJumpTarget().getSpan());
     }
 
     @Test
@@ -97,11 +75,11 @@ public class TwoPassProcessorsTest {
                 superTypeNames);
         List<TypeUsage> usages = filterTypeUsagesByKind(result.getUsages(), TypeUsage.Kind.SUPER_CLASS);
         assertEquals(3, usages.size());
-        assertEquals(new Span(new Position(0, 16), new Position(0, 17)), usages.get(0).getSpan());
+        assertEquals(new Span(new Position(0, 16), new Position(0, 17)), usages.get(0).getJumpTarget().getSpan());
         assertEquals("B", usages.get(0).getType().getName().toString());
-        assertEquals(new Span(new Position(0, 29), new Position(0, 30)), usages.get(1).getSpan());
+        assertEquals(new Span(new Position(0, 29), new Position(0, 30)), usages.get(1).getJumpTarget().getSpan());
         assertEquals("C", usages.get(1).getType().getName().toString());
-        assertEquals(new Span(new Position(0, 32), new Position(0, 33)), usages.get(2).getSpan());
+        assertEquals(new Span(new Position(0, 32), new Position(0, 33)), usages.get(2).getJumpTarget().getSpan());
         assertEquals("D", usages.get(2).getType().getName().toString());
     }
 
@@ -150,7 +128,7 @@ public class TwoPassProcessorsTest {
         assertEquals(FullTypeName.of("pkg.E"), clazz.getName());
         TypeUsage typeDeclaration = findUniqueTypeUsageByKind(result.getUsages(), TypeUsage.Kind.TYPE_DECLARATION);
         assertEquals(clazz.getHandle(), typeDeclaration.getType());
-        assertEquals(new Span(new Position(0, 13), new Position(0, 48)), typeDeclaration.getSpan());
+        assertEquals(new Span(new Position(0, 13), new Position(0, 48)), typeDeclaration.getJumpTarget().getSpan());
     }
 
     // TODO: testEnum_public
@@ -168,7 +146,7 @@ public class TwoPassProcessorsTest {
         MethodUsage methodDeclaration = findUniqueMethodUsageByKind(
                 result.getUsages(), MethodUsage.Kind.METHOD_DECLARATION);
         assertEquals(method.getHandle(), methodDeclaration.getMethod());
-        assertEquals(new Span(new Position(0, 23), new Position(0, 37)), methodDeclaration.getSpan());
+        assertEquals(new Span(new Position(0, 23), new Position(0, 37)), methodDeclaration.getJumpTarget().getSpan());
     }
 
     @Test
@@ -201,15 +179,15 @@ public class TwoPassProcessorsTest {
         assertEquals(FullTypeName.of("F"), exceptionType1.getName());
         List<TypeUsage> usages = filterTypeUsagesByKind(result.getUsages(), TypeUsage.Kind.METHOD_SIGNATURE);
         assertEquals(5, usages.size());
-        assertEquals(new Span(new Position(0, 10), new Position(0, 11)), usages.get(0).getSpan());
+        assertEquals(new Span(new Position(0, 10), new Position(0, 11)), usages.get(0).getJumpTarget().getSpan());
         assertEquals(FullTypeName.of("B"), usages.get(0).getType().getName());
-        assertEquals(new Span(new Position(0, 14), new Position(0, 15)), usages.get(1).getSpan());
+        assertEquals(new Span(new Position(0, 14), new Position(0, 15)), usages.get(1).getJumpTarget().getSpan());
         assertEquals(FullTypeName.of("C"), usages.get(1).getType().getName());
-        assertEquals(new Span(new Position(0, 19), new Position(0, 20)), usages.get(2).getSpan());
+        assertEquals(new Span(new Position(0, 19), new Position(0, 20)), usages.get(2).getJumpTarget().getSpan());
         assertEquals(FullTypeName.of("D"), usages.get(2).getType().getName());
-        assertEquals(new Span(new Position(0, 31), new Position(0, 32)), usages.get(3).getSpan());
+        assertEquals(new Span(new Position(0, 31), new Position(0, 32)), usages.get(3).getJumpTarget().getSpan());
         assertEquals(FullTypeName.of("E"), usages.get(3).getType().getName());
-        assertEquals(new Span(new Position(0, 34), new Position(0, 35)), usages.get(4).getSpan());
+        assertEquals(new Span(new Position(0, 34), new Position(0, 35)), usages.get(4).getJumpTarget().getSpan());
         assertEquals(FullTypeName.of("F"), usages.get(4).getType().getName());
     }
 
@@ -244,9 +222,9 @@ public class TwoPassProcessorsTest {
         assertEquals(PrimitiveType.INTEGER.getHandle(), field.getType());
         FieldUsage fieldDeclaration = findUniqueFieldUsageByKind(result.getUsages(), FieldUsage.Kind.FIELD_DECLARATION);
         assertEquals(field.getHandle(), fieldDeclaration.getField());
-        assertEquals(new Span(new Position(0, 27), new Position(0, 28)), fieldDeclaration.getSpan());
+        assertEquals(new Span(new Position(0, 27), new Position(0, 28)), fieldDeclaration.getJumpTarget().getSpan());
         TypeUsage usage = findUniqueTypeUsageByKind(result.getUsages(), TypeUsage.Kind.FIELD);
-        assertEquals(new Span(new Position(0, 23), new Position(0, 26)), usage.getSpan());
+        assertEquals(new Span(new Position(0, 23), new Position(0, 26)), usage.getJumpTarget().getSpan());
         assertEquals(PrimitiveType.INTEGER.getHandle(), usage.getType());
     }
 
@@ -297,15 +275,19 @@ public class TwoPassProcessorsTest {
 
     public static SecondPassProcessor.Result extractFromCode(String code) throws IOException {
         long fakeFileId = 100;
-        List<TypeHandle> types = FirstPassProcessor.process(
+        SymbolTable symbolTable = new SymbolTable();
+        FirstPassProcessor.Result result = FirstPassProcessor.process(
+                fakeFileId,
                 new ByteArrayInputStream(code.getBytes()),
-                ID_GENERATOR);
+                ID_GENERATOR,
+                symbolTable);
         return SecondPassProcessor.extract(
                 TEST_PROJECT,
                 fakeFileId,
                 new ByteArrayInputStream(code.getBytes()),
-                new SimpleTypeResolver(types),
-                ID_GENERATOR);
+                symbolTable,
+                ID_GENERATOR,
+                result.getPackage());
     }
 
     public static ClassType extractUniqueTypeFromCode(String code) throws IOException {

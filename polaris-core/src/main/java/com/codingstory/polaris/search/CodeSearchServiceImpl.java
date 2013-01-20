@@ -4,6 +4,7 @@ import com.codingstory.polaris.indexing.IndexPathUtils;
 import com.codingstory.polaris.parser.ClassType;
 import com.codingstory.polaris.parser.Field;
 import com.codingstory.polaris.parser.FileHandle;
+import com.codingstory.polaris.parser.FullTypeName;
 import com.codingstory.polaris.parser.Method;
 import com.codingstory.polaris.parser.SourceFile;
 import com.codingstory.polaris.parser.TypeUsage;
@@ -14,6 +15,9 @@ import com.codingstory.polaris.typedb.TypeDbImpl;
 import com.codingstory.polaris.usagedb.UsageDb;
 import com.codingstory.polaris.usagedb.UsageDbImpl;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -148,17 +152,28 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
         Preconditions.checkNotNull(req);
         TGetTypeResponse resp = new TGetTypeResponse();
         try {
-            if (!req.isSetTypeId()) {
+            List<ClassType> classes;
+            if (req.isSetTypeId()) {
+                ClassType clazz = typeDb.getTypeById(req.getTypeId());
+                classes = ImmutableList.of(clazz);
+            } else if (req.isSetTypeName()) {
+                classes = typeDb.getTypeByName(
+                        FullTypeName.of(req.getTypeName()),
+                        req.isSetProject() ? req.getProject() : null,
+                        2);
+            } else {
                 resp.setStatus(TStatusCode.MISSING_FIELDS);
                 return resp;
             }
-            ClassType classType = typeDb.getTypeById(req.getTypeId());
-            if (classType == null) {
+
+            if (classes.isEmpty()) {
                 resp.setStatus(TStatusCode.FILE_NOT_FOUND);
-                return resp;
+            } else if (classes.size() > 1) {
+                resp.setStatus(TStatusCode.NOT_UNIQUE);
+            } else {
+                resp.setStatus(TStatusCode.OK);
+                resp.setClassType(Iterables.getOnlyElement(classes).toThrift());
             }
-            resp.setStatus(TStatusCode.OK);
-            resp.setClassType(classType.toThrift());
             return resp;
         } catch (Exception e) {
             LOG.error("Caught exception", e);
@@ -262,8 +277,8 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
 
     @Override
     public void close() throws IOException {
-        // IOUtils.closeQuietly(reader);
-        // IOUtils.closeQuietly(searcher);
-        // IOUtils.closeQuietly(srcSearcher);
+        IOUtils.closeQuietly(typeDb);
+        IOUtils.closeQuietly(sourceDb);
+        IOUtils.closeQuietly(usageDb);
     }
 }

@@ -7,6 +7,7 @@ import com.codingstory.polaris.parser.Field;
 import com.codingstory.polaris.parser.FullTypeName;
 import com.codingstory.polaris.parser.Method;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.commons.logging.Log;
@@ -63,10 +64,15 @@ public class TypeDbImpl implements TypeDb {
     }
 
     @Override
-    public List<ClassType> getTypeByName(FullTypeName type) throws IOException {
+    public List<ClassType> getTypeByName(FullTypeName type, String project, int n) throws IOException {
         Preconditions.checkNotNull(type);
-        TermQuery query = new TermQuery(new Term(TypeDbIndexedField.FULL_TYPE, type.toString()));
-        TopDocs result = searcher.search(query, Integer.MAX_VALUE);
+        Preconditions.checkArgument(n >= 0);
+        BooleanQuery query = new BooleanQuery();
+        query.add(new TermQuery(new Term(TypeDbIndexedField.FULL_TYPE, type.toString())), BooleanClause.Occur.MUST);
+        if (!Strings.isNullOrEmpty(project)) {
+            query.add(new TermQuery(new Term(TypeDbIndexedField.PROJECT, project)), BooleanClause.Occur.MUST);
+        }
+        TopDocs result = searcher.search(query, n);
         List<ClassType> resultClassTypes = Lists.newArrayList();
         for (ScoreDoc scoreDoc : result.scoreDocs) {
             resultClassTypes.add(retrieveDocument(scoreDoc.doc));

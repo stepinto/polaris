@@ -3,7 +3,6 @@ package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.IdGenerator;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
@@ -50,28 +49,6 @@ public class ProjectParser {
     }
 
     /** Resolves type references at project level. */
-    private static class ProjectTypeResolver implements TypeResolver {
-        private Map<FullTypeName, TypeHandle> types = Maps.newHashMap();
-
-        public void register(TypeHandle type) {
-            Preconditions.checkNotNull(type);
-            types.put(type.getName(), type);
-        }
-
-        @Override
-        public TypeHandle resolve(FullTypeName name) {
-            Preconditions.checkNotNull(name);
-            TypeHandle type = types.get(name);
-            if (type == null) {
-                return null;
-            }
-            LOG.debug(String.format("Resolved %s as %s (project reference)",
-                    name,
-                    type.getName()));
-            return type;
-        }
-    }
-
     private static final TypeCollector NO_OP_TYPE_COLLECTOR = new TypeCollector() {
         @Override
         public void collectType(File file, List<ClassType> tokens) {
@@ -101,11 +78,11 @@ public class ProjectParser {
     private UsageCollector usageCollector = NO_OP_USAGE_COLLECTOR;
     private Stats stats;
     private List<Task> tasks = Lists.newArrayList();
-    private ProjectTypeResolver projectTypeResolver;
-    private TypeResolver externalTypeResolver = TypeResolver.NO_OP_RESOLVER;
     private String projectName;
     private IdGenerator idGenerator;
     private File baseDir;
+    private SymbolTable symbolTable = new SymbolTable();
+    private Map<Long, FirstPassProcessor.Result> firstPassResults = Maps.newHashMap();
 
     public void setTypeCollector(TypeCollector typeCollector) {
         this.typeCollector = Preconditions.checkNotNull(typeCollector);
@@ -121,10 +98,6 @@ public class ProjectParser {
 
     public void setParserOptions(ParserOptions parserOptions) {
         this.parserOptions = Preconditions.checkNotNull(parserOptions);
-    }
-
-    public void setExternalTypeResolver(TypeResolver externalTypeResolver) {
-        this.externalTypeResolver = Preconditions.checkNotNull(externalTypeResolver);
     }
 
     public void setProjectName(String projectName) {
@@ -189,18 +162,15 @@ public class ProjectParser {
 
     private void prepare() {
         stats = new Stats();
-        projectTypeResolver = new ProjectTypeResolver();
     }
 
     private void runFirstPass(Task task) throws IOException {
         LOG.debug("Parsing " + task.file + " (1st pass)");
         InputStream in = new FileInputStream(task.file);
         try {
-            List<TypeHandle> types = FirstPassProcessor.process(in, idGenerator);
-            for (TypeHandle type : types) {
-                projectTypeResolver.register(type);
-                LOG.debug("Found type: " + type.getName());
-            }
+            long fileId = task.fileId;
+            FirstPassProcessor.Result result = FirstPassProcessor.process(fileId, in, idGenerator, symbolTable);
+            firstPassResults.put(fileId, result);
         } finally {
             IOUtils.closeQuietly(in);
         }
@@ -209,12 +179,18 @@ public class ProjectParser {
     private void runSecondPass(Task task) throws IOException {
         LOG.debug("Parsing " + task + " (2nd pass)");
         byte[] content = FileUtils.readFileToByteArray(task.file);
+        long fileId = task.fileId;
+        FirstPassProcessor.Result firstPassResult = firstPassResults.get(fileId);
+        if (firstPassResult == null) {
+            return; // First pass fails. Don't run the second pass.
+        }
         SecondPassProcessor.Result result = SecondPassProcessor.extract(
                 projectName,
-                task.fileId,
+                fileId,
                 new ByteArrayInputStream(content),
-                new CascadeTypeResolver(ImmutableList.of(projectTypeResolver, externalTypeResolver)),
-                idGenerator);
+                symbolTable,
+                idGenerator,
+                firstPassResult.getPackage());
         List<ClassType> types = result.getClassTypes();
         List<Usage> usages = result.getUsages();
         LOG.debug("Found " + types.size() + " types(s) and " + usages.size() + " token(s)");
@@ -229,7 +205,7 @@ public class ProjectParser {
             path = task.file.getPath();
         }
         annotatedSourceCollector.collectSource(new SourceFile(
-                new FileHandle(task.fileId, projectName, path),
+                new FileHandle(fileId, projectName, path),
                 new String(content),
                 annotatedSource));
     }

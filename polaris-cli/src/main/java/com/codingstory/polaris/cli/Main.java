@@ -1,6 +1,7 @@
 package com.codingstory.polaris.cli;
 
 import com.codingstory.polaris.cli.command.CrawlGitHub;
+import com.codingstory.polaris.cli.command.FindUsages;
 import com.codingstory.polaris.cli.command.Index;
 import com.codingstory.polaris.cli.command.IndexRepoBase;
 import com.codingstory.polaris.cli.command.Search;
@@ -25,7 +26,7 @@ import static com.codingstory.polaris.cli.CommandUtils.die;
 public class Main {
 
     private static final List<Class<?>> COMMANDS = ImmutableList.<Class<?>>of(
-            CrawlGitHub.class, Index.class, IndexRepoBase.class, Search.class, SearchServer.class);
+            CrawlGitHub.class, FindUsages.class, Index.class, IndexRepoBase.class, Search.class, SearchServer.class);
 
     public static void main(String[] args) {
         if (args.length == 0) {

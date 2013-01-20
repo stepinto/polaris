@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface TypeDb extends Closeable {
     ClassType getTypeById(long id) throws IOException;
-    List<ClassType> getTypeByName(FullTypeName type) throws IOException;
+    List<ClassType> getTypeByName(FullTypeName type, String project, int n) throws IOException;
     List<ClassType> queryFuzzy(String project, FullTypeName type, int n) throws IOException;
     List<ClassType> completeQuery(String query, int n) throws IOException;
     List<ClassType> getTypesInFile(long fileId, int n) throws IOException;

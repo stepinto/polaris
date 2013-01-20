@@ -18,7 +18,7 @@ public class SourceAnnotator {
     private static final Comparator<Usage> USAGE_COMPARATOR = new Comparator<Usage>() {
         @Override
         public int compare(Usage left, Usage right) {
-            return left.getSpan().compareTo(right.getSpan());
+            return left.getJumpTarget().getSpan().compareTo(right.getJumpTarget().getSpan());
         }
     };
 
@@ -40,7 +40,7 @@ public class SourceAnnotator {
         int j = 0;
         while (ch != -1 && j < sortedUsages.size()) {
             Usage currentUsage = sortedUsages.get(j);
-            Position currentUsageFrom = currentUsage.getSpan().getFrom();
+            Position currentUsageFrom = currentUsage.getJumpTarget().getSpan().getFrom();
             Position currentPosition = in2.getPosition();
             int cmp = currentPosition.compareTo(currentUsageFrom);
             if (cmp < 0) {
@@ -49,7 +49,7 @@ public class SourceAnnotator {
             } else if (cmp > 0) {
                 j++;
             } else {
-                Position currentUsageTo = currentUsage.getSpan().getTo();
+                Position currentUsageTo = currentUsage.getJumpTarget().getSpan().getTo();
                 StringBuilder text = new StringBuilder();
                 while (in2.getPosition().compareTo(currentUsageTo) < 0 && ch != 1) {
                     text.append(ch);

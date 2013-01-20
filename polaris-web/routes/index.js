@@ -27,8 +27,6 @@ exports.api = function (req, res) {
             console.log("error", error);
         }
         res.send(rpcResp);
-        console.log("client = ", client);
-        console.log("connection = ", connection);
     }
     if (method == "search") {
         client.search(new ttypes.TSearchRequest(req.body), callback);

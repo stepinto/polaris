@@ -5,6 +5,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 
 public final class Span implements Comparable<Span> {
+    public static final Span ZERO = new Span(Position.ZERO, Position.ZERO);
     private final Position from;
     private final Position to;
 

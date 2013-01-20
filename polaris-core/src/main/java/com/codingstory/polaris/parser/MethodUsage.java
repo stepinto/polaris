@@ -1,5 +1,6 @@
 package com.codingstory.polaris.parser;
 
+import com.codingstory.polaris.JumpTarget;
 import com.google.common.base.Preconditions;
 
 public class MethodUsage implements Usage {
@@ -9,12 +10,12 @@ public class MethodUsage implements Usage {
     }
 
     private final MethodHandle method;
-    private final Span span;
+    private final JumpTarget jumpTarget;
     private final Kind kind;
 
-    public MethodUsage(MethodHandle method, Span span, Kind kind) {
+    public MethodUsage(MethodHandle method, JumpTarget jumpTarget, Kind kind) {
         this.method = Preconditions.checkNotNull(method);
-        this.span = Preconditions.checkNotNull(span);
+        this.jumpTarget = Preconditions.checkNotNull(jumpTarget);
         this.kind = Preconditions.checkNotNull(kind);
     }
 
@@ -23,8 +24,8 @@ public class MethodUsage implements Usage {
     }
 
     @Override
-    public Span getSpan() {
-        return span;
+    public JumpTarget getJumpTarget() {
+        return jumpTarget;
     }
 
     public Kind getKind() {

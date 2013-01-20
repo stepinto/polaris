@@ -54,6 +54,9 @@ public final class FullTypeName implements Comparable<FullTypeName> {
         if (this == o) {
             return true;
         }
+        if (o == null) {
+            return false;
+        }
         if (o.getClass() != FullTypeName.class) {
             return false;
         }

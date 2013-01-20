@@ -5,6 +5,7 @@ import com.codingstory.polaris.parser.FileHandle;
 import com.codingstory.polaris.parser.SourceFile;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.document.Document;
@@ -114,5 +115,11 @@ public class SourceDbImpl implements SourceDb {
         } catch (TException e) {
             throw new IOException(e);
         }
+    }
+
+    @Override
+    public void close() throws IOException {
+        IOUtils.closeQuietly(reader);
+        IOUtils.closeQuietly(searcher);
     }
 }
