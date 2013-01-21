@@ -1,5 +1,6 @@
 package com.codingstory.polaris.parser;
 
+import com.codingstory.polaris.JumpTarget;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
@@ -38,14 +39,14 @@ public final class TypeUsage implements Usage {
         }
     }
 
-    // TODO: fileinfo
+    // TODO: line snippet
     private final TypeHandle type;
-    private final Span span;
+    private final JumpTarget jumpTarget;
     private final Kind kind;
 
-    public TypeUsage(TypeHandle type, Span span, Kind kind) {
+    public TypeUsage(TypeHandle type, JumpTarget jumpTarget, Kind kind) {
         this.type = Preconditions.checkNotNull(type);
-        this.span = Preconditions.checkNotNull(span);
+        this.jumpTarget = Preconditions.checkNotNull(jumpTarget);
         this.kind = Preconditions.checkNotNull(kind);
     }
 
@@ -53,7 +54,7 @@ public final class TypeUsage implements Usage {
         Preconditions.checkNotNull(t);
         return new TypeUsage(
                 TypeHandle.createFromThrift(t.getType()),
-                Span.createFromThrift(t.getSpan()),
+                JumpTarget.createFromThrift(t.getJumpTarget()),
                 Kind.createFromThrift(t.getKind()));
     }
 
@@ -62,8 +63,8 @@ public final class TypeUsage implements Usage {
     }
 
     @Override
-    public Span getSpan() {
-        return span;
+    public JumpTarget getJumpTarget() {
+        return jumpTarget;
     }
 
     public Kind getKind() {
@@ -73,7 +74,7 @@ public final class TypeUsage implements Usage {
     public TTypeUsage toThrift() {
         TTypeUsage t = new TTypeUsage();
         t.setType(type.toThrift());
-        t.setSpan(span.toThrift());
+        t.setJumpTarget(jumpTarget.toThrift());
         t.setKind(kind.toThrift());
         return t;
     }
@@ -82,7 +83,7 @@ public final class TypeUsage implements Usage {
     public String toString() {
         return Objects.toStringHelper(TypeUsage.class)
                 .add("type", type)
-                .add("span", span)
+                .add("jumpTarget", jumpTarget)
                 .add("kind", kind)
                 .toString();
     }

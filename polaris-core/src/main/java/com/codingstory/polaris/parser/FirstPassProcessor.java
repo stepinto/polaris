@@ -86,7 +86,7 @@ public class FirstPassProcessor {
                 }
                 TypeHandle handle = new TypeHandle(idGenerator.next(), typeName);
                 ClassType clazz = new ClassType(
-                        handle, kind, EnumSet.noneOf(Modifier.class),  null, new JumpTarget(fileId, span.getFrom()));
+                        handle, kind, EnumSet.noneOf(Modifier.class),  null, new JumpTarget(fileId, span));
                 typeStack.push(handle);
                 symbolTable.registerClassType(clazz);
             } catch (IOException e) {

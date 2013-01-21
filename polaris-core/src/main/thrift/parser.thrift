@@ -13,7 +13,8 @@ struct TSpan {
 
 struct TJumpTarget {
     1: i64 fileId;
-    2: TPosition position;
+    3: TSpan span;
+    // OBSOLETED 2: TPosition position;
 }
 
 struct TTypeHandle {
@@ -87,8 +88,9 @@ enum TTypeUsageKind {
 
 struct TTypeUsage {
     1: TTypeHandle type;
-    2: TSpan span;
+    4: TJumpTarget jumpTarget;
     3: TTypeUsageKind kind;
+    // OBSOLETED 2: TSpan span;
 }
 
 enum TFieldUsageKind {
@@ -98,8 +100,9 @@ enum TFieldUsageKind {
 
 struct TFieldUsage {
     1: TFieldHandle field;
-    2: TSpan span;
+    4: TJumpTarget jumpTarget;
     3: TFieldUsageKind kind;
+    // OBSOLETED: 2: TSpan span;
 }
 
 enum TMethodUsageKind {
@@ -109,8 +112,9 @@ enum TMethodUsageKind {
 
 struct TMethodUsage {
     1: TMethodHandle method;
-    2: TSpan span;
+    4: TJumpTarget jumpTarget;
     3: TMethodUsageKind kind;
+    // OBSOLETED 2: TSpan span;
 }
 
 struct TSourceFile {

@@ -1,5 +1,6 @@
 package com.codingstory.polaris.usagedb;
 
+import com.codingstory.polaris.JumpTarget;
 import com.codingstory.polaris.parser.FullTypeName;
 import com.codingstory.polaris.parser.Position;
 import com.codingstory.polaris.parser.Span;
@@ -31,12 +32,17 @@ public class UsageDbTest {
     @Test
     public void testSimple() throws IOException {
         UsageDbWriter w = new UsageDbWriterImpl(tempDir);
-        long typeId = 100;
+        long typeId = 100L;
+        long fileId = 200L;
         TypeHandle handle = new TypeHandle(typeId, FullTypeName.of("MyClass"));
         TypeUsage usage1 = new TypeUsage(
-                handle, new Span(new Position(0, 10), new Position(0, 20)), TypeUsage.Kind.METHOD_SIGNATURE);
+                handle,
+                new JumpTarget(fileId, new Span(new Position(0, 10), new Position(0, 20))),
+                TypeUsage.Kind.METHOD_SIGNATURE);
         TypeUsage usage2 = new TypeUsage(
-                handle, new Span(new Position(0, 20), new Position(0, 30)), TypeUsage.Kind.METHOD_SIGNATURE);
+                handle,
+                new JumpTarget(fileId, new Span(new Position(0, 20), new Position(0, 30))),
+                TypeUsage.Kind.METHOD_SIGNATURE);
         w.write(usage1);
         w.write(usage2);
         w.close();
@@ -46,12 +52,12 @@ public class UsageDbTest {
         Collections.sort(usages, new Comparator<TypeUsage>() {
             @Override
             public int compare(TypeUsage left, TypeUsage right) {
-                return left.getSpan().compareTo(right.getSpan());
+                return left.getJumpTarget().getSpan().compareTo(right.getJumpTarget().getSpan());
             }
         });
         assertEquals(2, usages.size());
-        assertEquals(usage1.getSpan(), usages.get(0).getSpan());
-        assertEquals(usage2.getSpan(), usages.get(1).getSpan());
+        assertEquals(usage1.getJumpTarget(), usages.get(0).getJumpTarget());
+        assertEquals(usage2.getJumpTarget(), usages.get(1).getJumpTarget());
         r.close();
     }
 }

@@ -2,8 +2,8 @@ package com.codingstory.polaris.search;
 
 import com.codingstory.polaris.JumpTarget;
 import com.codingstory.polaris.parser.ClassType;
-import com.codingstory.polaris.parser.Position;
 import com.codingstory.polaris.parser.SourceFile;
+import com.codingstory.polaris.parser.Span;
 import com.codingstory.polaris.sourcedb.SourceDb;
 import com.codingstory.polaris.typedb.TypeDb;
 import com.google.common.base.Preconditions;
@@ -60,17 +60,17 @@ public class SearchMixer {
         hit.setProject(source.getProject());
         hit.setPath(source.getPath());
         hit.setJumpTarget(jumpTarget.toThrift());
-        hit.setSummary(getSummary(source.getSource(), jumpTarget.getPosition()));
+        hit.setSummary(getSummary(source.getSource(), jumpTarget.getSpan()));
         hit.setScore(1); // TODO: set a reasonable score
         hit.setClassType(type.toThrift());
         hit.setQueryHint(type.getName().toString());
         return hit;
     }
 
-    public static String getSummary(String content, Position position) {
+    public static String getSummary(String content, Span span) {
         String[] lines = content.split("\n");
-        int from = Math.max(position.getLine() - 2, 0);
-        int to = Math.min(position.getLine() + 3, lines.length);
+        int from = Math.max(span.getFrom().getLine() - 2, 0);
+        int to = Math.min(span.getFrom().getLine() + 3, lines.length);
         StringBuilder result = new StringBuilder();
         for (int i = from; i < to; i++) {
             result.append(lines[i]);

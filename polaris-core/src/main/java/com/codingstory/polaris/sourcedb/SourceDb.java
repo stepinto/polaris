@@ -4,10 +4,11 @@ import com.codingstory.polaris.parser.FileHandle;
 import com.codingstory.polaris.parser.SourceFile;
 import com.google.common.base.Objects;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 
-public interface SourceDb {
+public interface SourceDb extends Closeable {
 
     public static final class DirectoryContent {
         private final List<String> directories;

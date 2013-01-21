@@ -8,7 +8,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import japa.parser.ast.ImportDeclaration;
 import japa.parser.ast.body.AnnotationDeclaration;
 import japa.parser.ast.body.ClassOrInterfaceDeclaration;
@@ -26,8 +25,8 @@ import java.io.InputStream;
 import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
+import static com.codingstory.polaris.parser.ParserUtils.nodeJumpTarget;
 import static com.codingstory.polaris.parser.ParserUtils.nodeSpan;
 
 public final class SecondPassProcessor {
@@ -90,7 +89,7 @@ public final class SecondPassProcessor {
             } else {
                 FullTypeName name = FullTypeName.of(node.getName().toString());
                 TypeHandle clazz = symbolTable.resolveTypeHandle(name);
-                usages.add(new TypeUsage(clazz, nodeSpan(node), TypeUsage.Kind.IMPORT));
+                usages.add(new TypeUsage(clazz, nodeJumpTarget(fileId, node), TypeUsage.Kind.IMPORT));
                 symbolTable.registerImportClass(clazz);
             }
             super.visit(node, arg);
@@ -103,7 +102,7 @@ public final class SecondPassProcessor {
                     nullToEmptyList(node.getExtends()), nullToEmptyList(node.getImplements())));
             processTypeDeclaration(node.getName(),
                     node.isInterface() ? ClassType.Kind.INTERFACE : ClassType.Kind.CLASS,
-                    nodeSpan(node),
+                    nodeJumpTarget(fileId, node),
                     superTypeAsts,
                     node.getJavaDoc() != null ? node.getJavaDoc().getContent() : null,
                     new Runnable() {
@@ -114,7 +113,7 @@ public final class SecondPassProcessor {
                     });
         }
 
-        private void processTypeDeclaration(String name, ClassType.Kind kind, Span span,
+        private void processTypeDeclaration(String name, ClassType.Kind kind, JumpTarget jumpTarget,
                 List<ClassOrInterfaceType> superTypeAsts, String javaDoc, Runnable visitChildren) {
             FullTypeName fullTypeName = FullTypeName.of(pkg, makeTypeName(name));
             ClassType clazz = symbolTable.lookUpClassType(fullTypeName);
@@ -124,10 +123,10 @@ public final class SecondPassProcessor {
             for (ClassOrInterfaceType superTypeAst : superTypeAsts) {
                 String superTypeName = superTypeAst.toString();
                 TypeHandle superType = symbolTable.resolveTypeHandle(FullTypeName.of(superTypeName));
-                usages.add(new TypeUsage(superType, nodeSpan(superTypeAst), TypeUsage.Kind.SUPER_CLASS));
+                usages.add(new TypeUsage(superType, nodeJumpTarget(fileId, superTypeAst), TypeUsage.Kind.SUPER_CLASS));
                 clazz.addSuperType(superType);
             }
-            usages.add(new TypeUsage(clazz.getHandle(), span, TypeUsage.Kind.TYPE_DECLARATION));
+            usages.add(new TypeUsage(clazz.getHandle(), jumpTarget, TypeUsage.Kind.TYPE_DECLARATION));
             discoveredTypes.add(clazz);
             symbolTable.enterScope();
             typeStack.push(clazz);
@@ -149,7 +148,7 @@ public final class SecondPassProcessor {
             Preconditions.checkNotNull(node);
             processTypeDeclaration(node.getName(),
                     ClassType.Kind.ANNOTATION,
-                    nodeSpan(node),
+                    nodeJumpTarget(fileId, node),
                     ImmutableList.<ClassOrInterfaceType>of(),
                     node.getJavaDoc() != null ? node.getJavaDoc().getContent() : null,
                     new Runnable() {
@@ -165,7 +164,7 @@ public final class SecondPassProcessor {
             Preconditions.checkNotNull(node);
             processTypeDeclaration(node.getName(),
                     ClassType.Kind.ENUM,
-                    nodeSpan(node),
+                    nodeJumpTarget(fileId, node),
                     nullToEmptyList(node.getImplements()),
                     node.getJavaDoc() != null ? node.getJavaDoc().getContent() : null,
                     new Runnable() {
@@ -179,7 +178,7 @@ public final class SecondPassProcessor {
         @Override
         public void visit(final japa.parser.ast.body.MethodDeclaration node, final Object arg) {
             Preconditions.checkNotNull(node);
-            processMethodDeclaration(node.getType(), node.getName(), nodeSpan(node),
+            processMethodDeclaration(node.getType(), node.getName(), nodeJumpTarget(fileId, node),
                     node.getParameters(), node.getThrows(), new Runnable() {
                 @Override
                 public void run() {
@@ -191,7 +190,7 @@ public final class SecondPassProcessor {
         @Override
         public void visit(final ConstructorDeclaration node, final Object arg) {
             Preconditions.checkNotNull(node);
-            processMethodDeclaration(null, "<init>", nodeSpan(node),
+            processMethodDeclaration(null, "<init>", nodeJumpTarget(fileId, node),
                     node.getParameters(), node.getThrows(), new Runnable() {
                 @Override
                 public void run() {
@@ -203,7 +202,7 @@ public final class SecondPassProcessor {
         @Override
         public void visit(final InitializerDeclaration node, final Object arg) {
             Preconditions.checkNotNull(node);
-            processMethodDeclaration(null, "<cinit>", nodeSpan(node),
+            processMethodDeclaration(null, "<cinit>", nodeJumpTarget(fileId, node),
                     null, null, new Runnable() {
                 @Override
                 public void run() {
@@ -215,7 +214,7 @@ public final class SecondPassProcessor {
         private void processMethodDeclaration(
                 japa.parser.ast.type.Type type,
                 String methodName,
-                Span span,
+                JumpTarget jumpTarget,
                 List<Parameter> methodParameters,
                 List<NameExpr> methodThrows,
                 Runnable visitChildren) {
@@ -224,13 +223,13 @@ public final class SecondPassProcessor {
                 returnType = PrimitiveType.VOID.getHandle();
             } else {
                 returnType = symbolTable.resolveTypeHandle(FullTypeName.of(type.toString()));
-                usages.add(new TypeUsage(returnType, nodeSpan(type), TypeUsage.Kind.METHOD_SIGNATURE));
+                usages.add(new TypeUsage(returnType, nodeJumpTarget(fileId, type), TypeUsage.Kind.METHOD_SIGNATURE));
             }
             List<Method.Parameter> parameters = Lists.newArrayList();
             List<TypeHandle> parameterTypes = Lists.newArrayList();
             for (Parameter parameter : nullToEmptyList(methodParameters)) {
                 TypeHandle parameterType = symbolTable.resolveTypeHandle(FullTypeName.of(parameter.getType().toString()));
-                usages.add(new TypeUsage(parameterType, nodeSpan(parameter.getType()),
+                usages.add(new TypeUsage(parameterType, nodeJumpTarget(fileId, parameter.getType()),
                         TypeUsage.Kind.METHOD_SIGNATURE));
                 parameterTypes.add(parameterType);
                 parameters.add(new Method.Parameter(parameterType, parameter.getId().getName()));
@@ -238,7 +237,8 @@ public final class SecondPassProcessor {
             List<TypeHandle> exceptions = Lists.newArrayList();
             for (NameExpr throwExpr : nullToEmptyList(methodThrows)) {
                 TypeHandle exceptionType = symbolTable.resolveTypeHandle(FullTypeName.of(throwExpr.getName()));
-                usages.add(new TypeUsage(exceptionType, nodeSpan(throwExpr), TypeUsage.Kind.METHOD_SIGNATURE));
+                usages.add(new TypeUsage(
+                        exceptionType, nodeJumpTarget(fileId, throwExpr), TypeUsage.Kind.METHOD_SIGNATURE));
                 exceptions.add(exceptionType);
             }
             FullMemberName fullMemberName = FullMemberName.of(currentType().getName(), methodName);
@@ -248,8 +248,8 @@ public final class SecondPassProcessor {
                     parameters,
                     exceptions,
                     EnumSet.noneOf(Modifier.class),
-                    new JumpTarget(fileId, span.getFrom()));
-            usages.add(new MethodUsage(method.getHandle(), span, MethodUsage.Kind.METHOD_DECLARATION));
+                    jumpTarget);
+            usages.add(new MethodUsage(method.getHandle(), jumpTarget, MethodUsage.Kind.METHOD_DECLARATION));
             currentType().getMethods().add(method);
             methodStack.push(method);
             visitChildren.run();
@@ -260,18 +260,17 @@ public final class SecondPassProcessor {
         public void visit(japa.parser.ast.body.FieldDeclaration node, Object arg) {
             Preconditions.checkNotNull(node);
             TypeHandle type = symbolTable.resolveTypeHandle(FullTypeName.of(node.getType().toString()));
-            Span typeSpan = nodeSpan(node.getType());
-            usages.add(new TypeUsage(type, typeSpan, TypeUsage.Kind.FIELD));
+            usages.add(new TypeUsage(type, nodeJumpTarget(fileId, node.getType()), TypeUsage.Kind.FIELD));
             for (VariableDeclarator varDecl : node.getVariables()) {
-                Span fieldSpan = nodeSpan(varDecl.getId());
+                JumpTarget fieldTarget = nodeJumpTarget(fileId, varDecl.getId());
                 FullMemberName fullMemberName = FullMemberName.of(currentType().getName(), varDecl.getId().getName());
                 Field field = new Field(
                         new FieldHandle(generateId(), fullMemberName),
                         type,
                         EnumSet.noneOf(Modifier.class),
-                        new JumpTarget(fileId, fieldSpan.getFrom()));
+                        fieldTarget);
                 currentType().getFields().add(field);
-                usages.add(new FieldUsage(field.getHandle(), fieldSpan, FieldUsage.Kind.FIELD_DECLARATION));
+                usages.add(new FieldUsage(field.getHandle(), fieldTarget, FieldUsage.Kind.FIELD_DECLARATION));
             }
             super.visit(node, arg);
         }
@@ -280,7 +279,8 @@ public final class SecondPassProcessor {
         public void visit(VariableDeclarationExpr node, Object arg) {
             Preconditions.checkNotNull(node);
             TypeHandle type = symbolTable.resolveTypeHandle(FullTypeName.of(node.getType().toString()));
-            usages.add(new TypeUsage(type, nodeSpan(node.getType()), TypeUsage.Kind.LOCAL_VARIABLE));
+            usages.add(new TypeUsage(
+                    type, nodeJumpTarget(fileId, node.getType()), TypeUsage.Kind.LOCAL_VARIABLE));
             super.visit(node, arg);
         }
 

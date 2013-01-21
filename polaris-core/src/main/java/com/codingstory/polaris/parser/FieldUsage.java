@@ -1,5 +1,6 @@
 package com.codingstory.polaris.parser;
 
+import com.codingstory.polaris.JumpTarget;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
@@ -23,12 +24,12 @@ public class FieldUsage implements Usage {
     }
 
     private FieldHandle field;
-    private final Span span;
+    private final JumpTarget jumpTarget;
     private final Kind kind;
 
-    public FieldUsage(FieldHandle field, Span span, Kind kind) {
+    public FieldUsage(FieldHandle field, JumpTarget jumpTarget, Kind kind) {
         this.field = Preconditions.checkNotNull(field);
-        this.span = Preconditions.checkNotNull(span);
+        this.jumpTarget = Preconditions.checkNotNull(jumpTarget);
         this.kind = Preconditions.checkNotNull(kind);
     }
 
@@ -36,7 +37,7 @@ public class FieldUsage implements Usage {
         Preconditions.checkNotNull(t);
         return new FieldUsage(
                 FieldHandle.createFromThrift(t.getField()),
-                Span.createFromThrift(t.getSpan()),
+                JumpTarget.createFromThrift(t.getJumpTarget()),
                 Kind.createFromThrift(t.getKind()));
     }
 
@@ -45,8 +46,8 @@ public class FieldUsage implements Usage {
     }
 
     @Override
-    public Span getSpan() {
-        return span;
+    public JumpTarget getJumpTarget() {
+        return jumpTarget;
     }
 
     public Kind getKind() {
@@ -56,7 +57,7 @@ public class FieldUsage implements Usage {
     public TFieldUsage toThrift() {
         TFieldUsage t = new TFieldUsage();
         t.setField(field.toThrift());
-        t.setSpan(span.toThrift());
+        t.setJumpTarget(jumpTarget.toThrift());
         t.setKind(kind.toThrift());
         return t;
     }

@@ -9,6 +9,8 @@ import com.codingstory.polaris.parser.TTypeUsage;
 import com.codingstory.polaris.parser.TypeUsage;
 import com.codingstory.polaris.search.CodeSearchServiceImpl;
 import com.codingstory.polaris.search.TCodeSearchService;
+import com.codingstory.polaris.search.TGetTypeRequest;
+import com.codingstory.polaris.search.TGetTypeResponse;
 import com.codingstory.polaris.search.TLayoutRequest;
 import com.codingstory.polaris.search.TLayoutResponse;
 import com.codingstory.polaris.search.TListTypeUsagesRequest;
@@ -100,10 +102,25 @@ public class CodeSearchEndToEndTest {
         TCodeSearchService.Iface searcher = createSearcher();
         TSearchRequest req = new TSearchRequest();
         req.setQuery("com.company.A");
-        TSearchResponse resp =  searcher.search(req);
+        TSearchResponse resp = searcher.search(req);
         assertEquals(TStatusCode.OK, resp.getStatus());
         assertEquals(1, resp.getCount());
         assertEquals("/src/com/company/A.java", resp.getHits().get(0).getPath());
+    }
+
+    @Test
+    public void testGetType() throws IOException, TException {
+        writeFile("project/src/com/company/A.java", "package com.company; class A{}");
+        writeFile("project/src/com/company/B.java", "package com.company; class B{}");
+        buildIndex(ImmutableList.of("project"));
+
+        TCodeSearchService.Iface searcher = createSearcher();
+        TGetTypeRequest req = new TGetTypeRequest();
+        req.setTypeName("com.company.A");
+        TGetTypeResponse resp = searcher.getType(req);
+        assertEquals(TStatusCode.OK, resp.getStatus());
+        ClassType clazz = ClassType.createFromThrift(resp.getClassType());
+        assertEquals(FullTypeName.of("com.company.A"), clazz.getName());
     }
 
     @Test
@@ -113,7 +130,8 @@ public class CodeSearchEndToEndTest {
         buildIndex(ImmutableList.of("project"));
 
         TypeDb typeDb = new TypeDbImpl(IndexPathUtils.getTypeDbPath(indexDir));
-        ClassType type = Iterables.getOnlyElement(typeDb.getTypeByName(FullTypeName.of("com.company.A")));
+        ClassType type = Iterables.getOnlyElement(typeDb.getTypeByName(
+                FullTypeName.of("com.company.A"), null, 2));
         long typeId = type.getHandle().getId();
         TCodeSearchService.Iface searcher = createSearcher();
         TListTypeUsagesRequest req = new TListTypeUsagesRequest();

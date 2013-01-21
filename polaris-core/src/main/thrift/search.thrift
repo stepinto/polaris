@@ -8,6 +8,7 @@ enum TStatusCode {
     FILE_NOT_FOUND = 1001,
     MISSING_FIELDS = 1002,
     NOT_IMPLEMENTED = 1003,
+    NOT_UNIQUE = 1004,
     UNKNOWN_ERROR = 1099,
 }
 
@@ -69,7 +70,10 @@ struct TLayoutResponse {
 }
 
 struct TGetTypeRequest {
+    // If "typeId" is specified, "project" and "typeName" are ignored.
     1: i64 typeId;
+    2: string project; // search in all projects if empty
+    3: string typeName; // full name
 }
 
 struct TGetTypeResponse {
