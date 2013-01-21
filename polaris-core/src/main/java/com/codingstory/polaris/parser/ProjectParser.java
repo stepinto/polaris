@@ -181,6 +181,9 @@ public class ProjectParser {
         byte[] content = FileUtils.readFileToByteArray(task.file);
         long fileId = task.fileId;
         FirstPassProcessor.Result firstPassResult = firstPassResults.get(fileId);
+        if (firstPassResult == null) {
+            return; // First pass fails. Don't run the second pass.
+        }
         SecondPassProcessor.Result result = SecondPassProcessor.extract(
                 projectName,
                 fileId,
