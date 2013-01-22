@@ -1,0 +1,9 @@
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+  <ShortName>Polaris Code Search</ShortName>
+  <Description>A code search engine.</Description>
+  <InputEncoding>UTF-8</InputEncoding>
+  <Tags>java</Tags>
+    <Contact>stepinto@live.com</Contact>
+    <Url type="application/rss+xml"
+        template="http://localhost:3000/#/search?query={searchTerms}"/>
+ </OpenSearchDescription>
