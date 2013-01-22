@@ -34,6 +34,8 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
         $scope.loading = false;
         console.log(resp);
         $scope.sourceCode = resp.source.source;
+        $scope.project = resp.source.handle.project;
+        $scope.path = resp.source.handle.path;
     };
     if ($routeParams.project && $routeParams.path) {
         CodeSearch.readSourceByPath($routeParams.project, $routeParams.path, callback);

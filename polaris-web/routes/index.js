@@ -34,6 +34,8 @@ exports.api = function (req, res) {
         client.complete(new ttypes.TCompleteRequest(req.body), callback);
     } else if (method == "source") {
         client.source(new ttypes.TSourceRequest(req.body), callback);
+    } else if (method == "layout") {
+        client.layout(new ttypes.TLayoutRequest(req.body), callback);
     } else {
         res.send('Method not found: ' + method, 404);
     }

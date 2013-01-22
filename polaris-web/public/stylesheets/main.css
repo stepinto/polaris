@@ -50,12 +50,18 @@ body {
 .source .left {
   float: left;
   width: 250px;
+  overflow: auto;
 }
 .source .right {
   float: right;
   width: 250px;
+  overflow: auto;
 }
 .source .main {
   margin-left: 250px;
   margin-right: 250px;
+}
+.project-tree .java-file,
+.project-tree .dir {
+  list-style: none;
 }

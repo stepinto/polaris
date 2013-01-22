@@ -2,8 +2,8 @@
   .loading
     p(ng-show='loading') Loading...
   .left
-    p left
+    project-tree(project="project", path="path")
   .right
     p right
   .main
-    pre(ng-show='!loading') {{sourceCode}}
+    pre(ng-hide='loading') {{sourceCode}}

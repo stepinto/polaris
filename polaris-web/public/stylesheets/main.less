@@ -68,15 +68,24 @@ html, body {
     .left {
         float: left;
         width: @leftWidth;
+        overflow: auto;
     }
-
     .right {
         float: right;
         width: @rightWidth;
+        overflow: auto;
     }
-
     .main {
         margin-left: @leftWidth;
         margin-right: @rightWidth;
+    }
+}
+
+.project-tree {
+    .inner {
+        // TODO
+    }
+    .java-file, .dir {
+      list-style: none;
     }
 }
