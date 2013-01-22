@@ -47,3 +47,15 @@ body {
 .search-box .choice-box .active {
   background-color: #EEE;
 }
+.source .left {
+  float: left;
+  width: 250px;
+}
+.source .right {
+  float: right;
+  width: 250px;
+}
+.source .main {
+  margin-left: 250px;
+  margin-right: 250px;
+}

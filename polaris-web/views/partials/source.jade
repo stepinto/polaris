@@ -1,5 +1,9 @@
-.loading
-  p(ng-show='loading') Loading...
-
-.source_view
-  pre(ng-show='!loading') {{sourceCode}}
+.source
+  .loading
+    p(ng-show='loading') Loading...
+  .left
+    p left
+  .right
+    p right
+  .main
+    pre(ng-show='!loading') {{sourceCode}}

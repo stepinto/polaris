@@ -61,3 +61,22 @@ html, body {
     }
 }
 
+.source {
+    @leftWidth: 250px;
+    @rightWidth: 250px;
+
+    .left {
+        float: left;
+        width: @leftWidth;
+    }
+
+    .right {
+        float: right;
+        width: @rightWidth;
+    }
+
+    .main {
+        margin-left: @leftWidth;
+        margin-right: @rightWidth;
+    }
+}
