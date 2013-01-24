@@ -32,8 +32,8 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
     $scope.loading = true;
     var callback = function (resp) {
         $scope.loading = false;
-        console.log(resp);
         $scope.sourceCode = resp.source.source;
+        $scope.sourceCodeAnnotation = resp.source.annotatedSource;
         $scope.project = resp.source.handle.project;
         $scope.path = resp.source.handle.path;
     };

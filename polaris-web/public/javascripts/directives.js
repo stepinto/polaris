@@ -138,7 +138,6 @@ angular.module('polarisDirectives', ['polarisServices'])
           }
           populate(0, angular.element(element.children()[1]), function() {
             scope.loading = false;
-            console.log("done");
           });
         }
         scope.$watch(attrs.project, function(value) {
@@ -189,4 +188,25 @@ angular.module('polarisDirectives', ['polarisServices'])
         }
       }
     };
+  })
+  .directive('codeView', function($compile) {
+    return {
+      restrict: 'E',
+      templateUrl: 'partials/code-view',
+      scope: true,
+      replace: true,
+      link: function(scope, element, attrs) {
+        console.log("codeView");
+        scope.$watch(attrs.code, function(value) {
+          if (value) {
+            console.log("value", value);
+            element.html(value
+              .replace("<source>", "<div>")
+              .replace("</source>", "</div>"));
+            $compile(element.contents())(scope);
+          }
+        });
+      }
+    };
   });
+
