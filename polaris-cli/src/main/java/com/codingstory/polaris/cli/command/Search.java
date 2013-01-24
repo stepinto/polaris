@@ -42,8 +42,9 @@ public class Search {
                 TSearchResponse resp = rpc.search(req);
                 int i = 0;
                 for (THit hit : resp.getHits()) {
-                    System.out.printf("%d: %s/%s (%.2f)\n",
+                    System.out.printf("%d: %d %s/%s (%.2f)\n",
                             i++,
+                            hit.getJumpTarget().getFileId(),
                             hit.getProject(),
                             hit.getPath(),
                             hit.getScore());
