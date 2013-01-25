@@ -1,0 +1,8 @@
+.xref-box.panel
+  .header
+    span xrefs...
+  .body
+    span(ng-show = "loading") Loading...
+    ul(ng-hide = "loading")
+      li.usage(ng-repeat = "u in usages")
+        a(ng-href="{{u.url}}") {{u.jumpTarget.fileId}}

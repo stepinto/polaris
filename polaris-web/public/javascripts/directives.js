@@ -210,7 +210,6 @@ angular.module('polarisDirectives', ['polarisServices'])
             value = value.replace(
               /<type-usage /g,
               '<type-usage find-usages="findUsagesInternal(typeId)" go-to-definition="goToDefinitionInternal(typeId)" ');
-            console.log("value=", value);
             element.html(value
               .replace("<source>", "<div>")
               .replace("</source>", "</div>"));
@@ -226,6 +225,8 @@ angular.module('polarisDirectives', ['polarisServices'])
       }
     };
   })
+
+  // Renders a type usage with context menu.
   .directive('typeUsage', function(Utils, LinkBuilder) {
     return {
       restrict: 'E',
@@ -247,6 +248,40 @@ angular.module('polarisDirectives', ['polarisServices'])
         scope.goToDefinitionInternal = function() {
           scope.goToDefinition({'typeId': typeId});
         }
+      }
+    };
+  })
+
+  // Shows type usages
+  // 
+  // Usage:
+  //   <xref-box type-id="..." />
+  .directive('xrefBox', function(CodeSearch, LinkBuilder) {
+    return {
+      restrict: 'E',
+      templateUrl: 'partials/xref-box',
+      scope: {
+        typeId: '='
+      },
+      replace: true,
+      link: function(scope) {
+        scope.$watch('typeId', function(value) {
+          if (!value) {
+            scope.loading = false;
+            scope.usages = [];
+            return;
+          }
+          var typeId = value;
+          scope.loading = true;
+          CodeSearch.listTypeUsages(typeId, function(resp) {
+            scope.usages = resp.usages;
+            for (var i = 0; i < scope.usages.length; i++) {
+              var usage = scope.usages[i];
+              usage.url = LinkBuilder.source(usage.jumpTarget.fileId, usage.jumpTarget.span.from.line);
+            }
+            scope.loading = false;
+          });
+        });
       }
     };
   });

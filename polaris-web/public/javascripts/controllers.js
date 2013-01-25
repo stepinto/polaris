@@ -44,10 +44,11 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
     }
     
     $scope.findUsages = function(typeId) {
-      console.log("findUsage", typeId);
+      console.log('Find usages:', typeId);
+      $scope.xrefTypeId = typeId;
     }
     $scope.goToDefinition = function(typeId) {
-      console.log("goToDefinition", typeId);
+      console.log("Go to def:", typeId);
     }
 }
 

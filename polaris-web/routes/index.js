@@ -38,6 +38,8 @@ exports.api = function (req, res) {
         client.layout(new ttypes.TLayoutRequest(req.body), callback);
     } else if (method == 'get-type') {
         client.getType(new ttypes.TGetTypeRequest(req.body), callback);
+    } else if (method == 'list-type-usages') {
+        client.listTypeUsages(new ttypes.TListTypeUsagesRequest(req.body), callback);
     } else {
         res.send('Method not found: ' + method, 404);
     }

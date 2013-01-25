@@ -28,6 +28,10 @@ angular.module('polarisServices', [])
       getTypeById: function(typeId, callback) {
         var req = {'typeId': typeId};
         $http.post('/api/get-type', req).success(callback);
+      },
+      listTypeUsages: function(typeId, callback) {
+        var req = {'typeId': typeId};
+        $http.post('/api/list-type-usages', req).success(callback);
       }
     };
   })
