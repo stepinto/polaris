@@ -42,6 +42,13 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
     } else if ($routeParams.file) {
         CodeSearch.readSourceById($routeParams.file, callback);
     }
+    
+    $scope.findUsages = function(typeId) {
+      console.log("findUsage", typeId);
+    }
+    $scope.goToDefinition = function(typeId) {
+      console.log("goToDefinition", typeId);
+    }
 }
 
 function GoToTypeCtrl($routeParams, CodeSearch, LinkBuilder, Utils, $location) {

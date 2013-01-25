@@ -189,21 +189,40 @@ angular.module('polarisDirectives', ['polarisServices'])
       }
     };
   })
+
+  // Renders source code with cross-reference support.
+  //
+  // Usage:
+  //   <code-view code="..." find-usages="f(typeId)" go-to-definition="g(typeId)" />
   .directive('codeView', function($compile) {
     return {
       restrict: 'E',
       templateUrl: 'partials/code-view',
-      scope: true,
+      scope: {
+        findUsages: '&',
+        goToDefinition: '&',
+        code: '=',
+      },
       replace: true,
       link: function(scope, element, attrs) {
-        scope.$watch(attrs.code, function(value) {
+        scope.$watch('code', function(value) {
           if (value) {
+            value = value.replace(
+              /<type-usage /g,
+              '<type-usage find-usages="findUsagesInternal(typeId)" go-to-definition="goToDefinitionInternal(typeId)" ');
+            console.log("value=", value);
             element.html(value
               .replace("<source>", "<div>")
               .replace("</source>", "</div>"));
             $compile(element.contents())(scope);
           }
         });
+        scope.findUsagesInternal = function(typeId) {
+          scope.findUsages({'typeId': typeId});
+        }
+        scope.goToDefinitionInternal = function(typeId) {
+          scope.goToDefinitionInternal({'typeId': typeId});
+        }
       }
     };
   })
@@ -211,13 +230,23 @@ angular.module('polarisDirectives', ['polarisServices'])
     return {
       restrict: 'E',
       templateUrl: 'partials/type-usage',
-      scope: true,
+      scope: {
+        findUsages: '&',
+        goToDefinition: '&',
+      },
       replace: false,
       transclude: true,
       link: function(scope, element, attrs) {
         var typeId = parseInt(attrs.typeId);
         scope.resolved = Utils.str2bool(attrs.resolved);
         scope.classUrl = LinkBuilder.type(typeId);
+        scope.findUsagesInternal = function() {
+          console.log("type-usage.findUsagesInternal");
+          scope.findUsages({'typeId': typeId});
+        }
+        scope.goToDefinitionInternal = function() {
+          scope.goToDefinition({'typeId': typeId});
+        }
       }
     };
   });

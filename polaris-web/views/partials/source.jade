@@ -6,4 +6,4 @@
   .right
     p right
   .main
-    code-view(ng-hide='loading', code='sourceCodeAnnotation')
+    code-view(ng-hide='loading', code='sourceCodeAnnotation', find-usages="findUsages(typeId)", goToDefinition="goToDefinition(typeId)")

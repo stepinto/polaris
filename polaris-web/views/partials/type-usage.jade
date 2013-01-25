@@ -6,7 +6,7 @@ span.type-usage
         b.caret
       ul.dropdown-menu(role="menu")
         li
-          a(ng-href="{{classUrl}}") Definition
+          a(ng-click="goToDefinitionInternal()") Definition
         li
-          a Usages
+          a(ng-click="findUsagesInternal()") Usages
   span(ng-hide='resolved', ng-transclude)
