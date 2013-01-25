@@ -1,3 +1,12 @@
 span.type-usage
-  a(ng-href="{{classUrl}}", ng-show='resolved', ng-transclude)
+  span(ng-show='resolved')
+    a(ng-href="{{classUrl}}", ng-transclude)
+    span.dropdown
+      a.dropdown-toggle(data-toggle="dropdown", href="#")
+        b.caret
+      ul.dropdown-menu(role="menu")
+        li
+          a(ng-href="{{classUrl}}") Definition
+        li
+          a Usages
   span(ng-hide='resolved', ng-transclude)
