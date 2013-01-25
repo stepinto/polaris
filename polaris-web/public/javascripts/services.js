@@ -24,6 +24,10 @@ angular.module('polarisServices', [])
       listFiles: function(project, path, callback) {
         var req = {'projectName': project, 'directoryName': path};
         $http.post('/api/layout', req).success(callback);
+      },
+      getTypeById: function(typeId, callback) {
+        var req = {'typeId': typeId};
+        $http.post('/api/get-type', req).success(callback);
       }
     };
   })
@@ -48,6 +52,16 @@ angular.module('polarisServices', [])
           }
         }
         return null;
+      },
+      'str2bool': function(s) {
+        return s != 'false';
+      },
+      'removeStart': function(s, t) {
+        if (this.startsWith(s, t)) {
+          return s.substring(t.length);
+        } else {
+          return s;
+        }
       }
     };
   })
@@ -58,6 +72,9 @@ angular.module('polarisServices', [])
           line = 0;
         }
         return '#/source?file=' + id + '&line=' + line;
+      },
+      'type': function(id) {
+        return '#/goto/type/' + id;
       }
     };
   });

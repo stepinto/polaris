@@ -43,3 +43,12 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
         CodeSearch.readSourceById($routeParams.file, callback);
     }
 }
+
+function GoToTypeCtrl($routeParams, CodeSearch, LinkBuilder, Utils, $location) {
+    CodeSearch.getTypeById($routeParams.typeId, function(resp) {
+        var target = resp.classType.jumpTarget;
+        var url = LinkBuilder.source(target.fileId, target.span.from.line);
+        $location.url(Utils.removeStart(url, '#'));
+    });
+}
+

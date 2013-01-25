@@ -196,16 +196,28 @@ angular.module('polarisDirectives', ['polarisServices'])
       scope: true,
       replace: true,
       link: function(scope, element, attrs) {
-        console.log("codeView");
         scope.$watch(attrs.code, function(value) {
           if (value) {
-            console.log("value", value);
             element.html(value
               .replace("<source>", "<div>")
               .replace("</source>", "</div>"));
             $compile(element.contents())(scope);
           }
         });
+      }
+    };
+  })
+  .directive('typeUsage', function(Utils, LinkBuilder) {
+    return {
+      restrict: 'E',
+      templateUrl: 'partials/type-usage',
+      scope: true,
+      replace: false,
+      transclude: true,
+      link: function(scope, element, attrs) {
+        var typeId = parseInt(attrs.typeId);
+        scope.resolved = Utils.str2bool(attrs.resolved);
+        scope.classUrl = LinkBuilder.type(typeId);
       }
     };
   });
