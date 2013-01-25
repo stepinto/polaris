@@ -27,7 +27,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static com.codingstory.polaris.parser.ParserUtils.nodeJumpTarget;
-import static com.codingstory.polaris.parser.ParserUtils.nodeSpan;
 
 public final class SecondPassProcessor {
 

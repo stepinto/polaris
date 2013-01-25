@@ -177,7 +177,7 @@ public class ProjectParser {
     }
 
     private void runSecondPass(Task task) throws IOException {
-        LOG.debug("Parsing " + task + " (2nd pass)");
+        LOG.debug("Parsing " + task.file + " (2nd pass)");
         byte[] content = FileUtils.readFileToByteArray(task.file);
         long fileId = task.fileId;
         FirstPassProcessor.Result firstPassResult = firstPassResults.get(fileId);

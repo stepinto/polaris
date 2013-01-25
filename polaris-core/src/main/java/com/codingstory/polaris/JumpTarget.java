@@ -56,4 +56,12 @@ public final class JumpTarget {
         result = 31 * result + (span != null ? span.hashCode() : 0);
         return result;
     }
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+                .add("fileId", fileId)
+                .add("span", span)
+                .toString();
+    }
 }

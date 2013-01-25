@@ -5,16 +5,22 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.io.PushbackInputStream;
 import java.io.StringWriter;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
 public class SourceAnnotator {
+
+    private static final Log LOG = LogFactory.getLog(SourceAnnotator.class);
+
     private static final Comparator<Usage> USAGE_COMPARATOR = new Comparator<Usage>() {
         @Override
         public int compare(Usage left, Usage right) {
@@ -36,35 +42,34 @@ public class SourceAnnotator {
         }));
 
         PositionAwareInputStream in2 = new PositionAwareInputStream(in);
-        int ch = in2.read();
         int j = 0;
-        while (ch != -1 && j < sortedUsages.size()) {
+        while (in2.peek() != -1 && j < sortedUsages.size()) {
             Usage currentUsage = sortedUsages.get(j);
             Position currentUsageFrom = currentUsage.getJumpTarget().getSpan().getFrom();
             Position currentPosition = in2.getPosition();
             int cmp = currentPosition.compareTo(currentUsageFrom);
             if (cmp < 0) {
-                pw.write(escape((char) ch));
-                ch = in2.read();
+                pw.write(escape((char) in2.read()));
             } else if (cmp > 0) {
                 j++;
             } else {
                 Position currentUsageTo = currentUsage.getJumpTarget().getSpan().getTo();
                 StringBuilder text = new StringBuilder();
-                while (in2.getPosition().compareTo(currentUsageTo) < 0 && ch != 1) {
-                    text.append(ch);
-                    ch = in2.read();
+                while (in2.getPosition().compareTo(currentUsageTo) < 0 && in2.peek() != 1) {
+                    text.append((char) in2.read());
                 }
                 emit(pw, new String(text), currentUsage);
             }
         }
-        while (ch != -1) {
-            pw.write(escape((char) ch));
-            ch = in2.read();
+        while (in2.peek() != -1) {
+            pw.write(escape((char) in2.read()));
         }
         pw.print("</source>");
         pw.close();
-        return sw.toString();
+
+        String result = sw.toString();
+        LOG.debug("Annotated source: " + result);
+        return result;
     }
 
     private static boolean accepts(Usage usage) {
@@ -85,6 +90,7 @@ public class SourceAnnotator {
                 String typeNameStr = type.getName().toString();
                 out.printf("<type-usage type=\"%s\" type-id=\"%d\" resolved=\"%s\">%s</type-usage>",
                         escape(typeNameStr), type.getId(), Boolean.toString(type.isResolved()), escape(text));
+                LOG.debug("Render annotation: " + typeUsage);
                 return;
             }
             // Don't show links for primitive or unresolved types.
@@ -118,12 +124,21 @@ public class SourceAnnotator {
     }
 
     private static class PositionAwareInputStream extends InputStream {
-        private InputStream in;
+        private PushbackInputStream in;
         private int line;
         private int column;
 
         private PositionAwareInputStream(InputStream in) {
-            this.in = Preconditions.checkNotNull(in);
+            this.in = new PushbackInputStream(Preconditions.checkNotNull(in));
+        }
+
+        public int peek() throws IOException {
+            int ch = in.read();
+            if (ch == -1) {
+                return -1;
+            }
+            in.unread(ch);
+            return ch;
         }
 
         @Override
@@ -134,7 +149,7 @@ public class SourceAnnotator {
             }
             if (ch == '\n') {
                 line++;
-                line = 0;
+                column = 0;
             } else {
                 column++;
             }

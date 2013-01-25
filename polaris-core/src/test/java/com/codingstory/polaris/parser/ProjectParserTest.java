@@ -2,7 +2,6 @@ package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.IdGenerator;
 import com.codingstory.polaris.SimpleIdGenerator;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -22,9 +21,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class ProjectParserTest {
-    private static class TestCollector implements ProjectParser.TypeCollector, ProjectParser.AnnotatedSourceCollector {
+    private static class TestCollector implements ProjectParser.TypeCollector,
+            ProjectParser.AnnotatedSourceCollector, ProjectParser.UsageCollector {
         private List<ClassType> types = Lists.newArrayList();
-        private String annotatedSource;
+        private List<Usage> usages = Lists.newArrayList();
+        private List<String> sources = Lists.newArrayList();
 
         @Override
         public void collectType(File file, List<ClassType> types) {
@@ -40,11 +41,20 @@ public class ProjectParserTest {
         @Override
         public void collectSource(SourceFile sourceFile) {
             assertNotNull(sourceFile);
-            this.annotatedSource = Preconditions.checkNotNull(sourceFile.getAnnotatedSource());
+            sources.add(sourceFile.getAnnotatedSource());
         }
 
-        public String getAnnotatedSource() {
-            return annotatedSource;
+        public List<String> getSources() {
+            return sources;
+        }
+
+        @Override
+        public void collectUsage(File file, List<Usage> usages) {
+            this.usages.addAll(usages);
+        }
+
+        public List<Usage> getUsages() {
+            return usages;
         }
     }
 
@@ -53,7 +63,7 @@ public class ProjectParserTest {
 
     @Test
     public void testSingleFile() throws IOException {
-        List<ClassType> classes = parse(ImmutableList.of("package pkg; class A {}"));
+        List<ClassType> classes = extractTypes(ImmutableList.of("package pkg; class A {}"));
         ClassType clazz = Iterables.getOnlyElement(classes);
         assertEquals(ClassType.Kind.CLASS, clazz.getKind());
         assertEquals(FullTypeName.of("pkg.A"), clazz.getName());
@@ -61,7 +71,7 @@ public class ProjectParserTest {
 
     @Test
     public void testResolveTypes_primitive() throws IOException {
-        List<ClassType> classes = parse(ImmutableList.of("package pkg; class A { int a; }"));
+        List<ClassType> classes = extractTypes(ImmutableList.of("package pkg; class A { int a; }"));
         ClassType clazz = Iterables.getOnlyElement(classes);
         Field field = Iterables.getOnlyElement(clazz.getFields());
         TypeHandle type = field.getType();
@@ -72,7 +82,7 @@ public class ProjectParserTest {
 
     @Test
     public void testResolveTypes_unresolved() throws IOException {
-        List<ClassType> classes = parse(ImmutableList.of("package pkg; class A { B b; }"));
+        List<ClassType> classes = extractTypes(ImmutableList.of("package pkg; class A { B b; }"));
         ClassType clazz = Iterables.getOnlyElement(classes);
         Field field = Iterables.getOnlyElement(clazz.getFields());
         assertFalse(field.getType().isResolved());
@@ -80,7 +90,7 @@ public class ProjectParserTest {
 
     @Test
     public void testResolveTypes_importExplicitly() throws IOException {
-        List<ClassType> classes = parse(ImmutableList.of(
+        List<ClassType> classes = extractTypes(ImmutableList.of(
                 "package pkg1; import pkg2.B; class A { B b; }",
                 "package pkg2; class B {}; "));
         ClassType class0 = classes.get(0);
@@ -93,7 +103,7 @@ public class ProjectParserTest {
 
     @Test
     public void testResolveTypes_importWildcard() throws IOException {
-        List<ClassType> classes = parse(ImmutableList.of(
+        List<ClassType> classes = extractTypes(ImmutableList.of(
                 "package pkg1; import pkg2.*; class A { B b; }",
                 "package pkg2; class B {}; "));
         ClassType class0 = classes.get(0);
@@ -106,7 +116,7 @@ public class ProjectParserTest {
 
     @Test
     public void testResolveTypes_samePackageFirst() throws IOException {
-        List<ClassType> classes = parse(ImmutableList.of(
+        List<ClassType> classes = extractTypes(ImmutableList.of(
                 "package pkg1; class A { B b; }",
                 "package pkg1; class B {}; ",
                 "package pkg2; class B {}; "));
@@ -123,17 +133,46 @@ public class ProjectParserTest {
     // TODO: testResolvedTypes_globalPackage
     // TODO: testResolvedTypes_javaLang
 
-    private static List<ClassType> parse(List<String> sources) throws IOException {
-        ProjectParser parser = new ProjectParser();
+    @Test
+    public void testSourceAnnotation_single() throws IOException {
+        String s = "class A { A a; }";
+        String t = Iterables.getOnlyElement(extractSources(ImmutableList.of(s)));
+        assertTrue(t, t.contains("<type-usage type=\"A\""));
+    }
+
+    @Test
+    public void testSourceAnnotation_multiple() throws IOException {
+        String s1 = "class A { B b; }";
+        String s2 = "class B { A a; }";
+        List<String> a1 = extractSources(ImmutableList.of(s1, s2));
+        List<String> a2 = extractSources(ImmutableList.of(s2, s1));
+        assertTrue(a1.get(0), a1.get(0).contains("<type-usage type=\"B\""));
+        assertTrue(a1.get(1), a1.get(1).contains("<type-usage type=\"A\""));
+        assertTrue(a2.get(0), a2.get(0).contains("<type-usage type=\"A\""));
+        assertTrue(a2.get(1), a2.get(1).contains("<type-usage type=\"B\""));
+    }
+
+    private static List<ClassType> extractTypes(List<String> sources) throws IOException {
+        return extract(sources).getTypes();
+    }
+
+    private static List<String> extractSources(List<String> sources) throws IOException {
+        return extract(sources).getSources();
+    }
+
+    private static TestCollector extract(List<String> sources) throws IOException {
         TestCollector collector = new TestCollector();
+        ProjectParser parser = new ProjectParser();
         parser.setTypeCollector(collector);
+        parser.setUsageCollector(collector);
+        parser.setAnnotatedSourceCollector(collector);
         parser.setProjectName(PROJECT_NAME);
         parser.setIdGenerator(ID_GENERATOR);
         for (String source : sources) {
             parser.addSourceFile(createFile(source));
         }
         parser.run();
-        return collector.getTypes();
+        return collector;
     }
 
     private static File createFile(String content) throws IOException {

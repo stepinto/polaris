@@ -5,6 +5,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.util.LinkedList;
 import java.util.Map;
@@ -13,6 +15,8 @@ import java.util.Map;
  * Symbol table for types.
  */
 public class SymbolTable {
+
+    private static final Log LOG = LogFactory.getLog(SymbolTable.class);
 
     public static enum EntryKind {
         CLASS_PLACEHOLDER,
@@ -100,26 +104,44 @@ public class SymbolTable {
 
     public ClassType lookUpClassType(FullTypeName name) {
         Preconditions.checkNotNull(name);
-        if (name.hasPackageName()) {
-            return fullyNamedTypes.get(name);
-        }
+        ClassType clazz = null;
+        String reason = null;
+        do {
+            if (name.hasPackageName()) {
+                clazz = fullyNamedTypes.get(name);
+                reason = "fully qualified";
+                break;
+            }
 
-        // search in imported packages
-        String simpleName = name.getTypeName();
-        FullTypeName imported = resolveImportAlias(simpleName);
-        ClassType clazz;
-        if (imported != null && (clazz = fullyNamedTypes.get(imported)) != null) {
-            return clazz;
-        }
+            // search in imported packages
+            String simpleName = name.getTypeName();
+            FullTypeName imported = resolveImportAlias(simpleName);
+            if (imported != null && (clazz = fullyNamedTypes.get(imported)) != null) {
+                reason = "imported";
+                break;
+            }
 
-        // search in same package
-        if (!Strings.isNullOrEmpty(packageScope) &&
-                (clazz = fullyNamedTypes.get(FullTypeName.of(packageScope, simpleName))) != null) {
-            return clazz;
-        }
+            // search in same package
+            if (!Strings.isNullOrEmpty(packageScope) &&
+                    (clazz = fullyNamedTypes.get(FullTypeName.of(packageScope, simpleName))) != null) {
+                reason = "same package";
+                break;
+            }
 
-        // search in default package
-        return fullyNamedTypes.get(name);
+            // search in default package
+            clazz = fullyNamedTypes.get(name);
+            if (clazz != null) {
+                reason = "default package";
+                break;
+            }
+        } while (false);
+
+        if (clazz != null) {
+            LOG.debug("Resolved " + name + " to " + clazz.getHandle() + " (" + reason + ")");
+        } else {
+            LOG.debug("Failed to resolve " + name);
+        }
+        return clazz;
     }
 
     public void registerClassType(ClassType classType) {
@@ -174,7 +196,13 @@ public class SymbolTable {
     }
 
     private FullTypeName resolveImportAlias(String alias) {
-        FullTypeName ret = imports.get(alias);
-        return ret;
+        FullTypeName result = imports.get(alias);
+        if (result == null) {
+            LOG.debug("Cannot resolve import alias " + alias);
+            return null;
+        } else {
+            LOG.debug("Resolved import alias " + alias + " to " + result);
+        }
+        return result;
     }
 }

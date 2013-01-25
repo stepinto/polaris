@@ -11,6 +11,8 @@ import japa.parser.ast.body.AnnotationDeclaration;
 import japa.parser.ast.body.ClassOrInterfaceDeclaration;
 import japa.parser.ast.body.EnumDeclaration;
 import japa.parser.ast.visitor.VoidVisitorAdapter;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,6 +23,9 @@ import static com.codingstory.polaris.parser.ParserUtils.nodeSpan;
 
 /** Extracts full type names with assigned type ids. */
 public class FirstPassProcessor {
+
+    private static final Log LOG = LogFactory.getLog(FirstPassProcessor.class);
+
     public static class Result {
         private final String pkg;
 
@@ -85,6 +90,7 @@ public class FirstPassProcessor {
                     typeName = FullTypeName.of(pkg, typeStack.getFirst().getName().getTypeName() + "$" + name);
                 }
                 TypeHandle handle = new TypeHandle(idGenerator.next(), typeName);
+                LOG.debug("Allocated type handle: " + handle);
                 ClassType clazz = new ClassType(
                         handle, kind, EnumSet.noneOf(Modifier.class),  null, new JumpTarget(fileId, span));
                 typeStack.push(handle);
