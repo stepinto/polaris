@@ -64,20 +64,51 @@ html, body {
 .source {
     @leftWidth: 250px;
     @rightWidth: 250px;
+    @navHeight: 40px;
+
+    position: absolute;
+    top: @navHeight;
+    bottom: 0;
+    left: 0;
+    right: 0;
 
     .left {
         float: left;
         width: @leftWidth;
+        height: 100%;
         overflow: auto;
     }
     .right {
         float: right;
         width: @rightWidth;
+        height: 100%;
         overflow: auto;
     }
     .main {
-        margin-left: @leftWidth;
-        margin-right: @rightWidth;
+        @bottomHeight: 150px;
+
+        position: absolute;
+        left: @leftWidth;
+        right: @rightWidth;
+        top: 0;
+        bottom: 0;
+        overflow: auto;
+
+        .main-top {
+            position: absolute;
+            top: 0px;
+            bottom: @bottomHeight;
+            left: 0;
+            right: 0;
+            overflow: auto;
+        }
+        .main-bottom {
+            position: absolute;
+            height: @bottomHeight;
+            bottom: 0px;
+            left: 0;
+            right: 0;
+        }
     }
 }
 
@@ -91,18 +122,27 @@ html, body {
 }
 
 .panel {
+    @headerHeight: 20px;
     border: 1px solid silver;
+    height: 100%;
+    position: relative;
   
     .header {
         background-color: #f7f7f7;
         border-bottom: 1px solid #ebebeb;
+        height: @headerHeight;
     }
 
     .body {
-        .usage {
-            list-style-type: none;
-
-        }
+        position: absolute;
+        top: @headerHeight;
+        bottom: 0px;
+        overflow: auto;
     }
 }
 
+.xref-box {
+    .usage {
+        list-style-type: none;
+    }
+}

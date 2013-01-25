@@ -47,19 +47,47 @@ body {
 .search-box .choice-box .active {
   background-color: #EEE;
 }
+.source {
+  position: absolute;
+  top: 40px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
 .source .left {
   float: left;
   width: 250px;
+  height: 100%;
   overflow: auto;
 }
 .source .right {
   float: right;
   width: 250px;
+  height: 100%;
   overflow: auto;
 }
 .source .main {
-  margin-left: 250px;
-  margin-right: 250px;
+  position: absolute;
+  left: 250px;
+  right: 250px;
+  top: 0;
+  bottom: 0;
+  overflow: auto;
+}
+.source .main .main-top {
+  position: absolute;
+  top: 0px;
+  bottom: 150px;
+  left: 0;
+  right: 0;
+  overflow: auto;
+}
+.source .main .main-bottom {
+  position: absolute;
+  height: 150px;
+  bottom: 0px;
+  left: 0;
+  right: 0;
 }
 .project-tree .java-file,
 .project-tree .dir {
@@ -67,11 +95,20 @@ body {
 }
 .panel {
   border: 1px solid silver;
+  height: 100%;
+  position: relative;
 }
 .panel .header {
   background-color: #f7f7f7;
   border-bottom: 1px solid #ebebeb;
+  height: 20px;
 }
-.panel .body .usage {
+.panel .body {
+  position: absolute;
+  top: 20px;
+  bottom: 0px;
+  overflow: auto;
+}
+.xref-box .usage {
   list-style-type: none;
 }

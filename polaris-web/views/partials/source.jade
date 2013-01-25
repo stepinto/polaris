@@ -6,5 +6,10 @@
   .right
     p right
   .main
-    code-view(ng-hide='loading', code='sourceCodeAnnotation', find-usages="findUsages(typeId)", goToDefinition="goToDefinition(typeId)")
-    xref-box(type-id="xrefTypeId")
+    .main-top
+     code-view(ng-hide='loading', code='sourceCodeAnnotation', find-usages="findUsages(typeId)", goToDefinition="goToDefinition(typeId)")
+    .panel.main-bottom
+      .header
+        span xref
+      .body
+        xref-box(type-id="xrefTypeId")
