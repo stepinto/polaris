@@ -44,7 +44,7 @@ public class Search {
                 for (THit hit : resp.getHits()) {
                     System.out.printf("%d: %d %s/%s (%.2f)\n",
                             i++,
-                            hit.getJumpTarget().getFileId(),
+                            hit.getJumpTarget().getFile().getId(),
                             hit.getProject(),
                             hit.getPath(),
                             hit.getScore());

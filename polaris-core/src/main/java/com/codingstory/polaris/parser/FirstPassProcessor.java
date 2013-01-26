@@ -40,13 +40,13 @@ public class FirstPassProcessor {
 
     private static class FirstPassVisitor extends VoidVisitorAdapter<Void> {
         private String pkg = "";
-        private long fileId;
+        private final FileHandle file;
         private final IdGenerator idGenerator;
         private final LinkedList<TypeHandle> typeStack = Lists.newLinkedList();
         private final SymbolTable symbolTable;
 
-        private FirstPassVisitor(long fileId, IdGenerator idGenerator, SymbolTable symbolTable) {
-            this.fileId = IdUtils.checkValid(fileId);
+        private FirstPassVisitor(FileHandle file, IdGenerator idGenerator, SymbolTable symbolTable) {
+            this.file = Preconditions.checkNotNull(file);
             this.idGenerator = Preconditions.checkNotNull(idGenerator);
             this.symbolTable = Preconditions.checkNotNull(symbolTable);
         }
@@ -92,7 +92,7 @@ public class FirstPassProcessor {
                 TypeHandle handle = new TypeHandle(idGenerator.next(), typeName);
                 LOG.debug("Allocated type handle: " + handle);
                 ClassType clazz = new ClassType(
-                        handle, kind, EnumSet.noneOf(Modifier.class),  null, new JumpTarget(fileId, span));
+                        handle, kind, EnumSet.noneOf(Modifier.class),  null, new JumpTarget(file, span));
                 typeStack.push(handle);
                 symbolTable.registerClassType(clazz);
             } catch (IOException e) {
@@ -105,9 +105,9 @@ public class FirstPassProcessor {
         }
     }
 
-    public static Result process(long fileId, InputStream in, IdGenerator idGenerator, SymbolTable symbolTable) throws IOException {
+    public static Result process(FileHandle file, InputStream in, IdGenerator idGenerator, SymbolTable symbolTable) throws IOException {
         FirstPassVisitor visitor = new FirstPassVisitor(
-                IdUtils.checkValid(fileId),
+                Preconditions.checkNotNull(file),
                 Preconditions.checkNotNull(idGenerator),
                 Preconditions.checkNotNull(symbolTable));
         ParserUtils.safeVisit(in, visitor);

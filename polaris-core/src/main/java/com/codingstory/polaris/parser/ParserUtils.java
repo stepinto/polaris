@@ -1,6 +1,5 @@
 package com.codingstory.polaris.parser;
 
-import com.codingstory.polaris.IdUtils;
 import com.codingstory.polaris.JumpTarget;
 import com.codingstory.polaris.SkipCheckingExceptionWrapper;
 import com.google.common.base.Preconditions;
@@ -43,8 +42,7 @@ public final class ParserUtils {
         return new Span(from, to);
     }
 
-    public static JumpTarget nodeJumpTarget(long fileId, Node node) {
-        IdUtils.checkValid(fileId);
-        return new JumpTarget(fileId, nodeSpan(node));
+    public static JumpTarget nodeJumpTarget(FileHandle file, Node node) {
+        return new JumpTarget(Preconditions.checkNotNull(file), nodeSpan(node));
     }
 }

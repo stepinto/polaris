@@ -274,16 +274,16 @@ public class TwoPassProcessorsTest {
     */
 
     public static SecondPassProcessor.Result extractFromCode(String code) throws IOException {
-        long fakeFileId = 100;
+        FileHandle fakeFile = new FileHandle(100L, "project", "/file");
         SymbolTable symbolTable = new SymbolTable();
         FirstPassProcessor.Result result = FirstPassProcessor.process(
-                fakeFileId,
+                fakeFile,
                 new ByteArrayInputStream(code.getBytes()),
                 ID_GENERATOR,
                 symbolTable);
         return SecondPassProcessor.extract(
                 TEST_PROJECT,
-                fakeFileId,
+                fakeFile,
                 new ByteArrayInputStream(code.getBytes()),
                 symbolTable,
                 ID_GENERATOR,

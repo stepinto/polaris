@@ -5,7 +5,9 @@ import com.codingstory.polaris.SimpleIdGenerator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.io.Files;
 import org.apache.commons.io.IOUtils;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
@@ -58,8 +60,15 @@ public class ProjectParserTest {
         }
     }
 
+    private static File tempDir;
     private static final String PROJECT_NAME = "TestProject";
     private static final IdGenerator ID_GENERATOR = new SimpleIdGenerator();
+
+    @Before
+    public void setUp() throws Exception {
+        tempDir = Files.createTempDir();
+        tempDir.deleteOnExit();
+    }
 
     @Test
     public void testSingleFile() throws IOException {
@@ -168,6 +177,7 @@ public class ProjectParserTest {
         parser.setAnnotatedSourceCollector(collector);
         parser.setProjectName(PROJECT_NAME);
         parser.setIdGenerator(ID_GENERATOR);
+        parser.setProjectBaseDirectory(tempDir);
         for (String source : sources) {
             parser.addSourceFile(createFile(source));
         }
@@ -176,7 +186,7 @@ public class ProjectParserTest {
     }
 
     private static File createFile(String content) throws IOException {
-        File file = File.createTempFile("test", ".java");
+        File file = File.createTempFile("test", ".java", tempDir);
         file.deleteOnExit();
         OutputStream out = new FileOutputStream(file);
         try {

@@ -48,7 +48,7 @@ public class TypeDbWriterImpl implements TypeDbWriter {
                     Field.Store.YES, Field.Index.ANALYZED));
             document.add(new Field(TypeDbIndexedField.TYPE_ACRONYM_CASE_INSENSITIVE,
                     getAcronym(typeName.getTypeName()).toLowerCase(), Field.Store.YES, Field.Index.ANALYZED));
-            document.add(new Field(TypeDbIndexedField.FILE_ID, String.valueOf(type.getJumpTarget().getFileId()),
+            document.add(new Field(TypeDbIndexedField.FILE_ID, String.valueOf(type.getJumpTarget().getFile().getId()),
                     Field.Store.YES, Field.Index.ANALYZED));
             for (com.codingstory.polaris.parser.Field field : type.getFields()) {
                 document.add(new Field(TypeDbIndexedField.FIELD_ID, String.valueOf(field.getHandle().getId()),

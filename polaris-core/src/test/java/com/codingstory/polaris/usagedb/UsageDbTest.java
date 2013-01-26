@@ -1,6 +1,7 @@
 package com.codingstory.polaris.usagedb;
 
 import com.codingstory.polaris.JumpTarget;
+import com.codingstory.polaris.parser.FileHandle;
 import com.codingstory.polaris.parser.FullTypeName;
 import com.codingstory.polaris.parser.Position;
 import com.codingstory.polaris.parser.Span;
@@ -34,14 +35,15 @@ public class UsageDbTest {
         UsageDbWriter w = new UsageDbWriterImpl(tempDir);
         long typeId = 100L;
         long fileId = 200L;
+        FileHandle file = new FileHandle(fileId, "project", "/filename");
         TypeHandle handle = new TypeHandle(typeId, FullTypeName.of("MyClass"));
         TypeUsage usage1 = new TypeUsage(
                 handle,
-                new JumpTarget(fileId, new Span(new Position(0, 10), new Position(0, 20))),
+                new JumpTarget(file, new Span(new Position(0, 10), new Position(0, 20))),
                 TypeUsage.Kind.METHOD_SIGNATURE);
         TypeUsage usage2 = new TypeUsage(
                 handle,
-                new JumpTarget(fileId, new Span(new Position(0, 20), new Position(0, 30))),
+                new JumpTarget(file, new Span(new Position(0, 20), new Position(0, 30))),
                 TypeUsage.Kind.METHOD_SIGNATURE);
         w.write(usage1);
         w.write(usage2);

@@ -46,6 +46,7 @@ public class ProjectParser {
     private static class Task {
         File file;
         long fileId;
+        String path;
     }
 
     /** Resolves type references at project level. */
@@ -110,10 +111,12 @@ public class ProjectParser {
 
     public void addSourceFile(File file) {
         Preconditions.checkNotNull(file);
-        Task sf = new Task();
-        sf.file = file;
-        sf.fileId = -1;
-        tasks.add(sf);
+        Preconditions.checkNotNull(baseDir, "Need to call setProjectBaseDirectory() first");
+        Task task = new Task();
+        task.file = file;
+        task.fileId = -1;
+        task.path = StringUtils.removeStart(file.getAbsolutePath(), baseDir.getAbsolutePath());
+        tasks.add(task);
     }
 
     public void setProjectBaseDirectory(File baseDir) {
@@ -169,7 +172,11 @@ public class ProjectParser {
         InputStream in = new FileInputStream(task.file);
         try {
             long fileId = task.fileId;
-            FirstPassProcessor.Result result = FirstPassProcessor.process(fileId, in, idGenerator, symbolTable);
+            FirstPassProcessor.Result result = FirstPassProcessor.process(
+                    new FileHandle(fileId, projectName, task.path),
+                    in,
+                    idGenerator,
+                    symbolTable);
             firstPassResults.put(fileId, result);
         } finally {
             IOUtils.closeQuietly(in);
@@ -186,7 +193,7 @@ public class ProjectParser {
         }
         SecondPassProcessor.Result result = SecondPassProcessor.extract(
                 projectName,
-                fileId,
+                new FileHandle(fileId, projectName, task.path),
                 new ByteArrayInputStream(content),
                 symbolTable,
                 idGenerator,
@@ -198,14 +205,8 @@ public class ProjectParser {
         usageCollector.collectUsage(task.file, usages);
 
         String annotatedSource = SourceAnnotator.annotate(new ByteArrayInputStream(content), usages);
-        String path;
-        if (baseDir != null) {
-            path = StringUtils.removeStart(task.file.getAbsolutePath(), baseDir.getAbsolutePath());
-        } else {
-            path = task.file.getPath();
-        }
         annotatedSourceCollector.collectSource(new SourceFile(
-                new FileHandle(fileId, projectName, path),
+                new FileHandle(fileId, projectName, task.path),
                 new String(content),
                 annotatedSource));
     }

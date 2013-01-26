@@ -56,7 +56,7 @@ public class SearchMixer {
     private THit classTypeToHit(ClassType type) throws IOException {
         THit hit = new THit();
         JumpTarget jumpTarget = type.getJumpTarget();
-        SourceFile source = sourceDb.querySourceById(jumpTarget.getFileId());
+        SourceFile source = sourceDb.querySourceById(jumpTarget.getFile().getId());
         hit.setProject(source.getProject());
         hit.setPath(source.getPath());
         hit.setJumpTarget(jumpTarget.toThrift());

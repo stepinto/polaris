@@ -1,10 +1,12 @@
 package com.codingstory.polaris.cli.command;
 
+import com.codingstory.polaris.JumpTarget;
 import com.codingstory.polaris.cli.Command;
 import com.codingstory.polaris.cli.CommandUtils;
 import com.codingstory.polaris.cli.Help;
 import com.codingstory.polaris.cli.Option;
 import com.codingstory.polaris.cli.Run;
+import com.codingstory.polaris.parser.FileHandle;
 import com.codingstory.polaris.parser.TTypeUsage;
 import com.codingstory.polaris.parser.TypeUsage;
 import com.codingstory.polaris.search.TCodeSearchService;
@@ -47,8 +49,10 @@ public class FindUsages {
                 checkStatus(listUsageResp.getStatus());
                 for (TTypeUsage t : listUsageResp.getUsages()) {
                     TypeUsage usage = TypeUsage.createFromThrift(t);
-                    System.out.println(usage.getKind().name() + ": file #" + usage.getJumpTarget().getFileId() +
-                            ":" + usage.getJumpTarget().getSpan().getFrom().getLine());
+                    JumpTarget target = usage.getJumpTarget();
+                    FileHandle file = target.getFile();
+                    System.out.println(usage.getKind().name() + ": file #" + file.getId() + " " + file.getPath() +
+                            ":" + target.getSpan().getFrom().getLine());
                 }
             }
         });

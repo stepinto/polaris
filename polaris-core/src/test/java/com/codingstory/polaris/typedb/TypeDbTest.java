@@ -6,6 +6,7 @@ import com.codingstory.polaris.SimpleIdGenerator;
 import com.codingstory.polaris.parser.ClassType;
 import com.codingstory.polaris.parser.Field;
 import com.codingstory.polaris.parser.FieldHandle;
+import com.codingstory.polaris.parser.FileHandle;
 import com.codingstory.polaris.parser.FullMemberName;
 import com.codingstory.polaris.parser.FullTypeName;
 import com.codingstory.polaris.parser.Method;
@@ -34,7 +35,8 @@ import static org.junit.Assert.assertNull;
 
 public class TypeDbTest {
     private static final IdGenerator ID_GENERATOR = new SimpleIdGenerator();
-    static final long FAKE_FILE_ID = 100L;
+    private static final FileHandle FAKE_FILE = new FileHandle(100L, "project", "/somefile");
+    private static final FileHandle FAKE_FILE2 = new FileHandle(101L, "project", "/anotherfile");
     private File tempDir;
 
     @Before
@@ -118,12 +120,12 @@ public class TypeDbTest {
     @Test
     public void testQueryInFile() throws IOException {
         TypeDbWriter w = new TypeDbWriterImpl(tempDir);
-        w.write(createClassInFile(FullTypeName.of("A"), 1000L));
-        w.write(createClassInFile(FullTypeName.of("B"), 1000L));
-        w.write(createClassInFile(FullTypeName.of("C"), 1001L));
+        w.write(createClassInFile(FullTypeName.of("A"), FAKE_FILE));
+        w.write(createClassInFile(FullTypeName.of("B"), FAKE_FILE));
+        w.write(createClassInFile(FullTypeName.of("C"), FAKE_FILE2));
         w.close();
         TypeDb r = new TypeDbImpl(tempDir);
-        List<ClassType> types = r.getTypesInFile(1000L, Integer.MAX_VALUE);
+        List<ClassType> types = r.getTypesInFile(FAKE_FILE.getId(), Integer.MAX_VALUE);
         assertEquals(ImmutableSet.of(FullTypeName.of("A"), FullTypeName.of("B")),
                 ImmutableSet.copyOf(getFullTypeNames(types)));
     }
@@ -200,15 +202,15 @@ public class TypeDbTest {
                 ClassType.Kind.CLASS,
                 EnumSet.noneOf(Modifier.class),
                 null,
-                new JumpTarget(FAKE_FILE_ID, Span.ZERO));
+                new JumpTarget(FAKE_FILE, Span.ZERO));
     }
 
-    private static ClassType createClassInFile(FullTypeName type, long fileId) throws IOException {
+    private static ClassType createClassInFile(FullTypeName type, FileHandle file) throws IOException {
         return new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
                 ClassType.Kind.CLASS,
                 EnumSet.noneOf(Modifier.class),
                 null,
-                new JumpTarget(fileId, Span.ZERO));
+                new JumpTarget(file, Span.ZERO));
     }
 
     private ClassType createClassWithOneField(FullTypeName type, String fieldName) throws IOException {
@@ -216,12 +218,12 @@ public class TypeDbTest {
                 new FieldHandle(ID_GENERATOR.next(), FullMemberName.of(type, fieldName)),
                 PrimitiveType.INTEGER.getHandle(),
                 EnumSet.noneOf(Modifier.class),
-                new JumpTarget(FAKE_FILE_ID, Span.ZERO));
+                new JumpTarget(FAKE_FILE, Span.ZERO));
         ClassType clazz = new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
                 ClassType.Kind.CLASS,
                 EnumSet.noneOf(Modifier.class),
                 null,
-                new JumpTarget(FAKE_FILE_ID, Span.ZERO));
+                new JumpTarget(FAKE_FILE, Span.ZERO));
         clazz.addField(field);
         return clazz;
     }
@@ -234,12 +236,12 @@ public class TypeDbTest {
                 ImmutableList.<Method.Parameter>of(),
                 ImmutableList.<TypeHandle>of(),
                 EnumSet.noneOf(Modifier.class),
-                new JumpTarget(FAKE_FILE_ID, Span.ZERO));
+                new JumpTarget(FAKE_FILE, Span.ZERO));
         ClassType clazz = new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
                 ClassType.Kind.CLASS,
                 EnumSet.noneOf(Modifier.class),
                 null,
-                new JumpTarget(FAKE_FILE_ID, Span.ZERO));
+                new JumpTarget(FAKE_FILE, Span.ZERO));
         clazz.addMethod(method);
         return clazz;
     }

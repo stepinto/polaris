@@ -11,21 +11,22 @@ struct TSpan {
     2: TPosition to;
 }
 
+struct TFileHandle {
+    1: i64 id;
+    2: string project;
+    3: string path;
+}
+
 struct TJumpTarget {
-    1: i64 fileId;
+    4: TFileHandle file;
     3: TSpan span;
+    // OBSOLETED 1: i64 fileId;
     // OBSOLETED 2: TPosition position;
 }
 
 struct TTypeHandle {
     1: i64 id;
     2: string name;
-}
-
-struct TFileHandle {
-    1: i64 id;
-    2: string project;
-    3: string path;
 }
 
 struct TFieldHandle {
