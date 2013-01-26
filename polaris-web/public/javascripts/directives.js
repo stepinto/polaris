@@ -35,7 +35,7 @@ angular.module('polarisDirectives', ['polarisServices'])
                   "index": i,
                   "display": hit.queryHint,
                   "path": hit.project + hit.path,
-                  "url": "source/?file=" + hit.jumpTarget.fileId + "&line=" + hit.jumpTarget.span.from.line
+                  "url": "source/?file=" + hit.jumpTarget.file.id + "&line=" + hit.jumpTarget.span.from.line
                 });
               }
             }
@@ -277,7 +277,7 @@ angular.module('polarisDirectives', ['polarisServices'])
             scope.usages = resp.usages;
             for (var i = 0; i < scope.usages.length; i++) {
               var usage = scope.usages[i];
-              usage.url = LinkBuilder.source(usage.jumpTarget.fileId, usage.jumpTarget.span.from.line);
+              usage.url = LinkBuilder.source(usage.jumpTarget.file.id, usage.jumpTarget.span.from.line);
             }
             scope.loading = false;
           });
