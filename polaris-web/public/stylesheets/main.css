@@ -107,6 +107,7 @@ body {
   position: absolute;
   top: 20px;
   bottom: 0px;
+  width: 100%;
   overflow: auto;
 }
 .xref-box .usage {
