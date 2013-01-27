@@ -214,7 +214,7 @@ angular.module('polarisDirectives', ['polarisServices'])
                 'go-to-definition="goToDefinitionInternal(typeId)" ')
               .replace("<source>", "")
               .replace("</source>", "");
-            scope.codeHtml = value;
+            value = prettyPrintOne(value);
             var pre = angular.element(Utils.getLast(element.children()));
             pre.html(value);
             $compile(pre.contents())(scope);
