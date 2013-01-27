@@ -1,4 +1,35 @@
-extends layout/default
-
-block content
-  div(ng-view)
+doctype 5
+html(ng-app='polaris')
+  head
+    title= title
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    block style
+      link(rel='stylesheet', href='/stylesheets/main.css')
+      link(rel='stylesheet', href='/stylesheets/bootstrap.min.css')
+      link(rel='stylesheet', href='/stylesheets/bootstrap-responsive.min.css')
+      link(rel='search', type='application/opensearchdescription+xml', href='/opensearch/opensearch.xml')
+    block script
+      script(src='/javascripts/jquery.min.js')
+      script(src='/javascripts/bootstrap.min.js')
+      script(src='/javascripts/angular.min.js')
+      script(src='/javascripts/app.js')
+      script(src='/javascripts/services.js')
+      script(src='/javascripts/controllers.js')
+      script(src='/javascripts/directives.js')
+  body
+    .page
+      .header
+        .navbar.navbar-inverse.navbar-fixed-top
+          .navbar-inner
+            .container
+              a.btn.btn-navbar(type='button', data-toggle='collapse', data-target=".nav-collapse")
+                span.icon-bar
+                span.icon-bar
+                span.icon-bar
+              a.brand(href="#") Polaris
+              .nav-collapse.collapse
+                ul.nav
+                  li
+                    a(href="#") Home
+      .body
+        div(ng-view)
