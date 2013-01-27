@@ -40,6 +40,17 @@ angular.module('polarisServices', [])
       'startsWith': function(s, t) {
         return s.indexOf(t) == 0;
       },
+      'endsWith': function(s, t) {
+        return s.lastIndexOf(t) + t.length == s.length;
+      },
+      'getFirst': function(a) {
+        if (a.length == 0) {
+          return true;
+        }
+        else {
+          return a[0];
+        }
+      },
       'getLast': function(a) {
         if (a.length == 0) {
           return null;
@@ -71,6 +82,9 @@ angular.module('polarisServices', [])
         var pos = -1;
         var count = 0;
         while ((pos = s.indexOf('\n', pos + 1)) != -1) {
+          count++;
+        }
+        if (!this.endsWith(s, '\n')) {
           count++;
         }
         return count;

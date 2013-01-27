@@ -161,23 +161,38 @@ html, body {
 }
 
 .code-view {
-    @lineNoColumnWidth: auto;
-    .line-no-column {
-        float: left;
-        width: @lineNoColumnWidth;
-        margin-left: 10px;
-        margin-right: 10px;
-        .line-no-row {
-            list-style-type: none;
-            text-align: right;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    
+    .code-view-inner {
+        @lineNoColumnWidth: auto;
+        .line-no-column {
+            float: left;
+            width: @lineNoColumnWidth;
+            margin-left: 5px;
+            margin-right: 5px;
+            .line-no-row {
+                list-style-type: none;
+                text-align: right;
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+            .highlighted-row {
+                font-weight: bold;
+                background-color: #0088cc;
+                color: white;
+                border-radius: 5px;
+            }
         }
-    }
-    .code-column {
-        margin-top: 10px;
-        white-space: pre;
-        word-wrap: normal;
-        background: white;
-        border: none;
-        padding: 0;
+        .code-column {
+            margin-top: 10px;
+            white-space: pre;
+            word-wrap: normal;
+            background: white;
+            border: none;
+            padding: 0;
+        }
     }
 }

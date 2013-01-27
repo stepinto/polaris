@@ -36,6 +36,7 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
         $scope.sourceCodeAnnotation = resp.source.annotatedSource;
         $scope.project = resp.source.handle.project;
         $scope.path = resp.source.handle.path;
+        $scope.highlightedLine = $routeParams.line;
     };
     if ($routeParams.project && $routeParams.path) {
         CodeSearch.readSourceByPath($routeParams.project, $routeParams.path, callback);

@@ -1,5 +1,6 @@
 .code-view
-  ul.line-no-column
-    li.line-no-row(ng-repeat = "lineNoLabel in lineNoLabels")
-      span {{lineNoLabel}}
-  pre.code-column
+  .code-view-inner
+    ul.line-no-column
+      li.line-no-row(ng-repeat = "line in lines", ng-class = "{'highlighted-row': line == highlightedLine}")
+        span {{line + 1}}
+    pre.code-column

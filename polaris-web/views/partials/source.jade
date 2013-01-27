@@ -7,7 +7,7 @@
     p right
   .main
     .main-top
-     code-view(ng-hide='loading', code='sourceCodeAnnotation', find-usages="findUsages(typeId)", goToDefinition="goToDefinition(typeId)")
+     code-view(ng-hide='loading', code='sourceCodeAnnotation', find-usages="findUsages(typeId)", goToDefinition="goToDefinition(typeId)", highlighted-line='highlightedLine')
     .panel.main-bottom
       .header
         span xref

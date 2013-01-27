@@ -202,11 +202,14 @@ angular.module('polarisDirectives', ['polarisServices'])
         findUsages: '&',
         goToDefinition: '&',
         code: '=',
+        highlightedLine: '=',
       },
       replace: true,
       link: function(scope, element, attrs) {
+        scope.lines = [];
         scope.$watch('code', function(value) {
           if (value) {
+            // Bind nested directievs.
             value = value
               .replace(
                 /<type-usage /g,
@@ -215,15 +218,23 @@ angular.module('polarisDirectives', ['polarisServices'])
               .replace("<source>", "")
               .replace("</source>", "");
             value = prettyPrintOne(value);
-            var pre = angular.element(Utils.getLast(element.children()));
+            var pre = angular.element(Utils.getFirst(element.find(".code-column")));
             pre.html(value);
             $compile(pre.contents())(scope);
 
-            scope.lineNoLabels = [];
+            // Set up line numbers.
+            scope.lines = [];
             var lineCount = Utils.countLines(value);
             for (var i = 0; i < lineCount; i++) {
-              scope.lineNoLabels.push(i + 1);
+              scope.lines.push(i);
             }
+
+            // Scroll to highlighted line.
+            setTimeout(function() {
+              var l = scope.highlightedLine;
+              if (l > 3) { l -= 3; }
+              element.scrollTop(l * 20);
+            });
           }
         });
         scope.findUsagesInternal = function(typeId) {
