@@ -66,6 +66,14 @@ angular.module('polarisServices', [])
         } else {
           return s;
         }
+      },
+      'countLines': function(s) {
+        var pos = -1;
+        var count = 0;
+        while ((pos = s.indexOf('\n', pos + 1)) != -1) {
+          count++;
+        }
+        return count;
       }
     };
   })

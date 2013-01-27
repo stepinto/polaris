@@ -122,3 +122,21 @@ body {
 .xref-box .usage {
   list-style-type: none;
 }
+.code-view .line-no-column {
+  float: left;
+  width: auto;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+.code-view .line-no-column .line-no-row {
+  list-style-type: none;
+  text-align: right;
+}
+.code-view .code-column {
+  margin-top: 10px;
+  white-space: pre;
+  word-wrap: normal;
+  background: white;
+  border: none;
+  padding: 0;
+}

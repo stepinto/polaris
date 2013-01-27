@@ -1,2 +1,5 @@
-pre.code-view
-  div(ng-bind-html="codeHtml")
+.code-view
+  ul.line-no-column
+    li.line-no-row(ng-repeat = "lineNoLabel in lineNoLabels")
+      span {{lineNoLabel}}
+  pre.code-column

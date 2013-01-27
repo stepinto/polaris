@@ -159,3 +159,25 @@ html, body {
         list-style-type: none;
     }
 }
+
+.code-view {
+    @lineNoColumnWidth: auto;
+    .line-no-column {
+        float: left;
+        width: @lineNoColumnWidth;
+        margin-left: 10px;
+        margin-right: 10px;
+        .line-no-row {
+            list-style-type: none;
+            text-align: right;
+        }
+    }
+    .code-column {
+        margin-top: 10px;
+        white-space: pre;
+        word-wrap: normal;
+        background: white;
+        border: none;
+        padding: 0;
+    }
+}

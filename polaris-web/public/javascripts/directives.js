@@ -194,7 +194,7 @@ angular.module('polarisDirectives', ['polarisServices'])
   //
   // Usage:
   //   <code-view code="..." find-usages="f(typeId)" go-to-definition="g(typeId)" />
-  .directive('codeView', function($compile) {
+  .directive('codeView', function($compile, Utils) {
     return {
       restrict: 'E',
       templateUrl: 'partials/code-view',
@@ -207,13 +207,23 @@ angular.module('polarisDirectives', ['polarisServices'])
       link: function(scope, element, attrs) {
         scope.$watch('code', function(value) {
           if (value) {
-            value = value.replace(
-              /<type-usage /g,
-              '<type-usage find-usages="findUsagesInternal(typeId)" go-to-definition="goToDefinitionInternal(typeId)" ');
-            element.html(value
-              .replace("<source>", "<div>")
-              .replace("</source>", "</div>"));
-            $compile(element.contents())(scope);
+            value = value
+              .replace(
+                /<type-usage /g,
+                '<type-usage find-usages="findUsagesInternal(typeId)" ' +
+                'go-to-definition="goToDefinitionInternal(typeId)" ')
+              .replace("<source>", "")
+              .replace("</source>", "");
+            scope.codeHtml = value;
+            var pre = angular.element(Utils.getLast(element.children()));
+            pre.html(value);
+            $compile(pre.contents())(scope);
+
+            scope.lineNoLabels = [];
+            var lineCount = Utils.countLines(value);
+            for (var i = 0; i < lineCount; i++) {
+              scope.lineNoLabels.push(i + 1);
+            }
           }
         });
         scope.findUsagesInternal = function(typeId) {
