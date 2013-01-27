@@ -8,19 +8,20 @@ function IndexCtrl($scope, $location) {
     };
 }
 
-function SearchCtrl($scope, $routeParams, CodeSearch) {
+function SearchCtrl($scope, $routeParams, CodeSearch, LinkBuilder) {
     $scope.query = ($routeParams.query ? $routeParams.query : "");
     $scope.loading = false;
     $scope.search = function () {
-        console.log("search");
         if ($scope.query == "") {
             return;
         }
         $scope.loading = true;
         CodeSearch.search($scope.query, 0, 20, function (resp) {
-            console.log("resp = ", resp);
             $scope.loading = false;
             $scope.results = resp.hits;
+            $.each($scope.results, function(i, hit) {
+              hit.url = LinkBuilder.source(hit.jumpTarget.file.id, hit.jumpTarget.span.from.line);
+            });
             $scope.latency = resp.latency;
             $scope.count = resp.count;
         });
@@ -58,6 +59,7 @@ function GoToTypeCtrl($routeParams, CodeSearch, LinkBuilder, Utils, $location) {
         var target = resp.classType.jumpTarget;
         var url = LinkBuilder.source(target.file.id, target.span.from.line);
         $location.url(Utils.removeStart(url, '#'));
+        $location.replace();
     });
 }
 

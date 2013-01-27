@@ -6,5 +6,5 @@ div
   p Latency: {{latency}}
   ul
     li(ng-repeat='hit in results')
-      a(ng-href='#/source/?file={{hit.jumpTarget.fileId}}&line={{hit.jumpTarget.position.line}}') {{hit.project + hit.path}}
+      a(ng-href="{{hit.url}}") {{hit.project + hit.path}}
       pre {{hit.summary}}
