@@ -256,22 +256,17 @@ public class TwoPassProcessorsTest {
     }
 
     // TODO: testField_multiple
-    /*
     @Test
     public void testLocalVariable() throws IOException {
-        String code = "package pkg; class A { void f() { int n; } }";
-        List<Token> tokens = extractFromCode(code);
-        LocalVariableDeclaration var = (LocalVariableDeclaration)
-                findUniqueTokenOfClass(tokens, Token.Kind.LOCAL_VARIABLE_DECLARATION);
-        assertEquals(new Span(new Position(0, 38), new Position(0, 39)), var.getSpan());
-        assertEquals(FullLocalName.of("pkg.A.f.n"), var.getName());
-        assertEquals("n", var.getVariableName());
-        assertEquals("int", var.getTypeReference().getUnqualifiedName());
+        String code = "package pkg; class A { void f() { B n; } }";
+        TypeUsage usage = findUniqueTypeUsageByKind(
+                extractFromCode(code).getUsages(), TypeUsage.Kind.LOCAL_VARIABLE);
+        assertEquals(FullTypeName.of("B"), usage.getType().getName());
+        // TODO: Test local variable id.
     }
 
     // TODO: testLocalVariable_multiple
     // TODO: testLocalVariable_array
-    */
 
     public static SecondPassProcessor.Result extractFromCode(String code) throws IOException {
         FileHandle fakeFile = new FileHandle(100L, "project", "/file");
