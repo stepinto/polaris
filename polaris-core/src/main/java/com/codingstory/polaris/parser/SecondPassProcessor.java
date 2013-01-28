@@ -88,7 +88,7 @@ public final class SecondPassProcessor {
             } else {
                 FullTypeName name = FullTypeName.of(node.getName().toString());
                 TypeHandle clazz = symbolTable.resolveTypeHandle(name);
-                usages.add(new TypeUsage(clazz, nodeJumpTarget(file, node), TypeUsage.Kind.IMPORT));
+                usages.add(new TypeUsage(clazz, nodeJumpTarget(file, node.getName()), TypeUsage.Kind.IMPORT));
                 symbolTable.registerImportClass(clazz);
             }
             super.visit(node, arg);
