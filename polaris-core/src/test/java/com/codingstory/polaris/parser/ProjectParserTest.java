@@ -143,14 +143,14 @@ public class ProjectParserTest {
     // TODO: testResolvedTypes_javaLang
 
     @Test
-    public void testSourceAnnotation_single() throws IOException {
+    public void testSourceAnnotation_xref1() throws IOException {
         String s = "class A { A a; }";
         String t = Iterables.getOnlyElement(extractSources(ImmutableList.of(s)));
         assertTrue(t, t.contains("<type-usage type=\"A\""));
     }
 
     @Test
-    public void testSourceAnnotation_multiple() throws IOException {
+    public void testSourceAnnotation_xref2() throws IOException {
         String s1 = "class A { B b; }";
         String s2 = "class B { A a; }";
         List<String> a1 = extractSources(ImmutableList.of(s1, s2));
@@ -159,6 +159,13 @@ public class ProjectParserTest {
         assertTrue(a1.get(1), a1.get(1).contains("<type-usage type=\"A\""));
         assertTrue(a2.get(0), a2.get(0).contains("<type-usage type=\"A\""));
         assertTrue(a2.get(1), a2.get(1).contains("<type-usage type=\"B\""));
+    }
+
+    @Test
+    public void testSourceAnnotation_declartion() throws IOException {
+        String s = "class A {}";
+        String t = Iterables.getOnlyElement(extractSources(ImmutableList.of(s)));
+        assertTrue(t, t.contains("<type-usage type=\"A\""));
     }
 
     private static List<ClassType> extractTypes(List<String> sources) throws IOException {

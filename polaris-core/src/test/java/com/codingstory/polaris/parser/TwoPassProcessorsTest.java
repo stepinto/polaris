@@ -39,7 +39,7 @@ public class TwoPassProcessorsTest {
         TypeUsage clazzDeclaration = findUniqueTypeUsageByKind(
                 result.getUsages(), TypeUsage.Kind.TYPE_DECLARATION);
         assertEquals(clazz.getHandle(), clazzDeclaration.getType());
-        assertEquals(new Span(new Position(1, 0), new Position(1, 35)), clazzDeclaration.getJumpTarget().getSpan());
+        assertEquals(new Span(new Position(1, 13), new Position(1, 20)), clazzDeclaration.getJumpTarget().getSpan());
     }
 
     @Test
@@ -128,7 +128,7 @@ public class TwoPassProcessorsTest {
         assertEquals(FullTypeName.of("pkg.E"), clazz.getName());
         TypeUsage typeDeclaration = findUniqueTypeUsageByKind(result.getUsages(), TypeUsage.Kind.TYPE_DECLARATION);
         assertEquals(clazz.getHandle(), typeDeclaration.getType());
-        assertEquals(new Span(new Position(0, 13), new Position(0, 48)), typeDeclaration.getJumpTarget().getSpan());
+        assertEquals(new Span(new Position(0, 25), new Position(0, 26)), typeDeclaration.getJumpTarget().getSpan());
     }
 
     // TODO: testEnum_public

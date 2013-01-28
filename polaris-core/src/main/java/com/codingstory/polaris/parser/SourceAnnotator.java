@@ -74,9 +74,7 @@ public class SourceAnnotator {
 
     private static boolean accepts(Usage usage) {
         if (usage instanceof TypeUsage) {
-            TypeUsage typeUsage = (TypeUsage) usage;
-            // Type declaration's span is buggy. Don't generate tags for them until we move to antlr parser.
-            return typeUsage.getKind() != TypeUsage.Kind.TYPE_DECLARATION;
+            return true;
         } else {
             return false;
         }
@@ -88,8 +86,9 @@ public class SourceAnnotator {
             TypeHandle type = typeUsage.getType();
             if (!TypeUtils.isPrimitiveTypeHandle(type)) {
                 String typeNameStr = type.getName().toString();
-                out.printf("<type-usage type=\"%s\" type-id=\"%d\" resolved=\"%s\">%s</type-usage>",
-                        escape(typeNameStr), type.getId(), Boolean.toString(type.isResolved()), escape(text));
+                out.printf("<type-usage type=\"%s\" type-id=\"%d\" resolved=\"%s\" kind=\"%d\">%s</type-usage>",
+                        escape(typeNameStr), type.getId(), Boolean.toString(type.isResolved()),
+                        typeUsage.getKind().toThrift().getValue(), escape(text));
                 LOG.debug("Render annotation: " + typeUsage);
                 return;
             }

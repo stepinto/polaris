@@ -101,7 +101,7 @@ public final class SecondPassProcessor {
                     nullToEmptyList(node.getExtends()), nullToEmptyList(node.getImplements())));
             processTypeDeclaration(node.getName(),
                     node.isInterface() ? ClassType.Kind.INTERFACE : ClassType.Kind.CLASS,
-                    nodeJumpTarget(file, node),
+                    nodeJumpTarget(file, node.getNameExpr()),
                     superTypeAsts,
                     node.getJavaDoc() != null ? node.getJavaDoc().getContent() : null,
                     new Runnable() {
@@ -147,7 +147,7 @@ public final class SecondPassProcessor {
             Preconditions.checkNotNull(node);
             processTypeDeclaration(node.getName(),
                     ClassType.Kind.ANNOTATION,
-                    nodeJumpTarget(file, node),
+                    nodeJumpTarget(file, node.getNameExpr()),
                     ImmutableList.<ClassOrInterfaceType>of(),
                     node.getJavaDoc() != null ? node.getJavaDoc().getContent() : null,
                     new Runnable() {
@@ -163,7 +163,7 @@ public final class SecondPassProcessor {
             Preconditions.checkNotNull(node);
             processTypeDeclaration(node.getName(),
                     ClassType.Kind.ENUM,
-                    nodeJumpTarget(file, node),
+                    nodeJumpTarget(file, node.getNameExpr()),
                     nullToEmptyList(node.getImplements()),
                     node.getJavaDoc() != null ? node.getJavaDoc().getContent() : null,
                     new Runnable() {
