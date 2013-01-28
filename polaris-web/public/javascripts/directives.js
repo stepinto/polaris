@@ -295,11 +295,34 @@ angular.module('polarisDirectives', ['polarisServices'])
           var typeId = value;
           scope.loading = true;
           CodeSearch.listTypeUsages(typeId, function(resp) {
-            scope.usages = resp.usages;
-            for (var i = 0; i < scope.usages.length; i++) {
-              var usage = scope.usages[i];
-              usage.url = LinkBuilder.source(usage.jumpTarget.file.id, usage.jumpTarget.span.from.line);
-            }
+            scope.usages = {
+              declarations: [],
+              fields: [],
+              methods: [],
+              imports: [],
+              misc: []
+            };
+            $.each(resp.usages, function(i, u) {
+              switch (u.kind) {
+              case 1:
+                scope.usages.imports.push(u);
+                break;
+              case 3:
+                scope.usages.methods.push(u);
+                break;
+              case 4:
+                scope.usages.fields.push(u);
+                break;
+              case 7:
+                scope.usages.declarations.push(u);
+                break;
+              default:
+                scope.usages.misc.push(u);
+                break;
+              }
+              u.url = LinkBuilder.source(u.jumpTarget.file.id, u.jumpTarget.span.from.line);
+              u.text = u.jumpTarget.file.path;
+            });
             scope.loading = false;
           });
         });
