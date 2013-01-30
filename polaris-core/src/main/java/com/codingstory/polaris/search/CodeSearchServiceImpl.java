@@ -155,7 +155,7 @@ public class CodeSearchServiceImpl implements TCodeSearchService.Iface, Closeabl
             List<ClassType> classes;
             if (req.isSetTypeId()) {
                 ClassType clazz = typeDb.getTypeById(req.getTypeId());
-                classes = ImmutableList.of(clazz);
+                classes = (clazz == null ? ImmutableList.<ClassType>of() : ImmutableList.of(clazz));
             } else if (req.isSetTypeName()) {
                 classes = typeDb.getTypeByName(
                         FullTypeName.of(req.getTypeName()),

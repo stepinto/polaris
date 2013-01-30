@@ -1,12 +1,12 @@
 package com.codingstory.polaris;
 
-import com.codingstory.polaris.indexing.IndexBuilder;
 import com.codingstory.polaris.indexing.IndexPathUtils;
 import com.codingstory.polaris.parser.ClassType;
 import com.codingstory.polaris.parser.FullTypeName;
 import com.codingstory.polaris.parser.TFileHandle;
 import com.codingstory.polaris.parser.TTypeUsage;
 import com.codingstory.polaris.parser.TypeUsage;
+import com.codingstory.polaris.pipeline.IndexPipeline;
 import com.codingstory.polaris.search.CodeSearchServiceImpl;
 import com.codingstory.polaris.search.TCodeSearchService;
 import com.codingstory.polaris.search.TGetTypeRequest;
@@ -158,10 +158,19 @@ public class CodeSearchEndToEndTest {
     }
 
     private void buildIndex(List<String> projects) throws IOException {
-        IndexBuilder indexBuilder = new IndexBuilder();
-        indexBuilder.setIndexDirectory(indexDir);
-        for (String project : projects) {
-            indexBuilder.indexDirectory(new File(tempDir, project));
+        IndexPipeline indexPipeline = null;
+        try {
+            indexPipeline = new IndexPipeline();
+            indexPipeline.setIndexDirectory(indexDir);
+            // indexPipeline.setUseMemPipeline(true);
+            for (String project : projects) {
+                indexPipeline.addProjectDirectory(new File(tempDir, project));
+            }
+            indexPipeline.run();
+        } finally {
+            if (indexPipeline != null) {
+                indexPipeline.cleanUp();
+            }
         }
     }
 }
