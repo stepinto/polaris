@@ -41,6 +41,17 @@ public class SearchMixer {
         return result;
     }
 
+    public List<THit> searchBySource(String query, int n) throws IOException {
+        // TODO: Need to merge the result to search().
+        Preconditions.checkNotNull(query);
+        Preconditions.checkArgument(n >= 0);
+        LOG.info("Query in typeDb: " + query);
+        List<THit> results = Lists.newArrayList();
+        sourceDb.querySourcesByTerm(query);
+
+        return results;
+    }
+
     public List<THit> complete(String query, int n) throws IOException {
         Preconditions.checkNotNull(query);
         Preconditions.checkArgument(n >= 0);
