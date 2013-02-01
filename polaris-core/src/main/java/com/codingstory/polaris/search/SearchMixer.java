@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Mixes and re-ranks search results from {@link com.codingstory.polaris.typedb.TypeDb}
+ * Mixes and re-ranks searchByType results from {@link com.codingstory.polaris.typedb.TypeDb}
  * and {@link com.codingstory.polaris.sourcedb.SourceDb}.
  */
 public class SearchMixer {
@@ -39,6 +39,16 @@ public class SearchMixer {
             result.add(classTypeToHit(classType));
         }
         return result;
+    }
+
+    public List<THit> searchBySource(String query, int n) throws IOException {
+        Preconditions.checkNotNull(query);
+        Preconditions.checkArgument(n >= 0);
+        LOG.info("Query in typeDb: " + query);
+        List<THit> results = Lists.newArrayList();
+        sourceDb.querySourcesByTerm(query);
+
+        return results;
     }
 
     public List<THit> complete(String query, int n) throws IOException {
