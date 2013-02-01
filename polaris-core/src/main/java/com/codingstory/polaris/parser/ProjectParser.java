@@ -137,7 +137,7 @@ public class ProjectParser {
                 if (parserOptions.isFailFast()) {
                     throw e;
                 } else {
-                    LOG.error(tasks + "," + projectName, e);
+                    LOG.debug(e);
                     stats.failedFiles++;
                 }
             }

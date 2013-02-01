@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Mixes and re-ranks search results from {@link com.codingstory.polaris.typedb.TypeDb}
+ * Mixes and re-ranks searchByType results from {@link com.codingstory.polaris.typedb.TypeDb}
  * and {@link com.codingstory.polaris.sourcedb.SourceDb}.
  */
 public class SearchMixer {
