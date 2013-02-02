@@ -45,21 +45,21 @@ public class SourceDbImpl implements SourceDb {
         Preconditions.checkNotNull(path);
         path = SourceDbUtils.fixPathForDirectory(path);
         BooleanQuery booleanQuery = new BooleanQuery();
-        booleanQuery.add(new TermQuery(new Term(SourceDbIndxedField.PROJECT_RAW, project)), BooleanClause.Occur.MUST);
-        booleanQuery.add(new TermQuery(new Term(SourceDbIndxedField.PARENT_PATH_RAW, path)), BooleanClause.Occur.MUST);
+        booleanQuery.add(new TermQuery(new Term(SourceDbIndexedField.PROJECT_RAW, project)), BooleanClause.Occur.MUST);
+        booleanQuery.add(new TermQuery(new Term(SourceDbIndexedField.PARENT_PATH_RAW, path)), BooleanClause.Occur.MUST);
         TopDocs topDocs = searcher.search(booleanQuery, Integer.MAX_VALUE);
         List<String> dirs = Lists.newArrayList();
         List<FileHandle> files = Lists.newArrayList();
         for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
             int docId = scoreDoc.doc;
             Document document = reader.document(docId);
-            if (document.get(SourceDbIndxedField.FILE_ID_RAW) != null) {
+            if (document.get(SourceDbIndexedField.FILE_ID_RAW) != null) {
                 files.add(new FileHandle(
-                        Long.parseLong(document.get(SourceDbIndxedField.FILE_ID_RAW)),
-                        document.get(SourceDbIndxedField.PROJECT_RAW),
-                        document.get(SourceDbIndxedField.PATH_RAW)));
+                        Long.parseLong(document.get(SourceDbIndexedField.FILE_ID_RAW)),
+                        document.get(SourceDbIndexedField.PROJECT_RAW),
+                        document.get(SourceDbIndexedField.PATH_RAW)));
             } else {
-                dirs.add(document.get(SourceDbIndxedField.PATH_RAW));
+                dirs.add(document.get(SourceDbIndexedField.PATH_RAW));
             }
         }
         Collections.sort(dirs);
@@ -74,7 +74,7 @@ public class SourceDbImpl implements SourceDb {
 
     @Override
     public SourceFile querySourceById(long fileId) throws IOException {
-        TermQuery query = new TermQuery(new Term(SourceDbIndxedField.FILE_ID_RAW, String.valueOf(fileId)));
+        TermQuery query = new TermQuery(new Term(SourceDbIndexedField.FILE_ID_RAW, String.valueOf(fileId)));
         TopDocs topDocs = searcher.search(query, 2);
         int count = topDocs.scoreDocs.length;
         if (count == 0) {
@@ -92,8 +92,8 @@ public class SourceDbImpl implements SourceDb {
         Preconditions.checkNotNull(project);
         Preconditions.checkNotNull(path);
         BooleanQuery booleanQuery = new BooleanQuery();
-        booleanQuery.add(new TermQuery(new Term(SourceDbIndxedField.PROJECT_RAW, project)), BooleanClause.Occur.MUST);
-        booleanQuery.add(new TermQuery(new Term(SourceDbIndxedField.PATH_RAW, path)), BooleanClause.Occur.MUST);
+        booleanQuery.add(new TermQuery(new Term(SourceDbIndexedField.PROJECT_RAW, project)), BooleanClause.Occur.MUST);
+        booleanQuery.add(new TermQuery(new Term(SourceDbIndexedField.PATH_RAW, path)), BooleanClause.Occur.MUST);
         TopDocs topDocs = searcher.search(booleanQuery, 2);
         int count = topDocs.scoreDocs.length;
         if (count == 0) {
@@ -105,10 +105,30 @@ public class SourceDbImpl implements SourceDb {
         return retrieveDocument(topDocs.scoreDocs[0].doc);
     }
 
+    @Override
+    public List<SourceFile> querySourcesByTerm(String term) throws IOException {
+        Preconditions.checkNotNull(term);
+        BooleanQuery booleanQuery = new BooleanQuery();
+        booleanQuery.add(new TermQuery(new Term(SourceDbIndexedField.SOURCE_TERM, term)),
+                BooleanClause.Occur.MUST);
+        TopDocs topDocs = searcher.search(booleanQuery, 10);
+        int count = topDocs.scoreDocs.length;
+        if (count == 0) {
+            LOG.debug("No source contains:" + term);
+            return null;
+        }
+
+        List<SourceFile> sourceFiles = Lists.newArrayList();
+        for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
+          sourceFiles.add(retrieveDocument(scoreDoc.doc));
+        }
+        return sourceFiles;
+    }
+
     private SourceFile retrieveDocument(int docId) throws IOException {
         try {
             Document document = reader.document(docId);
-            byte[] binaryData = document.getBinaryValue(SourceDbIndxedField.SOURCE_DATA);
+            byte[] binaryData = document.getBinaryValue(SourceDbIndexedField.SOURCE_DATA);
             TSourceData sourceData = new TSourceData();
             DESERIALIZER.deserialize(sourceData, SnappyUtils.uncompress(binaryData));
             return SourceFile.createFromThrift(sourceData.getSourceFile());
