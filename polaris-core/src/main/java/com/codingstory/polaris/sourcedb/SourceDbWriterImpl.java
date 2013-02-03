@@ -1,11 +1,11 @@
 package com.codingstory.polaris.sourcedb;
 
 import com.codingstory.polaris.SnappyUtils;
+import com.codingstory.polaris.indexing.analysis.SourceCodeAnalyzer;
 import com.codingstory.polaris.parser.SourceFile;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang.StringUtils;
-import org.apache.lucene.analysis.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexWriter;
@@ -25,7 +25,8 @@ public class SourceDbWriterImpl implements SourceDbWriter {
 
     public SourceDbWriterImpl(File path) throws IOException {
         Preconditions.checkNotNull(path);
-        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_36, new KeywordAnalyzer());
+        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_36,
+                new SourceCodeAnalyzer(Version.LUCENE_36));
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
         this.writer = new IndexWriter(FSDirectory.open(path), config);
     }
@@ -34,18 +35,21 @@ public class SourceDbWriterImpl implements SourceDbWriter {
         Preconditions.checkNotNull(sourceFile);
         try {
             Document document = new Document();
-            document.add(new Field(SourceDbIndxedField.FILE_ID_RAW, String.valueOf(sourceFile.getId()),
+            document.add(new Field(SourceDbIndexedField.FILE_ID_RAW, String.valueOf(sourceFile.getId()),
                     Field.Store.YES, Field.Index.ANALYZED));
-            document.add(new Field(SourceDbIndxedField.PROJECT_RAW, sourceFile.getProject(),
+            document.add(new Field(SourceDbIndexedField.PROJECT_RAW, sourceFile.getProject(),
                     Field.Store.YES,  Field.Index.ANALYZED));
-            document.add(new Field(SourceDbIndxedField.PATH_RAW, sourceFile.getPath(),
+            document.add(new Field(SourceDbIndexedField.PATH_RAW, sourceFile.getPath(),
                     Field.Store.YES, Field.Index.ANALYZED));
-            document.add(new Field(SourceDbIndxedField.PARENT_PATH_RAW, findParentPath(sourceFile.getPath()),
+            document.add(new Field(SourceDbIndexedField.PARENT_PATH_RAW, findParentPath(sourceFile.getPath()),
                     Field.Store.YES, Field.Index.ANALYZED));
             TSourceData sourceData = new TSourceData();
             sourceData.setSourceFile(sourceFile.toThrift());
             byte[] sourceDataBinary = SnappyUtils.compress(SERIALIZER.serialize(sourceData));
-            document.add(new Field(SourceDbIndxedField.SOURCE_DATA, sourceDataBinary));
+            document.add(new Field(SourceDbIndexedField.SOURCE_DATA, sourceDataBinary));
+            document.add(new Field(SourceDbIndexedField.SOURCE_TERM,
+                    sourceData.getSourceFile().getSource(), Field.Store.YES,
+                    Field.Index.ANALYZED, Field.TermVector.WITH_POSITIONS_OFFSETS));
             writer.addDocument(document);
         } catch (TException e) {
             throw new AssertionError(e);
@@ -58,9 +62,9 @@ public class SourceDbWriterImpl implements SourceDbWriter {
         Preconditions.checkNotNull(path);
         path = SourceDbUtils.fixPathForDirectory(path);
         Document document = new Document();
-        document.add(new Field(SourceDbIndxedField.PROJECT_RAW, project, Field.Store.YES, Field.Index.ANALYZED));
-        document.add(new Field(SourceDbIndxedField.PATH_RAW, path, Field.Store.YES, Field.Index.ANALYZED));
-        document.add(new Field(SourceDbIndxedField.PARENT_PATH_RAW, findParentPath(path),
+        document.add(new Field(SourceDbIndexedField.PROJECT_RAW, project, Field.Store.YES, Field.Index.ANALYZED));
+        document.add(new Field(SourceDbIndexedField.PATH_RAW, path, Field.Store.YES, Field.Index.ANALYZED));
+        document.add(new Field(SourceDbIndexedField.PARENT_PATH_RAW, findParentPath(path),
                 Field.Store.YES, Field.Index.ANALYZED));
         writer.addDocument(document);
     }

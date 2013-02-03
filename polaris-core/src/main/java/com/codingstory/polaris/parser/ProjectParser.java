@@ -140,6 +140,7 @@ public class ProjectParser {
                 if (parserOptions.isFailFast()) {
                     throw e;
                 } else {
+                    LOG.debug(e);
                     stats.failedFiles++;
                 }
             }

@@ -49,4 +49,5 @@ public interface SourceDb extends Closeable {
     DirectoryContent listDirectory(String project, String path) throws IOException;
     SourceFile querySourceById(long fileId) throws IOException;
     SourceFile querySourceByPath(String project, String path) throws IOException;
+    List<SourceFile> querySourcesByTerm(String term) throws IOException;
 }
