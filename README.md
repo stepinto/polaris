@@ -7,13 +7,30 @@ Prestiques
 ---------
 * JDK 1.6+
 * Maven 2+
-* Thrift 0.9.0 (http://thrift.apache.org/)
+* Git
+* GNU Toolchain (gcc, g++, make, automake, autoconf, libtool...)
 
-Build
------
-Go to project root and run:
+Build Apache Thrift
+-------------------
+		$ git clone https://git-wip-us.apache.org/repos/asf/thrift.git
+		$ cd thrift
+		$ curl https://issues.apache.org/jira/secure/attachment/12562777/thrift-1816.patch | patch -p1
+		$ ./bootstrap.sh
+		$ ./configure  # you need to compile the thrift compiler at least
+		$ make
+		$ sudo make install
 
-		$ mvn install
+Build Apache Crunch
+-------------------
+		$ git clone https://git-wip-us.apache.org/repos/asf/incubator-crunch.git
+		$ cd incubator-crunch
+		$ mvn install -Phadoop-2 -DskipTests
+
+Build Polaris
+-------------
+Go to Polaris project root and run:
+
+		$ mvn package
 
 Run
 ---
@@ -28,7 +45,5 @@ Run
 		$ ./polaris searchserver
 
 3. Start web UI
-
-		$ mvn jetty:run -pl polaris-webui
-		
-	Then a jetty server will be ready at http://localhost:8080.
+	
+TBD
