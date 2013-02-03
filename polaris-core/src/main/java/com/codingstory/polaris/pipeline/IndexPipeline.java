@@ -169,10 +169,10 @@ public class IndexPipeline implements Serializable {
         }
     }
 
-    private final transient Configuration conf; // No need to access it from MR tasks.
+    private final transient Configuration conf; // "transient" No need to access it from MR tasks.
     private final transient FileSystem fs;
-    private List<Repository> repos = Lists.newArrayList();
-    private List<File> dirs = Lists.newArrayList();
+    private transient List<Repository> repos = Lists.newArrayList();
+    private transient List<File> dirs = Lists.newArrayList();
     private File workingDir;
     private File inputDir1;
     private File inputDir2;
@@ -215,6 +215,7 @@ public class IndexPipeline implements Serializable {
         }
 
         Pipeline pipeline = new MRPipeline(IndexPipeline.class, "polaris-index-pipeline", conf);
+        pipeline.enableDebug();
         PCollection<TFileContent> fileContents = pipeline
             .read(At.sequenceFile(new Path(inputDir1.getPath()), T_FILE_CONTENT_PTYPE_COMPRESSED));
         PCollection<TParsedFile> parsedFiles1stPass = discoverClasses(fileContents);
@@ -227,7 +228,7 @@ public class IndexPipeline implements Serializable {
         // TODO: reverseImportGraphByImportedPackage
         // TODO: reverseImportGraphByFilePackage
         // TODO: Iterate to compute transitive closure
-        PCollection<TParsedFile> parsedFiles2ndPass = discoverMembers(parsedFiles1stPass, importGraph);
+        PCollection<TParsedFile> parsedFiles2ndPass = discoverMembers(fileContents, parsedFiles1stPass, importGraph);
         pipeline.write(parsedFiles2ndPass, At.sequenceFile(new Path(outputDir.getPath()), T_PARSED_FILE_PTYPE_COMPRESSED));
 
         LOG.info("About to run indexing pipeline");
@@ -276,7 +277,8 @@ public class IndexPipeline implements Serializable {
                             new SymbolTable());
                     TSourceFile sourceFile = new TSourceFile();
                     sourceFile.setHandle(in.getFile());
-                    sourceFile.setSource(in.getContent());
+                    // Don't save file content for now, since TParsedFile produced by 1st pass is joined and duplicated
+                    // for many times (= number of references).
                     TParsedFile out = new TParsedFile();
                     out.setSource(sourceFile);
                     out.setPackage_(result.getPackage());
@@ -440,10 +442,12 @@ public class IndexPipeline implements Serializable {
     }
 
     private PCollection<TParsedFile> discoverMembers(
+            PCollection<TFileContent> fileContents,
             PCollection<TParsedFile> parsedFiles,
             PTable<TFileHandle, TFileHandle> importGraph) {
         // Assume A imports B...
-        PTable<Long, TParsedFile> parsedFilesById = pivotParsedFilesByFileId(parsedFiles); // A -> class A {...}
+        PTable<Long, TParsedFile> parsedFilesById = pivotParsedFilesByFileId(
+                fillFileContents(parsedFiles, fileContents)); // A -> class A {...}
         PTable<Long, Long> importGraphPlainIds = plainFileIdsFromImportGraph(importGraph); // A -> B
         PTable<Long, Long> inverseImportGraphPlainIds =
                 inverse(importGraphPlainIds, tableOf(longs(), longs())); // B -> A
@@ -451,6 +455,7 @@ public class IndexPipeline implements Serializable {
                 parsedFilesById).values().parallelDo( // A -> class B {...}
                         IdentityFn.<Pair<Long, TParsedFile>>getInstance(),
                         tableOf(longs(), T_PARSED_FILE_PTYPE_COMPRESSED));
+
         // Left join because a file can be imported by nobody.
         return Join.leftJoin(parsedFilesById, parsedFilesByImporterId.collectValues()).values()
                 .parallelDo(new MapFn<Pair<TParsedFile, Collection<TParsedFile>>, TParsedFile>() {
@@ -549,6 +554,22 @@ public class IndexPipeline implements Serializable {
                 return Pair.of(in.second(), in.first());
             }
         }, ptype);
+    }
+
+    private PCollection<TParsedFile> fillFileContents(
+            PCollection<TParsedFile> parsedFiles,
+            PCollection<TFileContent> fileContents) {
+        PTable<Long, TParsedFile> left = pivotParsedFilesByFileId(parsedFiles);
+        PTable<Long, TFileContent> right = pivotFileContentById(fileContents);
+        return left.join(right).values().parallelDo(new MapFn<Pair<TParsedFile, TFileContent>, TParsedFile>() {
+            @Override
+            public TParsedFile map(Pair<TParsedFile, TFileContent> in) {
+                TParsedFile parsedFile = in.first();
+                TFileContent fileContent = in.second();
+                parsedFile.getSource().setSource(fileContent.getContent());
+                return parsedFile;
+            }
+        }, T_PARSED_FILE_PTYPE_COMPRESSED);
     }
 
     private void buildIndexFromPipelineOutput() throws IOException {
