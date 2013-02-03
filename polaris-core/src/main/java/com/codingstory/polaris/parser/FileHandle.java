@@ -61,4 +61,9 @@ public final class FileHandle {
         t.setPath(path);
         return t;
     }
+
+    @Override
+    public String toString() {
+        return project + path + "@" + id;
+    }
 }

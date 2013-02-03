@@ -1,7 +1,6 @@
 package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.IdGenerator;
-import com.codingstory.polaris.IdUtils;
 import com.codingstory.polaris.JumpTarget;
 import com.codingstory.polaris.SkipCheckingExceptionWrapper;
 import com.google.common.base.Preconditions;
@@ -18,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.EnumSet;
 import java.util.LinkedList;
+import java.util.List;
 
 import static com.codingstory.polaris.parser.ParserUtils.nodeSpan;
 
@@ -28,13 +28,19 @@ public class FirstPassProcessor {
 
     public static class Result {
         private final String pkg;
+        private final List<ClassType> discoveredClasses;
 
-        public Result(String pkg) {
+        public Result(String pkg, List<ClassType> discoveredClasses) {
             this.pkg = pkg;
+            this.discoveredClasses = discoveredClasses;
         }
 
         public String getPackage() {
             return pkg;
+        }
+
+        public List<ClassType> getDiscoveredClasses() {
+            return discoveredClasses;
         }
     }
 
@@ -44,6 +50,7 @@ public class FirstPassProcessor {
         private final IdGenerator idGenerator;
         private final LinkedList<TypeHandle> typeStack = Lists.newLinkedList();
         private final SymbolTable symbolTable;
+        private final List<ClassType> discoveredClasses = Lists.newArrayList();
 
         private FirstPassVisitor(FileHandle file, IdGenerator idGenerator, SymbolTable symbolTable) {
             this.file = Preconditions.checkNotNull(file);
@@ -95,13 +102,14 @@ public class FirstPassProcessor {
                         handle, kind, EnumSet.noneOf(Modifier.class),  null, new JumpTarget(file, span));
                 typeStack.push(handle);
                 symbolTable.registerClassType(clazz);
+                discoveredClasses.add(clazz);
             } catch (IOException e) {
                 throw new SkipCheckingExceptionWrapper(e);
             }
         }
 
         public Result getResult() {
-            return new Result(pkg);
+            return new Result(pkg, discoveredClasses);
         }
     }
 

@@ -14,8 +14,12 @@ public class SnappyUtils {
     }
 
     public static byte[] uncompress(byte[] in) {
+        return uncompress(in, 0, in.length);
+    }
+
+    public static byte[] uncompress(byte[] in, int offset, int length) {
         byte[] out = new byte[Snappy.getUncompressedLength(in, 0)];
-        Snappy.uncompress(in, 0, in.length, out, 0);
+        Snappy.uncompress(in, offset, length, out, 0);
         return out;
     }
 }

@@ -4,20 +4,16 @@ import com.codingstory.polaris.cli.Command;
 import com.codingstory.polaris.cli.Help;
 import com.codingstory.polaris.cli.Option;
 import com.codingstory.polaris.cli.Run;
-import com.codingstory.polaris.indexing.IndexBuilder;
+import com.codingstory.polaris.pipeline.IndexPipeline;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
 
-import static com.codingstory.polaris.cli.CommandUtils.createIndexer;
 import static com.codingstory.polaris.cli.CommandUtils.die;
 
 @Command(name = "index")
 public class Index {
-    @Option(name = "clean", shortName = "c")
-    public boolean clean;
-
     @Option(name = "index", shortName = "i", defaultValue = "index")
     public String index;
 
@@ -27,13 +23,15 @@ public class Index {
             die("Expect one or more projects to index");
         }
         File indexDir = new File(index);
-        if (clean) {
-            FileUtils.deleteDirectory(indexDir);
-        }
-        IndexBuilder indexer = createIndexer(indexDir);
+        FileUtils.deleteQuietly(indexDir);
+        FileUtils.forceMkdir(indexDir);
+        IndexPipeline pipeline = new IndexPipeline();
         for (String arg : args) {
-            indexer.indexDirectory(new File(arg));
+            pipeline.addProjectDirectory(new File(arg));
         }
+        pipeline.setIndexDirectory(indexDir);
+        pipeline.run();
+        pipeline.cleanUp();
     }
 
     @Help
@@ -42,7 +40,6 @@ public class Index {
                 "  polaris index [--clean] [--index=<index-dir>] project1 project2..\n" +
                 "\n" +
                 "Options:\n" +
-                "  -c, --clean          remove any existing index files, default: false\n" +
                 "  -i, --index          output index directory: default: ./index\n" +
                 "\n");
     }

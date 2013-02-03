@@ -18,7 +18,11 @@ public final class ParserUtils {
 
     public static void safeVisit(InputStream in, VoidVisitor<?> visitor) throws IOException {
         try {
-            CompilationUnit compilationUnit = JavaParser.parse(in);
+            CompilationUnit compilationUnit;
+            synchronized (ParserUtils.class) {
+                // Walk around race condition bug in JavaParser. TODO: Fix it upstream.
+                compilationUnit = JavaParser.parse(in);
+            }
             visitor.visit(compilationUnit, null);
         } catch (ParseException e) {
             throw new IOException(e);

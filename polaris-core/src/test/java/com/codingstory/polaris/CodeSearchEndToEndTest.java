@@ -1,12 +1,13 @@
 package com.codingstory.polaris;
 
-import com.codingstory.polaris.indexing.IndexBuilder;
 import com.codingstory.polaris.indexing.IndexPathUtils;
 import com.codingstory.polaris.parser.ClassType;
+import com.codingstory.polaris.parser.Field;
 import com.codingstory.polaris.parser.FullTypeName;
 import com.codingstory.polaris.parser.TFileHandle;
 import com.codingstory.polaris.parser.TTypeUsage;
 import com.codingstory.polaris.parser.TypeUsage;
+import com.codingstory.polaris.pipeline.IndexPipeline;
 import com.codingstory.polaris.search.CodeSearchServiceImpl;
 import com.codingstory.polaris.search.TCodeSearchService;
 import com.codingstory.polaris.search.TGetTypeRequest;
@@ -149,6 +150,21 @@ public class CodeSearchEndToEndTest {
         assertTrue(found);
     }
 
+    @Test
+    public void testCrossProjectReference() throws IOException {
+        writeFile("project1/src/com/company/A.java", "package project1; import project2.B; class A { B b; }");
+        writeFile("project2/src/com/company/B.java", "package project2; import project1.A; class B { A a; }");
+        buildIndex(ImmutableList.of("project1", "project2"));
+
+        TypeDb typeDb = new TypeDbImpl(IndexPathUtils.getTypeDbPath(indexDir));
+        ClassType class1 = Iterables.getOnlyElement(typeDb.getTypeByName(FullTypeName.of("project1.A"), "project1", 2));
+        ClassType class2 = Iterables.getOnlyElement(typeDb.getTypeByName(FullTypeName.of("project2.B"), "project2", 2));
+        Field field1 = Iterables.getOnlyElement(class1.getFields());
+        Field field2 = Iterables.getOnlyElement(class2.getFields());
+        assertEquals(class2.getHandle(), field1.getType());
+        assertEquals(class1.getHandle(), field2.getType());
+    }
+
     private TCodeSearchService.Iface createSearcher() throws IOException {
         return new CodeSearchServiceImpl(indexDir);
     }
@@ -158,10 +174,19 @@ public class CodeSearchEndToEndTest {
     }
 
     private void buildIndex(List<String> projects) throws IOException {
-        IndexBuilder indexBuilder = new IndexBuilder();
-        indexBuilder.setIndexDirectory(indexDir);
-        for (String project : projects) {
-            indexBuilder.indexDirectory(new File(tempDir, project));
+        IndexPipeline indexPipeline = null;
+        try {
+            indexPipeline = new IndexPipeline();
+            indexPipeline.setIndexDirectory(indexDir);
+            // indexPipeline.setUseMemPipeline(true);
+            for (String project : projects) {
+                indexPipeline.addProjectDirectory(new File(tempDir, project));
+            }
+            indexPipeline.run();
+        } finally {
+            if (indexPipeline != null) {
+                indexPipeline.cleanUp();
+            }
         }
     }
 }

@@ -94,6 +94,11 @@ struct TTypeUsage {
     // OBSOLETED 2: TSpan span;
 }
 
+struct TUsage {
+    // Exactly one of below appears.
+    1: TTypeUsage typeUsage;
+}
+
 enum TFieldUsageKind {
     FIELD_DECLARATION,
     FIELD_ACCESS,
