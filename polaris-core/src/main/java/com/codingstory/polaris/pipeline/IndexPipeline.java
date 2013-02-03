@@ -139,11 +139,11 @@ public class IndexPipeline implements Serializable {
             .read(At.sequenceFile(new Path(inputDir1.getPath()), T_FILE_CONTENT_PTYPE));
         PCollection<TParsedFile> parsedFiles1stPass = discoverClasses(fileContents);
         PCollection<TFileImports> fileImports = extractImports(fileContents);
-        PTable<TFileHandle, TFileHandle> importGraph1 =
+        PTable<Long, Long> importGraph1 =
                 guessImportGraphByImportedClasses(fileImports, parsedFiles1stPass);
-        PTable<TFileHandle, TFileHandle> importGraph2 =
+        PTable<Long, Long> importGraph2 =
                 guessImportGraphBySamePackage(parsedFiles1stPass);
-        PTable<TFileHandle, TFileHandle> importGraph = importGraph1.union(importGraph2); // TODO: remove duplication
+        PTable<Long, Long> importGraph = importGraph1.union(importGraph2); // TODO: remove duplication
         // TODO: reverseImportGraphByImportedPackage
         // TODO: reverseImportGraphByFilePackage
         // TODO: Iterate to compute transitive closure
@@ -303,77 +303,68 @@ public class IndexPipeline implements Serializable {
         return tempDir;
     }
 
-    private PTable<TFileHandle, TFileHandle> guessImportGraphByImportedClasses(
+    private PTable<Long, Long> guessImportGraphByImportedClasses(
             PCollection<TFileImports> fileImports,
-            PCollection<TParsedFile> discoveredClassesPerFile) {
-        PTable<String, TFileHandle> left = fileImports.parallelDo(new DoFn<TFileImports, Pair<String, TFileHandle>>() {
+            PCollection<TParsedFile> parsedFiles) {
+        PTable<String, Long> left = fileImports.parallelDo(new DoFn<TFileImports, Pair<String, Long>>() {
             @Override
-            public void process(TFileImports in, Emitter<Pair<String, TFileHandle>> emitter) {
+            public void process(TFileImports in, Emitter<Pair<String, Long>> emitter) {
                 if (!in.isSetImportedClasses()) {
                     return;
                 }
                 for (String clazz : in.getImportedClasses()) {
-                    emitter.emit(Pair.of(clazz, in.getFile()));
+                    emitter.emit(Pair.of(clazz, in.getFile().getId()));
                 }
             }
-        }, tableOf(strings(), T_FILE_HANDLE_PTYPE));
+        }, tableOf(strings(), longs()));
 
-        PTable<String, TFileHandle> right = discoveredClassesPerFile.parallelDo(
-                new DoFn<TParsedFile, Pair<String, TFileHandle>>() {
+        PTable<String, Long> right = parsedFiles.parallelDo(
+                new DoFn<TParsedFile, Pair<String, Long>>() {
                     @Override
                     public void process(
                             TParsedFile in,
-                            Emitter<Pair<String, TFileHandle>> emitter) {
+                            Emitter<Pair<String, Long>> emitter) {
                         if (!in.isSetClasses()) {
                             return;
                         }
                         for (TClassType clazz : in.getClasses()) {
-                            emitter.emit(Pair.of(clazz.getHandle().getName(), in.getSource().getHandle()));
+                            emitter.emit(Pair.of(clazz.getHandle().getName(), in.getSource().getHandle().getId()));
                         }
                     }
-                }, tableOf(strings(), T_FILE_HANDLE_PTYPE));
+                }, tableOf(strings(), longs()));
 
         return left.join(right).values().parallelDo(
-                new MapFn<Pair<TFileHandle, TFileHandle>, Pair<TFileHandle, TFileHandle>>() {
+                new MapFn<Pair<Long, Long>, Pair<Long, Long>>() {
                     @Override
-                    public Pair<TFileHandle, TFileHandle> map(Pair<TFileHandle, TFileHandle> in) {
+                    public Pair<Long, Long> map(Pair<Long, Long> in) {
                         return in;
                     }
-                },tableOf(T_FILE_HANDLE_PTYPE, T_FILE_HANDLE_PTYPE));
+                },tableOf(longs(), longs()));
     }
 
     /** Produces import relation A -> B if A and B are in same package. */
-    private PTable<TFileHandle, TFileHandle> guessImportGraphBySamePackage(PCollection<TParsedFile> parsedFiles) {
+    private PTable<Long, Long> guessImportGraphBySamePackage(PCollection<TParsedFile> parsedFiles) {
         PTable<String, TParsedFile> parsedFilesByPackage = pivotParsedFilesByPackage(parsedFiles);
         return Join.innerJoin(parsedFilesByPackage, parsedFilesByPackage).values().parallelDo(
-                new MapFn<Pair<TParsedFile, TParsedFile>, Pair<TFileHandle, TFileHandle>>() {
+                new MapFn<Pair<TParsedFile, TParsedFile>, Pair<Long, Long>>() {
                     @Override
-                    public Pair<TFileHandle, TFileHandle> map(Pair<TParsedFile, TParsedFile> in) {
-                        return Pair.of(in.first().getSource().getHandle(), in.second().getSource().getHandle());
+                    public Pair<Long, Long> map(Pair<TParsedFile, TParsedFile> in) {
+                        return Pair.of(
+                                in.first().getSource().getHandle().getId(),
+                                in.second().getSource().getHandle().getId());
                     }
-                }, tableOf(T_FILE_HANDLE_PTYPE, T_FILE_HANDLE_PTYPE));
-    }
-
-    private PTable<TFileHandle, TFileHandle> reverseImportGraph(PTable<TFileHandle, TFileHandle> importGraph) {
-        return importGraph.parallelDo(new MapFn<Pair<TFileHandle, TFileHandle>, Pair<TFileHandle, TFileHandle>>() {
-            @Override
-            public Pair<TFileHandle, TFileHandle> map(Pair<TFileHandle, TFileHandle> in) {
-                return Pair.of(in.second(), in.first());
-            }
-        }, tableOf(T_FILE_HANDLE_PTYPE, T_FILE_HANDLE_PTYPE));
+                }, tableOf(longs(), longs()));
     }
 
     private PCollection<TParsedFile> discoverMembers(
             PCollection<TFileContent> fileContents,
             PCollection<TParsedFile> parsedFiles,
-            PTable<TFileHandle, TFileHandle> importGraph) {
+            PTable<Long, Long> importGraph) {
         // Assume A imports B...
         PTable<Long, TParsedFile> parsedFilesById = pivotParsedFilesByFileId(
                 fillFileContents(parsedFiles, fileContents)); // A -> class A {...}
-        PTable<Long, Long> importGraphPlainIds = plainFileIdsFromImportGraph(importGraph); // A -> B
-        PTable<Long, Long> inverseImportGraphPlainIds =
-                inverse(importGraphPlainIds, tableOf(longs(), longs())); // B -> A
-        PTable<Long, TParsedFile> parsedFilesByImporterId = inverseImportGraphPlainIds.join(
+        PTable<Long, Long> invertImportGraph = inverse(importGraph, tableOf(longs(), longs())); // B -> A
+        PTable<Long, TParsedFile> parsedFilesByImporterId = invertImportGraph.join(
                 parsedFilesById).values().parallelDo( // A -> class B {...}
                         IdentityFn.<Pair<Long, TParsedFile>>getInstance(),
                         tableOf(longs(), T_PARSED_FILE_PTYPE));
@@ -458,15 +449,6 @@ public class IndexPipeline implements Serializable {
                 return Pair.of(in.getFile().getId(), in);
             }
         }, tableOf(longs(), T_FILE_CONTENT_PTYPE));
-    }
-
-    private static PTable<Long, Long> plainFileIdsFromImportGraph(PTable<TFileHandle, TFileHandle> importGraph) {
-        return importGraph.parallelDo(new MapFn<Pair<TFileHandle, TFileHandle>, Pair<Long, Long>>() {
-            @Override
-            public Pair<Long, Long> map(Pair<TFileHandle, TFileHandle> in) {
-                return Pair.of(in.first().getId(), in.second().getId());
-            }
-        }, tableOf(longs(), longs()));
     }
 
     private static <K, V> PTable<V, K> inverse(PTable<K, V> table, PTableType<V, K> ptype) {
