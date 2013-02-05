@@ -40,10 +40,10 @@ import org.apache.crunch.MapFn;
 import org.apache.crunch.PCollection;
 import org.apache.crunch.PTable;
 import org.apache.crunch.Pair;
-import org.apache.crunch.Pipeline;
 import org.apache.crunch.PipelineResult;
 import org.apache.crunch.fn.IdentityFn;
 import org.apache.crunch.impl.mr.MRPipeline;
+import org.apache.crunch.impl.mr.plan.PlanningParameters;
 import org.apache.crunch.io.At;
 import org.apache.crunch.lib.Join;
 import org.apache.crunch.types.PTableType;
@@ -101,6 +101,7 @@ public class IndexPipeline implements Serializable {
             conf.setInt("io.sort.mb", 50); // To fit into 256MB heap.
             conf.setBoolean("mapred.output.compress", true);
             conf.setBoolean("mapred.map.output.compress", true);
+            conf.setBoolean("crunch.log.job.progress", true);
             SequenceFile.setDefaultCompressionType(conf, SequenceFile.CompressionType.BLOCK);
             fs = FileSystem.getLocal(conf);
         } catch (IOException e) {
@@ -133,7 +134,7 @@ public class IndexPipeline implements Serializable {
             readProjectDir(dir);
         }
 
-        Pipeline pipeline = new MRPipeline(IndexPipeline.class, "polaris-index-pipeline", conf);
+        MRPipeline pipeline = new MRPipeline(IndexPipeline.class, "polaris-index-pipeline", conf);
         pipeline.enableDebug();
         PCollection<TFileContent> fileContents = pipeline
             .read(At.sequenceFile(new Path(inputDir1.getPath()), T_FILE_CONTENT_PTYPE));
@@ -149,12 +150,19 @@ public class IndexPipeline implements Serializable {
         // TODO: Iterate to compute transitive closure
         PCollection<TParsedFile> parsedFiles2ndPass = discoverMembers(fileContents, parsedFiles1stPass, importGraph);
         pipeline.write(parsedFiles2ndPass, At.sequenceFile(new Path(outputDir.getPath()), T_PARSED_FILE_PTYPE));
+        savePlan(pipeline);
 
         LOG.info("About to run indexing pipeline");
         checkPipelineResult(pipeline.run());
         LOG.info("Pipeline completes");
 
         buildIndexFromPipelineOutput();
+    }
+
+    private void savePlan(MRPipeline pipeline) throws IOException {
+        pipeline.plan();
+        String dotFileContent = pipeline.getConfiguration().get(PlanningParameters.PIPELINE_PLAN_DOTFILE);
+        FileUtils.write(new File(workingDir, "plan.dot"), dotFileContent);
     }
 
     private void checkPipelineResult(PipelineResult result) throws IOException {
@@ -164,7 +172,7 @@ public class IndexPipeline implements Serializable {
     }
 
     private PCollection<TFileImports> extractImports(PCollection<TFileContent> fileContents) {
-        return fileContents.parallelDo(new DoFn<TFileContent, TFileImports>() {
+        return fileContents.parallelDo("ExtractImports", new DoFn<TFileContent, TFileImports>() {
                 @Override
                 public void process(TFileContent in, Emitter<TFileImports> emitter) {
                     try {
@@ -185,7 +193,7 @@ public class IndexPipeline implements Serializable {
     }
 
     private PCollection<TParsedFile> discoverClasses(PCollection<TFileContent> fileContents) {
-        return fileContents.parallelDo(new DoFn<TFileContent, TParsedFile>() {
+        return fileContents.parallelDo("FirstPass", new DoFn<TFileContent, TParsedFile>() {
             @Override
             public void process(TFileContent in, Emitter<TParsedFile> emitter) {
                 try {
@@ -306,19 +314,22 @@ public class IndexPipeline implements Serializable {
     private PTable<Long, Long> guessImportGraphByImportedClasses(
             PCollection<TFileImports> fileImports,
             PCollection<TParsedFile> parsedFiles) {
-        PTable<String, Long> left = fileImports.parallelDo(new DoFn<TFileImports, Pair<String, Long>>() {
-            @Override
-            public void process(TFileImports in, Emitter<Pair<String, Long>> emitter) {
-                if (!in.isSetImportedClasses()) {
-                    return;
-                }
-                for (String clazz : in.getImportedClasses()) {
-                    emitter.emit(Pair.of(clazz, in.getFile().getId()));
-                }
-            }
-        }, tableOf(strings(), longs()));
+        PTable<String, Long> left = fileImports.parallelDo(
+                "ParsedFilesByImportedClasses",
+                new DoFn<TFileImports, Pair<String, Long>>() {
+                    @Override
+                    public void process(TFileImports in, Emitter<Pair<String, Long>> emitter) {
+                        if (!in.isSetImportedClasses()) {
+                            return;
+                        }
+                        for (String clazz : in.getImportedClasses()) {
+                            emitter.emit(Pair.of(clazz, in.getFile().getId()));
+                        }
+                    }
+                }, tableOf(strings(), longs()));
 
         PTable<String, Long> right = parsedFiles.parallelDo(
+                "ParsedFilesByDeclaredClasses",
                 new DoFn<TParsedFile, Pair<String, Long>>() {
                     @Override
                     public void process(
@@ -334,12 +345,7 @@ public class IndexPipeline implements Serializable {
                 }, tableOf(strings(), longs()));
 
         return left.join(right).values().parallelDo(
-                new MapFn<Pair<Long, Long>, Pair<Long, Long>>() {
-                    @Override
-                    public Pair<Long, Long> map(Pair<Long, Long> in) {
-                        return in;
-                    }
-                },tableOf(longs(), longs()));
+                IdentityFn.<Pair<Long, Long>>getInstance(), tableOf(longs(), longs()));
     }
 
     /** Produces import relation A -> B if A and B are in same package. */
@@ -371,7 +377,7 @@ public class IndexPipeline implements Serializable {
 
         // Left join because a file can be imported by nobody.
         return Join.leftJoin(parsedFilesById, parsedFilesByImporterId.collectValues()).values()
-                .parallelDo(new MapFn<Pair<TParsedFile, Collection<TParsedFile>>, TParsedFile>() {
+                .parallelDo("SecondPass", new MapFn<Pair<TParsedFile, Collection<TParsedFile>>, TParsedFile>() {
                     @Override
                     public TParsedFile map(Pair<TParsedFile, Collection<TParsedFile>> in) {
                         try {
@@ -425,16 +431,17 @@ public class IndexPipeline implements Serializable {
 
     private PTable<Long, TParsedFile> pivotParsedFilesByFileId(PCollection<TParsedFile> parsedFiles) {
         return parsedFiles.parallelDo(
+                "ParsedFilesByFileId",
                 new MapFn<TParsedFile, Pair<Long, TParsedFile>>() {
-            @Override
-            public Pair<Long, TParsedFile> map(TParsedFile in) {
-                return Pair.of(in.getSource().getHandle().getId(), in);
-            }
-        }, tableOf(longs(), T_PARSED_FILE_PTYPE));
+                    @Override
+                    public Pair<Long, TParsedFile> map(TParsedFile in) {
+                        return Pair.of(in.getSource().getHandle().getId(), in);
+                    }
+                }, tableOf(longs(), T_PARSED_FILE_PTYPE));
     }
 
     private PTable<String,TParsedFile> pivotParsedFilesByPackage(PCollection<TParsedFile> parsedFiles) {
-        return parsedFiles.by(new MapFn<TParsedFile, String>() {
+        return parsedFiles.by("ParsedFilesByPackage", new MapFn<TParsedFile, String>() {
             @Override
             public String map(TParsedFile in) {
                 return in.getPackage_();
@@ -443,7 +450,7 @@ public class IndexPipeline implements Serializable {
     }
 
     private static PTable<Long, TFileContent> pivotFileContentById(PCollection<TFileContent> fileContents) {
-        return fileContents.parallelDo(new MapFn<TFileContent, Pair<Long, TFileContent>>() {
+        return fileContents.parallelDo("FileContentsById", new MapFn<TFileContent, Pair<Long, TFileContent>>() {
             @Override
             public Pair<Long, TFileContent> map(TFileContent in) {
                 return Pair.of(in.getFile().getId(), in);
@@ -452,7 +459,7 @@ public class IndexPipeline implements Serializable {
     }
 
     private static <K, V> PTable<V, K> inverse(PTable<K, V> table, PTableType<V, K> ptype) {
-        return table.parallelDo(new MapFn<Pair<K, V>, Pair<V, K>>() {
+        return table.parallelDo("InverseTable", new MapFn<Pair<K, V>, Pair<V, K>>() {
             @Override
             public Pair<V, K> map(Pair<K, V> in) {
                 return Pair.of(in.second(), in.first());
@@ -465,15 +472,17 @@ public class IndexPipeline implements Serializable {
             PCollection<TFileContent> fileContents) {
         PTable<Long, TParsedFile> left = pivotParsedFilesByFileId(parsedFiles);
         PTable<Long, TFileContent> right = pivotFileContentById(fileContents);
-        return left.join(right).values().parallelDo(new MapFn<Pair<TParsedFile, TFileContent>, TParsedFile>() {
-            @Override
-            public TParsedFile map(Pair<TParsedFile, TFileContent> in) {
-                TParsedFile parsedFile = in.first();
-                TFileContent fileContent = in.second();
-                parsedFile.getSource().setSource(fileContent.getContent());
-                return parsedFile;
-            }
-        }, T_PARSED_FILE_PTYPE);
+        return left.join(right).values().parallelDo(
+                "JoinParsedFilesAndFileContents",
+                new MapFn<Pair<TParsedFile, TFileContent>, TParsedFile>() {
+                    @Override
+                    public TParsedFile map(Pair<TParsedFile, TFileContent> in) {
+                        TParsedFile parsedFile = in.first();
+                        TFileContent fileContent = in.second();
+                        parsedFile.getSource().setSource(fileContent.getContent());
+                        return parsedFile;
+                    }
+                }, T_PARSED_FILE_PTYPE);
     }
 
     private void buildIndexFromPipelineOutput() throws IOException {
