@@ -99,8 +99,9 @@ public class IndexPipeline implements Serializable {
         try {
             conf = new Configuration();
             conf.setInt("io.sort.mb", 50); // To fit into 256MB heap.
-            conf.setBoolean("mapred.output.compress", true);
-            conf.setBoolean("mapred.map.output.compress", true);
+            conf.setBoolean("mapreduce.map.output.compress", true);
+            conf.setBoolean("mapreduce.output.fileoutputformat.compress", true);
+            conf.setStrings("mapreduce.output.fileoutputformat.compress.type", "BLOCK");
             conf.setBoolean("crunch.log.job.progress", true);
             SequenceFile.setDefaultCompressionType(conf, SequenceFile.CompressionType.BLOCK);
             fs = FileSystem.getLocal(conf);
@@ -134,6 +135,22 @@ public class IndexPipeline implements Serializable {
             readProjectDir(dir);
         }
 
+        MRPipeline pipeline = setUpPipeline();
+        LOG.info("About to run indexing pipeline");
+        checkPipelineResult(pipeline.run());
+        LOG.info("Pipeline completes");
+
+        buildIndexFromPipelineOutput();
+    }
+
+    public String plan() throws IOException {
+        setUpInputAndOutputDirs();
+        MRPipeline pipeline = setUpPipeline();
+        pipeline.plan();
+        return conf.get(PlanningParameters.PIPELINE_PLAN_DOTFILE);
+    }
+
+    private MRPipeline setUpPipeline() {
         MRPipeline pipeline = new MRPipeline(IndexPipeline.class, "polaris-index-pipeline", conf);
         pipeline.enableDebug();
         PCollection<TFileContent> fileContents = pipeline
@@ -150,19 +167,7 @@ public class IndexPipeline implements Serializable {
         // TODO: Iterate to compute transitive closure
         PCollection<TParsedFile> parsedFiles2ndPass = discoverMembers(fileContents, parsedFiles1stPass, importGraph);
         pipeline.write(parsedFiles2ndPass, At.sequenceFile(new Path(outputDir.getPath()), T_PARSED_FILE_PTYPE));
-        savePlan(pipeline);
-
-        LOG.info("About to run indexing pipeline");
-        checkPipelineResult(pipeline.run());
-        LOG.info("Pipeline completes");
-
-        buildIndexFromPipelineOutput();
-    }
-
-    private void savePlan(MRPipeline pipeline) throws IOException {
-        pipeline.plan();
-        String dotFileContent = pipeline.getConfiguration().get(PlanningParameters.PIPELINE_PLAN_DOTFILE);
-        FileUtils.write(new File(workingDir, "plan.dot"), dotFileContent);
+        return pipeline;
     }
 
     private void checkPipelineResult(PipelineResult result) throws IOException {
@@ -193,32 +198,44 @@ public class IndexPipeline implements Serializable {
     }
 
     private PCollection<TParsedFile> discoverClasses(PCollection<TFileContent> fileContents) {
-        return fileContents.parallelDo("FirstPass", new DoFn<TFileContent, TParsedFile>() {
-            @Override
-            public void process(TFileContent in, Emitter<TParsedFile> emitter) {
-                try {
-                    FirstPassProcessor.Result result = FirstPassProcessor.process(
-                            FileHandle.createFromThrift(in.getFile()),
-                            new ByteArrayInputStream(in.getContent().getBytes()),
-                            ID_GENERATOR,
-                            new SymbolTable());
-                    TSourceFile sourceFile = new TSourceFile();
-                    sourceFile.setHandle(in.getFile());
-                    // Don't save file content for now, since TParsedFile produced by 1st pass is joined and duplicated
-                    // for many times (= number of references).
-                    TParsedFile out = new TParsedFile();
-                    out.setSource(sourceFile);
-                    out.setPackage_(result.getPackage());
-                    for (ClassType classType : result.getDiscoveredClasses()) {
-                        out.addToClasses(classType.toThrift());
+        PCollection<TParsedFile> parsedFiles =
+                fileContents.parallelDo("FirstPass", new DoFn<TFileContent, TParsedFile>() {
+                    @Override
+                    public void process(TFileContent in, Emitter<TParsedFile> emitter) {
+                        try {
+                            FirstPassProcessor.Result result = FirstPassProcessor.process(
+                                    FileHandle.createFromThrift(in.getFile()),
+                                    new ByteArrayInputStream(in.getContent().getBytes()),
+                                    ID_GENERATOR,
+                                    new SymbolTable());
+                            TSourceFile sourceFile = new TSourceFile();
+                            sourceFile.setHandle(in.getFile());
+                            // Don't save file content for now, since TParsedFile produced by 1st pass is
+                            // joined and duplicated for many times (= number of references).
+                            TParsedFile out = new TParsedFile();
+                            out.setSource(sourceFile);
+                            out.setPackage_(result.getPackage());
+                            for (ClassType classType : result.getDiscoveredClasses()) {
+                                out.addToClasses(classType.toThrift());
+                            }
+                            emitter.emit(out);
+                        } catch (IOException e) {
+                            LOG.warn("Failed to parse " + FileHandle.createFromThrift(in.getFile()));
+                            LOG.debug("Exception", e);
+                        }
                     }
-                    emitter.emit(out);
-                } catch (IOException e) {
-                    LOG.warn("Failed to parse " + FileHandle.createFromThrift(in.getFile()));
-                    LOG.debug("Exception", e);
-                }
-            }
-        }, thrifts(TParsedFile.class, TYPE_FAMILY));
+                }, thrifts(TParsedFile.class, TYPE_FAMILY));
+
+        // Force first pass is executed once.
+        return pivotParsedFilesByFileId(parsedFiles).collectValues().values().parallelDo(
+                new DoFn<Collection<TParsedFile>, TParsedFile>() {
+                    @Override
+                    public void process(Collection<TParsedFile> in, Emitter<TParsedFile> emitter) {
+                        for (TParsedFile t : in) {
+                            emitter.emit(t);
+                        }
+                    }
+                }, T_PARSED_FILE_PTYPE);
     }
 
     private void setUpInputAndOutputDirs() throws IOException {
