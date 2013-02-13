@@ -1,0 +1,170 @@
+option java_package = "com.codingstory.polaris.parser";
+option java_outer_classname = "ParserProtos";
+
+message Position {
+    optional int32 line = 1;
+    optional int32 column = 2;
+}
+
+message Span {
+    optional Position from = 1;
+    optional Position to = 2;
+}
+
+message FileHandle {
+    optional int64 id = 1;
+    optional string project = 2;
+    optional string path = 3; // starts with "/"
+}
+
+message JumpTarget {
+    optional FileHandle file = 4;
+    optional Span span = 3;
+    // OBSOLETED optional int64 fileId = 1;
+    // OBSOLETED optional TPosition position = 2;
+}
+
+enum TypeKind {
+    PRIMITIVE = 1;
+    CLASS = 2;
+    ARRAY = 3;
+}
+
+message TypeHandle {
+    optional TypeKind kind = 1;
+    optional PrimitiveType primitive = 2;
+    optional ClassTypeHandle clazz = 3;
+}
+
+message ClassTypeHandle {
+    optional int64 id = 1;
+    optional string name = 2;
+    optional bool resolved = 3;
+}
+
+message FieldHandle {
+    optional int64 id = 1;
+    optional string name = 2;
+}
+
+message MethodHandle {
+    optional int64 id = 1;
+    optional string name = 2;
+    repeated TypeHandle parameters = 3;
+}
+
+message Field {
+    optional FieldHandle handle = 1;
+    optional TypeHandle type = 2;
+    optional JumpTarget jumpTarget = 3;
+    // TODO: modifiers
+}
+
+message Method {
+    message Parameter {
+        optional string name = 1;
+        optional TypeHandle type = 2;
+    }
+    optional MethodHandle handle = 1;
+    optional TypeHandle returnType = 2;
+    repeated Parameter parameters = 3;
+    repeated TypeHandle exceptions = 4;
+    optional JumpTarget jumpTarget = 5;
+}
+
+message Type {
+    optional TypeKind kind = 1;
+    optional PrimitiveType primitive = 2;
+    optional ClassType clazz = 3;
+    // TODO: array
+}
+
+message PrimitiveType {
+    enum Kind {
+        BYTE = 1;
+        CHARACTER = 2;
+        SHORT = 3;
+        INTEGER = 4;
+        LONG = 5;
+        FLOAT = 6;
+        DOUBLE = 7;
+        VOID = 8;
+    }
+    optional Kind kind = 1;
+}
+
+message ClassType {
+    enum Kind {
+        CLASS = 1;
+        INTERFACE = 2;
+        ENUM = 3;
+        ANNOTATION = 4;
+    }
+    optional ClassTypeHandle handle = 1;
+    optional Kind kind = 2;
+    repeated TypeHandle superTypes = 3;
+    repeated Field fields = 4;
+    repeated Method methods = 5;
+    optional string javaDoc = 6;
+    optional JumpTarget jumpTarget = 7;
+}
+
+message TypeUsage {
+    enum Kind {
+        IMPORT = 1;
+        SUPER_CLASS = 2;
+        METHOD_SIGNATURE = 3;
+        FIELD = 4;
+        LOCAL_VARIABLE = 5;
+        GENERIC_TYPE_PARAMETER = 6;
+        TYPE_DECLARATION = 7;
+    }
+    optional TypeHandle type = 1;
+    optional Kind kind = 3;
+    // OBSOLETED optional Span span = 2;
+    // OBSOLETED optional JumpTarget jumpTarget = 4;
+}
+
+message Usage {
+    enum Kind {
+        TYPE = 1;
+        METHOD = 2;
+        FIELD = 3;
+    }
+    optional Kind kind = 1;
+
+    // Exactly one of below appears.
+    optional TypeUsage type = 2;
+    optional MethodUsage method = 3;
+    optional FieldUsage field = 4;
+
+    optional JumpTarget jumpTarget = 5;
+}
+
+message FieldUsage {
+    enum Kind {
+        FIELD_DECLARATION = 1;
+        FIELD_ACCESS = 2;
+    }
+    optional FieldHandle field = 1;
+    optional Kind kind = 3;
+    // OBSOLETED optional Span span = 2;
+    // OBSOLETED optional JumpTarget jumpTarget = 4;
+}
+
+message MethodUsage {
+    enum Kind {
+        METHOD_DECLARATION = 1;
+        METHOD_CALL = 2;
+    }
+    optional MethodHandle method = 1;
+    optional Kind kind = 3;
+    // OBSOLETED optional TSpan span = 2;
+    // OBSOLETED optional JumpTarget jumpTarget = 4;
+}
+
+message SourceFile {
+    optional FileHandle handle = 6;
+    optional string source = 4;
+    optional string annotatedSource = 5;
+}

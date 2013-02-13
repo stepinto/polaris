@@ -2,6 +2,18 @@ package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.IdGenerator;
 import com.codingstory.polaris.SimpleIdGenerator;
+import com.codingstory.polaris.parser.ParserProtos.ClassType;
+import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.Field;
+import com.codingstory.polaris.parser.ParserProtos.FieldUsage;
+import com.codingstory.polaris.parser.ParserProtos.FileHandle;
+import com.codingstory.polaris.parser.ParserProtos.Method;
+import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
+import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.TypeKind;
+import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
+import com.codingstory.polaris.parser.ParserProtos.Usage;
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -10,8 +22,13 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
+import static com.codingstory.polaris.parser.TypeUtils.handleOf;
+import static com.codingstory.polaris.parser.TypeUtils.positionOf;
+import static com.codingstory.polaris.parser.TypeUtils.spanOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -20,6 +37,12 @@ public class TwoPassProcessorsTest {
 
     private static final String TEST_PROJECT = "TestProject";
     private static final IdGenerator ID_GENERATOR = new SimpleIdGenerator();
+    private static final Comparator<ClassType> CLASS_TYPE_COMPARATOR_BY_NAME = new Comparator<ClassType>() {
+        @Override
+        public int compare(ClassType left, ClassType right) {
+            return left.getHandle().getName().compareTo(right.getHandle().getName());
+        }
+    };
 
     @Test
     public void testEmpty() throws IOException {
@@ -33,13 +56,13 @@ public class TwoPassProcessorsTest {
         String code = "package pkg;\npublic class MyClass { /* body */ }\n";
         SecondPassProcessor.Result result = extractFromCode(code);
         ClassType clazz = Iterables.getOnlyElement(result.getClassTypes());
-        assertEquals(FullTypeName.of("pkg.MyClass"), clazz.getName());
+        assertEquals("pkg.MyClass", clazz.getHandle().getName());
         assertEquals(ClassType.Kind.CLASS, clazz.getKind());
-        assertEquals(new Position(1, 0), clazz.getJumpTarget().getSpan().getFrom());
-        TypeUsage clazzDeclaration = findUniqueTypeUsageByKind(
+        assertEquals(positionOf(1, 0), clazz.getJumpTarget().getSpan().getFrom());
+        Usage clazzDeclaration = findUniqueTypeUsageByKind(
                 result.getUsages(), TypeUsage.Kind.TYPE_DECLARATION);
-        assertEquals(clazz.getHandle(), clazzDeclaration.getType());
-        assertEquals(new Span(new Position(1, 13), new Position(1, 20)), clazzDeclaration.getJumpTarget().getSpan());
+        assertEquals(clazz.getHandle(), clazzDeclaration.getType().getType().getClazz());
+        assertEquals(spanOf(positionOf(1, 13), positionOf(1, 20)), clazzDeclaration.getJumpTarget().getSpan());
     }
 
     @Test
@@ -48,8 +71,8 @@ public class TwoPassProcessorsTest {
         SecondPassProcessor.Result result = extractFromCode(code);
         List<ClassType> classes = result.getClassTypes();
         List<String> names = Lists.newArrayList();
-        for (Type clazz: classes) {
-            names.add(clazz.getName().toString());
+        for (ClassType clazz: classes) {
+            names.add(clazz.getHandle().getName());
         }
         assertEquals(ImmutableList.of("pkg.A", "pkg.B", "pkg.C"), names);
     }
@@ -58,7 +81,7 @@ public class TwoPassProcessorsTest {
     public void testClass_noPackage() throws IOException {
         String code = "class A {}";
         ClassType clazz = extractUniqueTypeFromCode(code);
-        assertEquals(FullTypeName.of("A"), clazz.getName());
+        assertEquals("A", clazz.getHandle().getName());
     }
 
     @Test
@@ -66,21 +89,21 @@ public class TwoPassProcessorsTest {
         String code = "class A extends B implements C, D {}";
         SecondPassProcessor.Result result = extractFromCode(code);
         ClassType clazz = Iterables.getOnlyElement(result.getClassTypes());
-        assertEquals(FullTypeName.of("A"), clazz.getName());
-        List<FullTypeName> superTypeNames = Lists.newArrayList();
-        for (TypeHandle superType : clazz.getSuperTypes()) {
-            superTypeNames.add(superType.getName());
+        assertEquals("A", clazz.getHandle().getName());
+        List<String> superTypeNames = Lists.newArrayList();
+        for (TypeHandle superType : clazz.getSuperTypesList()) {
+            assertEquals(TypeKind.CLASS, superType.getKind());
+            superTypeNames.add(superType.getClazz().getName());
         }
-        assertEquals(ImmutableList.of(FullTypeName.of("B"), FullTypeName.of("C"), FullTypeName.of("D")),
-                superTypeNames);
-        List<TypeUsage> usages = filterTypeUsagesByKind(result.getUsages(), TypeUsage.Kind.SUPER_CLASS);
+        assertEquals(ImmutableList.of("B", "C", "D"), superTypeNames);
+        List<Usage> usages = filterTypeUsagesByKind(result.getUsages(), TypeUsage.Kind.SUPER_CLASS);
         assertEquals(3, usages.size());
-        assertEquals(new Span(new Position(0, 16), new Position(0, 17)), usages.get(0).getJumpTarget().getSpan());
-        assertEquals("B", usages.get(0).getType().getName().toString());
-        assertEquals(new Span(new Position(0, 29), new Position(0, 30)), usages.get(1).getJumpTarget().getSpan());
-        assertEquals("C", usages.get(1).getType().getName().toString());
-        assertEquals(new Span(new Position(0, 32), new Position(0, 33)), usages.get(2).getJumpTarget().getSpan());
-        assertEquals("D", usages.get(2).getType().getName().toString());
+        assertEquals(spanOf(positionOf(0, 16), positionOf(0, 17)), usages.get(0).getJumpTarget().getSpan());
+        assertEquals("B", usages.get(0).getType().getType().getClazz().getName());
+        assertEquals(spanOf(positionOf(0, 29), positionOf(0, 30)), usages.get(1).getJumpTarget().getSpan());
+        assertEquals("C", usages.get(1).getType().getType().getClazz().getName());
+        assertEquals(spanOf(positionOf(0, 32), positionOf(0, 33)), usages.get(2).getJumpTarget().getSpan());
+        assertEquals("D", usages.get(2).getType().getType().getClazz().getName());
     }
 
     @Test
@@ -88,7 +111,7 @@ public class TwoPassProcessorsTest {
     public void testClass_javaDoc() throws IOException {
         String code = "/** doc */ class A {}";
         ClassType clazz = extractUniqueTypeFromCode(code);
-        assertEquals(FullTypeName.of("A"), clazz.getName());
+        assertEquals("A", clazz.getHandle().getName());
         assertEquals("doc", clazz.getJavaDoc());
     }
 
@@ -97,7 +120,7 @@ public class TwoPassProcessorsTest {
         String code = "package pkg; public interface I {};";
         ClassType clazz = extractUniqueTypeFromCode(code);
         assertEquals(ClassType.Kind.INTERFACE, clazz.getKind());
-        assertEquals(FullTypeName.of("pkg.I"), clazz.getName());
+        assertEquals("pkg.I", clazz.getHandle().getName());
     }
 
     @Test
@@ -105,10 +128,11 @@ public class TwoPassProcessorsTest {
         String code = "package pkg; public class A { static public class B { public static class C {} } }";
         SecondPassProcessor.Result result = extractFromCode(code);
         List<ClassType> classes = result.getClassTypes();
+        Collections.sort(classes, CLASS_TYPE_COMPARATOR_BY_NAME);
         assertEquals(3, classes.size());
-        assertEquals(FullTypeName.of("pkg.A"), classes.get(0).getName());
-        assertEquals(FullTypeName.of("pkg.A$B"), classes.get(1).getName());
-        assertEquals(FullTypeName.of("pkg.A$B$C"), classes.get(2).getName());
+        assertEquals("pkg.A", classes.get(0).getHandle().getName());
+        assertEquals("pkg.A.B", classes.get(1).getHandle().getName());
+        assertEquals("pkg.A.B.C", classes.get(2).getHandle().getName());
     }
 
     // TODO: testClass_public
@@ -125,10 +149,10 @@ public class TwoPassProcessorsTest {
         SecondPassProcessor.Result result = extractFromCode(code);
         ClassType clazz = Iterables.getOnlyElement(result.getClassTypes());
         assertEquals(ClassType.Kind.ENUM, clazz.getKind());
-        assertEquals(FullTypeName.of("pkg.E"), clazz.getName());
-        TypeUsage typeDeclaration = findUniqueTypeUsageByKind(result.getUsages(), TypeUsage.Kind.TYPE_DECLARATION);
-        assertEquals(clazz.getHandle(), typeDeclaration.getType());
-        assertEquals(new Span(new Position(0, 25), new Position(0, 26)), typeDeclaration.getJumpTarget().getSpan());
+        assertEquals("pkg.E", clazz.getHandle().getName());
+        Usage typeDeclaration = findUniqueTypeUsageByKind(result.getUsages(), TypeUsage.Kind.TYPE_DECLARATION);
+        assertEquals(clazz.getHandle(), typeDeclaration.getType().getType().getClazz());
+        assertEquals(spanOf(positionOf(0, 25), positionOf(0, 26)), typeDeclaration.getJumpTarget().getSpan());
     }
 
     // TODO: testEnum_public
@@ -141,20 +165,20 @@ public class TwoPassProcessorsTest {
         String code = "package pkg; class A { void func() {} }";
         SecondPassProcessor.Result result = extractFromCode(code);
         ClassType clazz = Iterables.getOnlyElement(result.getClassTypes());
-        Method method = Iterables.getOnlyElement(clazz.getMethods());
-        assertEquals(FullMemberName.of("pkg.A#func"), method.getName());
-        MethodUsage methodDeclaration = findUniqueMethodUsageByKind(
+        Method method = Iterables.getOnlyElement(clazz.getMethodsList());
+        assertEquals("pkg.A.func", method.getHandle().getName());
+        Usage methodDeclaration = findUniqueMethodUsageByKind(
                 result.getUsages(), MethodUsage.Kind.METHOD_DECLARATION);
-        assertEquals(method.getHandle(), methodDeclaration.getMethod());
-        assertEquals(new Span(new Position(0, 23), new Position(0, 37)), methodDeclaration.getJumpTarget().getSpan());
+        assertEquals(method.getHandle(), methodDeclaration.getMethod().getMethod());
+        assertEquals(spanOf(positionOf(0, 23), positionOf(0, 37)), methodDeclaration.getJumpTarget().getSpan());
     }
 
     @Test
     public void testMethod_inEnum() throws IOException {
         String code = "enum E { SOME_VALUE; void f() {} }";
         ClassType clazz = extractUniqueTypeFromCode(code);
-        Method method = Iterables.getOnlyElement(clazz.getMethods());
-        assertEquals(FullMemberName.of("E#f"), method.getName());
+        Method method = Iterables.getOnlyElement(clazz.getMethodsList());
+        assertEquals("E.f", method.getHandle().getName());
     }
 
     @Test
@@ -162,47 +186,47 @@ public class TwoPassProcessorsTest {
         String code = "class A { B f(C c, D d) throws E, F { return new B(); } }";
         SecondPassProcessor.Result result = extractFromCode(code);
         ClassType clazz = Iterables.getOnlyElement(result.getClassTypes());
-        Method method = Iterables.getOnlyElement(clazz.getMethods());
-        assertEquals(FullMemberName.of("A#f"), method.getName());
-        assertEquals(FullTypeName.of("B"), method.getReturnType().getName());
-        assertEquals(2, method.getParameters().size());
-        Method.Parameter parameter0 = method.getParameters().get(0);
-        assertEquals(FullTypeName.of("C"), parameter0.getType().getName());
+        Method method = Iterables.getOnlyElement(clazz.getMethodsList());
+        assertEquals("A.f", method.getHandle().getName());
+        assertEquals("B", method.getReturnType().getClazz().getName());
+        assertEquals(2, method.getParametersCount());
+        Method.Parameter parameter0 = method.getParameters(0);
+        assertEquals("C", parameter0.getType().getClazz().getName());
         assertEquals("c", parameter0.getName());
-        Method.Parameter parameter1 = method.getParameters().get(1);
-        assertEquals(FullTypeName.of("D"), parameter1.getType().getName());
+        Method.Parameter parameter1 = method.getParameters(1);
+        assertEquals("D", parameter1.getType().getClazz().getName());
         assertEquals("d", parameter1.getName());
-        assertEquals(2, method.getExceptions().size());
-        TypeHandle exceptionType0 = method.getExceptions().get(0);
-        assertEquals(FullTypeName.of("E"), exceptionType0.getName());
-        TypeHandle exceptionType1 = method.getExceptions().get(1);
-        assertEquals(FullTypeName.of("F"), exceptionType1.getName());
-        List<TypeUsage> usages = filterTypeUsagesByKind(result.getUsages(), TypeUsage.Kind.METHOD_SIGNATURE);
+        assertEquals(2, method.getExceptionsCount());
+        TypeHandle exceptionType0 = method.getExceptions(0);
+        assertEquals("E", exceptionType0.getClazz().getName());
+        TypeHandle exceptionType1 = method.getExceptions(1);
+        assertEquals("F", exceptionType1.getClazz().getName());
+        List<Usage> usages = filterTypeUsagesByKind(result.getUsages(), TypeUsage.Kind.METHOD_SIGNATURE);
         assertEquals(5, usages.size());
-        assertEquals(new Span(new Position(0, 10), new Position(0, 11)), usages.get(0).getJumpTarget().getSpan());
-        assertEquals(FullTypeName.of("B"), usages.get(0).getType().getName());
-        assertEquals(new Span(new Position(0, 14), new Position(0, 15)), usages.get(1).getJumpTarget().getSpan());
-        assertEquals(FullTypeName.of("C"), usages.get(1).getType().getName());
-        assertEquals(new Span(new Position(0, 19), new Position(0, 20)), usages.get(2).getJumpTarget().getSpan());
-        assertEquals(FullTypeName.of("D"), usages.get(2).getType().getName());
-        assertEquals(new Span(new Position(0, 31), new Position(0, 32)), usages.get(3).getJumpTarget().getSpan());
-        assertEquals(FullTypeName.of("E"), usages.get(3).getType().getName());
-        assertEquals(new Span(new Position(0, 34), new Position(0, 35)), usages.get(4).getJumpTarget().getSpan());
-        assertEquals(FullTypeName.of("F"), usages.get(4).getType().getName());
+        assertEquals(spanOf(positionOf(0, 10), positionOf(0, 11)), usages.get(0).getJumpTarget().getSpan());
+        assertEquals("B", usages.get(0).getType().getType().getClazz().getName());
+        assertEquals(spanOf(positionOf(0, 14), positionOf(0, 15)), usages.get(1).getJumpTarget().getSpan());
+        assertEquals("C", usages.get(1).getType().getType().getClazz().getName());
+        assertEquals(spanOf(positionOf(0, 19), positionOf(0, 20)), usages.get(2).getJumpTarget().getSpan());
+        assertEquals("D", usages.get(2).getType().getType().getClazz().getName());
+        assertEquals(spanOf(positionOf(0, 31), positionOf(0, 32)), usages.get(3).getJumpTarget().getSpan());
+        assertEquals("E", usages.get(3).getType().getType().getClazz().getName());
+        assertEquals(spanOf(positionOf(0, 34), positionOf(0, 35)), usages.get(4).getJumpTarget().getSpan());
+        assertEquals("F", usages.get(4).getType().getType().getClazz().getName());
     }
 
     @Test
     public void testConstructor() throws IOException {
         String code = "class A { A() {} }";
         Method method = extractUniqueMethodFromCode(code);
-        assertEquals(FullMemberName.of("A#<init>"), method.getName());
+        assertEquals("A.<init>", method.getHandle().getName());
     }
 
     @Test
     public void testStaticInitializer() throws IOException {
         String code = "class A { static { int a; } }";
         Method method = extractUniqueMethodFromCode(code);
-        assertEquals(FullMemberName.of("A#<cinit>"), method.getName());
+        assertEquals("A.<cinit>", method.getHandle().getName());
     }
 
     // TODO: testMethod_public
@@ -217,51 +241,55 @@ public class TwoPassProcessorsTest {
         String code = "package pkg; class A { int n; }";
         SecondPassProcessor.Result result = extractFromCode(code);
         ClassType clazz = Iterables.getOnlyElement(result.getClassTypes());
-        Field field = Iterables.getOnlyElement(clazz.getFields());
-        assertEquals(FullMemberName.of("pkg.A#n"), field.getName());
-        assertEquals(PrimitiveType.INTEGER.getHandle(), field.getType());
-        FieldUsage fieldDeclaration = findUniqueFieldUsageByKind(result.getUsages(), FieldUsage.Kind.FIELD_DECLARATION);
-        assertEquals(field.getHandle(), fieldDeclaration.getField());
-        assertEquals(new Span(new Position(0, 27), new Position(0, 28)), fieldDeclaration.getJumpTarget().getSpan());
-        TypeUsage usage = findUniqueTypeUsageByKind(result.getUsages(), TypeUsage.Kind.FIELD);
-        assertEquals(new Span(new Position(0, 23), new Position(0, 26)), usage.getJumpTarget().getSpan());
-        assertEquals(PrimitiveType.INTEGER.getHandle(), usage.getType());
+        Field field = Iterables.getOnlyElement(clazz.getFieldsList());
+        assertEquals("pkg.A.n", field.getHandle().getName());
+        assertEquals(handleOf(PrimitiveTypes.INTEGER), field.getType());
+        Usage fieldDeclaration = findUniqueFieldUsageByKind(result.getUsages(), FieldUsage.Kind.FIELD_DECLARATION);
+        assertEquals(field.getHandle(), fieldDeclaration.getField().getField());
+        assertEquals(spanOf(positionOf(0, 27), positionOf(0, 28)), fieldDeclaration.getJumpTarget().getSpan());
+        Usage usage = findUniqueTypeUsageByKind(result.getUsages(), TypeUsage.Kind.FIELD);
+        assertEquals(spanOf(positionOf(0, 23), positionOf(0, 26)), usage.getJumpTarget().getSpan());
+        assertEquals(handleOf(PrimitiveTypes.INTEGER), usage.getType().getType());
     }
 
     @Test
     public void testField_fullyQualifiedType() throws IOException {
         String code = "class A { java.util.List l; }";
         Field field = extractUniqueFieldFromCode(code);
-        assertEquals(FullMemberName.of("A#l"), field.getName());
+        assertEquals("A.l", field.getHandle().getName());
         TypeHandle type = field.getType();
-        assertFalse(type.isResolved());
-        assertEquals(FullTypeName.of("java.util.List"), type.getName());
+        assertEquals(TypeKind.CLASS, type.getKind());
+        ClassTypeHandle clazz = type.getClazz();
+        assertFalse(clazz.getResolved());
+        assertEquals("java.util.List", type.getClazz().getName());
     }
 
     @Test
     public void testField_unqualifiedType() throws IOException {
         String code = "import java.util.List; class A { List l; }";
         Field field = extractUniqueFieldFromCode(code);
-        assertEquals(FullMemberName.of("A#l"), field.getName());
+        assertEquals("A.l", field.getHandle().getName());
         TypeHandle type = field.getType();
-        assertFalse(type.isResolved());
-        assertEquals(FullTypeName.of("java.util.List"), type.getName());
+        assertEquals(TypeKind.CLASS, type.getKind());
+        ClassTypeHandle clazz = type.getClazz();
+        assertFalse(clazz.getResolved());
+        assertEquals("java.util.List", clazz.getName());
     }
 
     @Test
     public void testField_initialized() throws IOException {
         String code = "class A { int m = 1; }";
         Field field = extractUniqueFieldFromCode(code);
-        assertEquals(FullMemberName.of("A#m"), field.getName());
+        assertEquals("A.m", field.getHandle().getName());
     }
 
     // TODO: testField_multiple
     @Test
     public void testLocalVariable() throws IOException {
         String code = "package pkg; class A { void f() { B n; } }";
-        TypeUsage usage = findUniqueTypeUsageByKind(
+        Usage usage = findUniqueTypeUsageByKind(
                 extractFromCode(code).getUsages(), TypeUsage.Kind.LOCAL_VARIABLE);
-        assertEquals(FullTypeName.of("B"), usage.getType().getName());
+        assertEquals("B", usage.getType().getType().getClazz().getName());
         // TODO: Test local variable id.
     }
 
@@ -269,7 +297,11 @@ public class TwoPassProcessorsTest {
     // TODO: testLocalVariable_array
 
     public static SecondPassProcessor.Result extractFromCode(String code) throws IOException {
-        FileHandle fakeFile = new FileHandle(100L, "project", "/file");
+        FileHandle fakeFile = FileHandle.newBuilder()
+                .setId(100L)
+                .setProject("project")
+                .setPath("/file")
+                .build();
         SymbolTable symbolTable = new SymbolTable();
         FirstPassProcessor.Result result = FirstPassProcessor.process(
                 fakeFile,
@@ -290,82 +322,82 @@ public class TwoPassProcessorsTest {
     }
 
     public static Method extractUniqueMethodFromCode(String code) throws IOException {
-        return Iterables.getOnlyElement(extractUniqueTypeFromCode(code).getMethods());
+        return Iterables.getOnlyElement(extractUniqueTypeFromCode(code).getMethodsList());
     }
 
     public static Field extractUniqueFieldFromCode(String code) throws IOException {
-        return Iterables.getOnlyElement(extractUniqueTypeFromCode(code).getFields());
+        return Iterables.getOnlyElement(extractUniqueTypeFromCode(code).getFieldsList());
     }
 
-    private List<TypeUsage> filterTypeUsages(List<Usage> usages) {
-        List<TypeUsage> result = Lists.newArrayList();
+    private List<Usage> filterTypeUsages(List<Usage> usages) {
+        List<Usage> result = Lists.newArrayList();
         for (Usage usage : usages) {
-            if (usage instanceof TypeUsage) {
-                result.add((TypeUsage) usage);
+            if (Objects.equal(usage.getKind(), Usage.Kind.TYPE)) {
+                result.add(usage);
             }
         }
         return result;
     }
 
-    private List<TypeUsage> filterTypeUsagesByKind(List<Usage> usages, TypeUsage.Kind kind) {
-        List<TypeUsage> result = Lists.newArrayList();
-        for (TypeUsage typeUsage : filterTypeUsages(usages)) {
-            if (typeUsage.getKind() == kind) {
-                result.add(typeUsage);
+    private List<Usage> filterTypeUsagesByKind(List<Usage> usages, TypeUsage.Kind kind) {
+        List<Usage> result = Lists.newArrayList();
+        for (Usage u : filterTypeUsages(usages)) {
+            if (u.getType().getKind() == kind) {
+                result.add(u);
             }
         }
         return result;
     }
 
-    private TypeUsage findUniqueTypeUsageByKind(List<Usage> usages, final TypeUsage.Kind kind) {
+    private Usage findUniqueTypeUsageByKind(List<Usage> usages, final TypeUsage.Kind kind) {
         return Iterables.getOnlyElement(filterTypeUsagesByKind(usages,  kind));
     }
 
-    private List<MethodUsage> filterMethodUsages(List<Usage> usages) {
-        List<MethodUsage> result = Lists.newArrayList();
+    private List<Usage> filterMethodUsages(List<Usage> usages) {
+        List<Usage> result = Lists.newArrayList();
         for (Usage usage : usages) {
-            if (usage instanceof MethodUsage) {
-                result.add((MethodUsage) usage);
+            if (usage.getKind() == Usage.Kind.METHOD) {
+                result.add(usage);
             }
         }
         return result;
     }
 
-    private List<MethodUsage> filterMethodUsagesByKind(List<Usage> usages, MethodUsage.Kind kind) {
-        List<MethodUsage> result = Lists.newArrayList();
-        for (MethodUsage methodUsage : filterMethodUsages(usages)) {
-            if (methodUsage.getKind() == kind) {
-                result.add(methodUsage);
+    private List<Usage> filterMethodUsagesByKind(List<Usage> usages, MethodUsage.Kind kind) {
+        List<Usage> result = Lists.newArrayList();
+        for (Usage u : filterMethodUsages(usages)) {
+            if (u.getKind() == Usage.Kind.METHOD && u.getMethod().getKind() == kind) {
+                result.add(u);
             }
         }
         return result;
     }
 
-    private MethodUsage findUniqueMethodUsageByKind(List<Usage> usages, MethodUsage.Kind kind) {
+    private Usage findUniqueMethodUsageByKind(List<Usage> usages, MethodUsage.Kind kind) {
         return Iterables.getOnlyElement(filterMethodUsagesByKind(usages, kind));
     }
 
-    private List<FieldUsage> filterFieldUsages(List<Usage> usages) {
-        List<FieldUsage> result = Lists.newArrayList();
+    private List<Usage> filterFieldUsages(List<Usage> usages) {
+        List<Usage> result = Lists.newArrayList();
         for (Usage usage : usages) {
-            if (usage instanceof FieldUsage) {
-                result.add((FieldUsage) usage);
+            if (usage.getKind() == Usage.Kind.FIELD) {
+                result.add(usage);
             }
         }
         return result;
     }
 
-    private List<FieldUsage> filterFieldUsagesByKind(List<Usage> usages, FieldUsage.Kind kind) {
-        List<FieldUsage> result = Lists.newArrayList();
-        for (FieldUsage methodUsage : filterFieldUsages(usages)) {
-            if (methodUsage.getKind() == kind) {
-                result.add(methodUsage);
+    private List<Usage> filterFieldUsagesByKind(List<Usage> usages, FieldUsage.Kind kind) {
+        List<Usage> result = Lists.newArrayList();
+        for (Usage u : filterFieldUsages(usages)) {
+            if (u.getKind() == Usage.Kind.FIELD) {
+                result.add(u);
             }
         }
         return result;
     }
 
-    private FieldUsage findUniqueFieldUsageByKind(List<Usage> usages, FieldUsage.Kind kind) {
+    private Usage findUniqueFieldUsageByKind(List<Usage> usages, FieldUsage.Kind kind) {
         return Iterables.getOnlyElement(filterFieldUsagesByKind(usages, kind));
     }
 }

@@ -1,71 +1,72 @@
 package com.codingstory.polaris.cli.command;
 
-import com.codingstory.polaris.JumpTarget;
+import com.codingstory.polaris.NoOpController;
 import com.codingstory.polaris.cli.Command;
-import com.codingstory.polaris.cli.CommandUtils;
 import com.codingstory.polaris.cli.Help;
 import com.codingstory.polaris.cli.Option;
 import com.codingstory.polaris.cli.Run;
-import com.codingstory.polaris.parser.FileHandle;
-import com.codingstory.polaris.parser.TTypeUsage;
-import com.codingstory.polaris.parser.TypeUsage;
-import com.codingstory.polaris.search.TCodeSearchService;
-import com.codingstory.polaris.search.TGetTypeRequest;
-import com.codingstory.polaris.search.TGetTypeResponse;
-import com.codingstory.polaris.search.TListTypeUsagesRequest;
-import com.codingstory.polaris.search.TListTypeUsagesResponse;
-import org.apache.thrift.TException;
+import com.codingstory.polaris.parser.ParserProtos.FileHandle;
+import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
+import com.codingstory.polaris.parser.ParserProtos.Usage;
+import com.codingstory.polaris.parser.ParserProtos.Position;
+import com.codingstory.polaris.search.CodeSearchImpl;
+import com.codingstory.polaris.search.SearchProtos.GetTypeRequest;
+import com.codingstory.polaris.search.SearchProtos.GetTypeResponse;
+import com.codingstory.polaris.search.SearchProtos.ListTypeUsagesRequest;
+import com.codingstory.polaris.search.SearchProtos.ListTypeUsagesResponse;
+import org.apache.commons.io.IOUtils;
 
+import java.io.File;
 import java.io.IOException;
 
 import static com.codingstory.polaris.cli.CommandUtils.checkStatus;
 import static com.codingstory.polaris.cli.CommandUtils.die;
 
-@Command(name = "find-usages")
+@Command(name = "findusages")
 public class FindUsages {
     @Option(name = "index", shortName = "i", defaultValue = "index")
     public String index;
 
-    @Option(name = "server", shortName = "s")
-    public String server;
-
     @Run
-    public void run(String[] args) throws TException, IOException {
+    public void run(String[] args) throws IOException {
         if (args.length != 1) {
             die("Require exactly one class");
         }
 
         final String className = args[0];
-        CommandUtils.openIndexOrConnectToServerAndRun(index, server, new CommandUtils.RpcRunner() {
-            @Override
-            public void run(TCodeSearchService.Iface rpc) throws TException {
-                TGetTypeRequest getTypeReq = new TGetTypeRequest();
-                getTypeReq.setTypeName(className);
-                TGetTypeResponse getTypeResp = rpc.getType(getTypeReq);
-                checkStatus(getTypeResp.getStatus());
-                TListTypeUsagesRequest listUsageReq = new TListTypeUsagesRequest();
-                listUsageReq.setTypeId(getTypeResp.getClassType().getHandle().getId());
-                TListTypeUsagesResponse listUsageResp = rpc.listTypeUsages(listUsageReq);
-                checkStatus(listUsageResp.getStatus());
-                for (TTypeUsage t : listUsageResp.getUsages()) {
-                    TypeUsage usage = TypeUsage.createFromThrift(t);
+        CodeSearchImpl searcher = new CodeSearchImpl(new File(index));
+        try {
+            GetTypeRequest getTypeReq = GetTypeRequest.newBuilder()
+                    .setTypeName(className)
+                    .build();
+            GetTypeResponse getTypeResp = searcher.getType(NoOpController.getInstance(), getTypeReq);
+            checkStatus(getTypeResp.getStatus());
+            ListTypeUsagesRequest listUsageReq = ListTypeUsagesRequest.newBuilder()
+                    .setTypeId(getTypeResp.getClassType().getHandle().getId())
+                    .build();
+            ListTypeUsagesResponse listUsageResp = searcher.listTypeUsages(NoOpController.getInstance(), listUsageReq);
+            checkStatus(listUsageResp.getStatus());
+            for (Usage usage : listUsageResp.getUsagesList()) {
+                if (usage.getKind() == Usage.Kind.TYPE) {
                     JumpTarget target = usage.getJumpTarget();
                     FileHandle file = target.getFile();
-                    System.out.println(usage.getKind().name() + ": file #" + file.getId() + " " + file.getPath() +
-                            ":" + target.getSpan().getFrom().getLine());
+                    Position position = target.getSpan().getFrom();
+                    System.out.println(usage.getType().getKind().name() + ": file #" + file.getId()
+                            + " " + file.getPath() + " (" + position.getLine() + "," + position.getColumn() + ")");
                 }
             }
-        });
+        } finally {
+            IOUtils.closeQuietly(searcher);
+        }
     }
 
     @Help
     public void help() {
         System.out.println("Usage:\n" +
-                "  polaris find-usages <qualified-class> [--index=<dir>] [--server=<ip:port>]\\n" +
+                "  polaris findusages <qualified-class> [--index=<dir>]\n" +
                 "\n" +
                 "Options:\n" +
                 HelpMessages.INDEX +
-                HelpMessages.SERVER +
                 "\n");
     }
 }

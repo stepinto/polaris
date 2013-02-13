@@ -18,7 +18,7 @@ angular.module('polarisServices', [])
         $http.post('/api/source', req).success(callback);
       },
       readSourceById: function(id, callback) {
-        var req = {'fileId': id};
+        var req = {'fileId': Number(id)};
         $http.post('/api/source', req).success(callback);
       },
       listFiles: function(project, path, callback) {
@@ -26,12 +26,12 @@ angular.module('polarisServices', [])
         $http.post('/api/layout', req).success(callback);
       },
       getTypeById: function(typeId, callback) {
-        var req = {'typeId': typeId};
-        $http.post('/api/get-type', req).success(callback);
+        var req = {'typeId': Number(typeId)};
+        $http.post('/api/getType', req).success(callback);
       },
       listTypeUsages: function(typeId, callback) {
-        var req = {'typeId': typeId};
-        $http.post('/api/list-type-usages', req).success(callback);
+        var req = {'typeId': Number(typeId)};
+        $http.post('/api/listTypeUsages', req).success(callback);
       }
     };
   })

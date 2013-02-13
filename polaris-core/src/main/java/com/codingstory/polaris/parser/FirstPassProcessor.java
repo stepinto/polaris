@@ -1,8 +1,12 @@
 package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.IdGenerator;
-import com.codingstory.polaris.JumpTarget;
 import com.codingstory.polaris.SkipCheckingExceptionWrapper;
+import com.codingstory.polaris.parser.ParserProtos.ClassType;
+import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.FileHandle;
+import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
+import com.codingstory.polaris.parser.ParserProtos.Span;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import japa.parser.ast.PackageDeclaration;
@@ -15,10 +19,10 @@ import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import static com.codingstory.polaris.parser.ParserUtils.makeTypeName;
 import static com.codingstory.polaris.parser.ParserUtils.nodeSpan;
 
 /** Extracts full type names with assigned type ids. */
@@ -48,7 +52,7 @@ public class FirstPassProcessor {
         private String pkg = "";
         private final FileHandle file;
         private final IdGenerator idGenerator;
-        private final LinkedList<TypeHandle> typeStack = Lists.newLinkedList();
+        private final LinkedList<String> typeStack = Lists.newLinkedList();
         private final SymbolTable symbolTable;
         private final List<ClassType> discoveredClasses = Lists.newArrayList();
 
@@ -68,7 +72,7 @@ public class FirstPassProcessor {
         public void visit(AnnotationDeclaration ast, Void arg) {
             processTypeAndPushStack(ast.getName(), ClassType.Kind.ANNOTATION, nodeSpan(ast));
             super.visit(ast, arg);
-            typeStack.pop();
+            typeStack.removeLast();
         }
 
         @Override
@@ -78,29 +82,35 @@ public class FirstPassProcessor {
                     ast.isInterface() ? ClassType.Kind.INTERFACE : ClassType.Kind.CLASS,
                     nodeSpan(ast));
             super.visit(ast, arg);
-            typeStack.pop();
+            typeStack.removeLast();
         }
 
         @Override
         public void visit(EnumDeclaration ast, Void arg) {
             processTypeAndPushStack(ast.getName(), ClassType.Kind.ENUM, nodeSpan(ast));
             super.visit(ast, arg);
-            typeStack.pop();
+            typeStack.removeLast();
         }
 
-        private void processTypeAndPushStack(String name, ClassType.Kind kind, Span span) {
+        private void processTypeAndPushStack(String simpleName, ClassType.Kind kind, Span span) {
             try {
-                FullTypeName typeName;
-                if (typeStack.isEmpty()) {
-                    typeName = FullTypeName.of(pkg, name);
-                } else {
-                    typeName = FullTypeName.of(pkg, typeStack.getFirst().getName().getTypeName() + "$" + name);
-                }
-                TypeHandle handle = new TypeHandle(idGenerator.next(), typeName);
+                String fullName = makeTypeName(pkg, typeStack, simpleName);
+                ClassTypeHandle handle = ClassTypeHandle.newBuilder()
+                        .setId(idGenerator.next())
+                        .setName(fullName)
+                        .setResolved(true)
+                        .build();
                 LOG.debug("Allocated type handle: " + handle);
-                ClassType clazz = new ClassType(
-                        handle, kind, EnumSet.noneOf(Modifier.class),  null, new JumpTarget(file, span));
-                typeStack.push(handle);
+                JumpTarget jumpTarget = JumpTarget.newBuilder()
+                        .setFile(file)
+                        .setSpan(span)
+                        .build();
+                ClassType clazz = ClassType.newBuilder()
+                        .setHandle(handle)
+                        .setKind(kind)
+                        .setJumpTarget(jumpTarget)
+                        .build();
+                typeStack.add(simpleName);
                 symbolTable.registerClassType(clazz);
                 discoveredClasses.add(clazz);
             } catch (IOException e) {

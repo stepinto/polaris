@@ -1,0 +1,24 @@
+import "parser.proto";
+option java_package = "com.codingstory.polaris.pipeline";
+option java_outer_classname = "PipelineProtos";
+
+message FileContent {
+    optional FileHandle file = 1;
+    optional string content = 2;
+}
+
+message ParsedFile {
+    optional string package_ = 3;
+    repeated ClassType classes = 2; // valid after 1st pass
+    optional SourceFile source = 6; // valid after 2nd pass
+    repeated Usage usages = 4; // valid after 2nd pass
+}
+
+message FileImports {
+    // "source" imports "target"
+    optional FileHandle file = 1;
+    optional string package_ = 2;
+    repeated string importedClasses = 3;
+    repeated string importedPackages = 4;
+}
+

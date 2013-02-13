@@ -1,0 +1,7 @@
+import "parser.proto";
+option java_package = "com.codingstory.polaris.sourcedb";
+option java_outer_classname = "SourceDbProtos";
+
+message SourceData {
+    optional SourceFile sourceFile = 1;
+}

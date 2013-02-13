@@ -1,8 +1,20 @@
 package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.IdGenerator;
-import com.codingstory.polaris.JumpTarget;
 import com.codingstory.polaris.SkipCheckingExceptionWrapper;
+import com.codingstory.polaris.parser.ParserProtos.ClassType;
+import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.Field;
+import com.codingstory.polaris.parser.ParserProtos.FieldHandle;
+import com.codingstory.polaris.parser.ParserProtos.FieldUsage;
+import com.codingstory.polaris.parser.ParserProtos.FileHandle;
+import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
+import com.codingstory.polaris.parser.ParserProtos.Method;
+import com.codingstory.polaris.parser.ParserProtos.MethodHandle;
+import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
+import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
+import com.codingstory.polaris.parser.ParserProtos.Usage;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -21,11 +33,13 @@ import japa.parser.ast.visitor.VoidVisitorAdapter;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import static com.codingstory.polaris.parser.ParserUtils.makeTypeName;
 import static com.codingstory.polaris.parser.ParserUtils.nodeJumpTarget;
+import static com.codingstory.polaris.parser.TypeUtils.getSimpleName;
 
 public final class SecondPassProcessor {
 
@@ -52,7 +66,7 @@ public final class SecondPassProcessor {
         private final FileHandle file;
         private final SymbolTable symbolTable;
         private final List<Usage> usages = Lists.newArrayList();
-        private final List<ClassType> discoveredTypes = Lists.newArrayList();
+        private final List<ClassType> discoveredClasses = Lists.newArrayList();
         private final String pkg;
         private final LinkedList<ClassType> typeStack = Lists.newLinkedList();
         private final LinkedList<Method> methodStack = Lists.newLinkedList();
@@ -86,9 +100,12 @@ public final class SecondPassProcessor {
             if (node.isAsterisk()) {
                 symbolTable.registerImportPackage(node.getName().toString());
             } else {
-                FullTypeName name = FullTypeName.of(node.getName().toString());
-                TypeHandle clazz = symbolTable.resolveTypeHandle(name);
-                usages.add(new TypeUsage(clazz, nodeJumpTarget(file, node.getName()), TypeUsage.Kind.IMPORT));
+                String name = node.getName().toString();
+                ClassTypeHandle clazz = symbolTable.resolveClassHandle(name);
+                usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
+                        .setKind(TypeUsage.Kind.IMPORT)
+                        .setType(TypeUtils.handleOf(clazz))
+                        .build(), nodeJumpTarget(file, node.getName())));
                 symbolTable.registerImportClass(clazz);
             }
             super.visit(node, arg);
@@ -114,32 +131,34 @@ public final class SecondPassProcessor {
 
         private void processTypeDeclaration(String name, ClassType.Kind kind, JumpTarget jumpTarget,
                 List<ClassOrInterfaceType> superTypeAsts, String javaDoc, Runnable visitChildren) {
-            FullTypeName fullTypeName = FullTypeName.of(pkg, makeTypeName(name));
-            ClassType clazz = symbolTable.lookUpClassType(fullTypeName);
+            String fullName = makeTypeName(pkg, getOuterClassNames(), name);
+            ClassType clazz = symbolTable.resolveClass(fullName);
             if (clazz == null) {
-                throw new AssertionError(fullTypeName + " should have been identified in 1st pass");
+                throw new AssertionError(fullName + " should have been identified in 1st pass");
+            }
+            ClassType.Builder classBuilder = clazz.toBuilder();
+            if (javaDoc != null) {
+                classBuilder.setJavaDoc(javaDoc);
             }
             for (ClassOrInterfaceType superTypeAst : superTypeAsts) {
                 String superTypeName = superTypeAst.toString();
-                TypeHandle superType = symbolTable.resolveTypeHandle(FullTypeName.of(superTypeName));
-                usages.add(new TypeUsage(superType, nodeJumpTarget(file, superTypeAst), TypeUsage.Kind.SUPER_CLASS));
-                clazz.addSuperType(superType);
+                TypeHandle superType = symbolTable.resolveTypeHandle(superTypeName);
+                usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
+                        .setType(superType)
+                        .setKind(TypeUsage.Kind.SUPER_CLASS)
+                        .build(), nodeJumpTarget(file, superTypeAst)));
+                classBuilder.addSuperTypes(superType);
             }
-            usages.add(new TypeUsage(clazz.getHandle(), jumpTarget, TypeUsage.Kind.TYPE_DECLARATION));
-            discoveredTypes.add(clazz);
+            usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
+                    .setType(TypeUtils.handleOf(classBuilder.getHandle()))
+                    .setKind(TypeUsage.Kind.TYPE_DECLARATION)
+                    .build(), jumpTarget));
+            clazz = classBuilder.build();
             symbolTable.enterScope();
             typeStack.push(clazz);
             visitChildren.run();
-            typeStack.pop();
+            discoveredClasses.add(typeStack.pop());
             symbolTable.leaveScope();
-        }
-
-        private String makeTypeName(String name) {
-            if (typeStack.isEmpty()) {
-                return name;
-            } else {
-                return currentType().getName().getTypeName() + "$" + name;
-            }
         }
 
         @Override
@@ -219,85 +238,138 @@ public final class SecondPassProcessor {
                 Runnable visitChildren) {
             TypeHandle returnType;
             if (type == null) {
-                returnType = PrimitiveType.VOID.getHandle();
+                returnType = TypeUtils.handleOf(PrimitiveTypes.VOID);
             } else {
-                returnType = symbolTable.resolveTypeHandle(FullTypeName.of(type.toString()));
-                usages.add(new TypeUsage(returnType, nodeJumpTarget(file, type), TypeUsage.Kind.METHOD_SIGNATURE));
+                returnType = symbolTable.resolveTypeHandle(type.toString());
+                usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
+                        .setKind(TypeUsage.Kind.METHOD_SIGNATURE)
+                        .setType(returnType)
+                        .build(), nodeJumpTarget(file, type)));
             }
             List<Method.Parameter> parameters = Lists.newArrayList();
             List<TypeHandle> parameterTypes = Lists.newArrayList();
             for (Parameter parameter : nullToEmptyList(methodParameters)) {
-                TypeHandle parameterType = symbolTable.resolveTypeHandle(FullTypeName.of(parameter.getType().toString()));
-                usages.add(new TypeUsage(parameterType, nodeJumpTarget(file, parameter.getType()),
-                        TypeUsage.Kind.METHOD_SIGNATURE));
+                TypeHandle parameterType = symbolTable.resolveTypeHandle(parameter.getType().toString());
+                usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
+                        .setType(parameterType)
+                        .setKind(TypeUsage.Kind.METHOD_SIGNATURE)
+                        .build(), nodeJumpTarget(file, parameter.getType())));
                 parameterTypes.add(parameterType);
-                parameters.add(new Method.Parameter(parameterType, parameter.getId().getName()));
+                parameters.add(Method.Parameter.newBuilder()
+                        .setType(parameterType)
+                        .setName(parameter.getId().getName())
+                        .build());
             }
             List<TypeHandle> exceptions = Lists.newArrayList();
             for (NameExpr throwExpr : nullToEmptyList(methodThrows)) {
-                TypeHandle exceptionType = symbolTable.resolveTypeHandle(FullTypeName.of(throwExpr.getName()));
-                usages.add(new TypeUsage(
-                        exceptionType, nodeJumpTarget(file, throwExpr), TypeUsage.Kind.METHOD_SIGNATURE));
+                TypeHandle exceptionType = symbolTable.resolveTypeHandle(throwExpr.getName());
+                usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
+                        .setType(exceptionType)
+                        .setKind(TypeUsage.Kind.METHOD_SIGNATURE)
+                        .build(), nodeJumpTarget(file, throwExpr)));
                 exceptions.add(exceptionType);
             }
-            FullMemberName fullMemberName = FullMemberName.of(currentType().getName(), methodName);
-            Method method = new Method(
-                    new MethodHandle(generateId(), fullMemberName, parameterTypes),
-                    returnType,
-                    parameters,
-                    exceptions,
-                    EnumSet.noneOf(Modifier.class),
-                    jumpTarget);
-            usages.add(new MethodUsage(method.getHandle(), jumpTarget, MethodUsage.Kind.METHOD_DECLARATION));
-            currentType().getMethods().add(method);
+            String fullMemberName = currentTypeName() + "." + methodName;
+            MethodHandle methodHandle = MethodHandle.newBuilder()
+                    .setId(generateId())
+                    .setName(fullMemberName)
+                    .addAllParameters(parameterTypes)
+                    .build();
+            usages.add(TypeUtils.usageOf(MethodUsage.newBuilder()
+                    .setMethod(methodHandle)
+                    .setKind(MethodUsage.Kind.METHOD_DECLARATION)
+                    .build(), jumpTarget));
+            Method method = Method.newBuilder()
+                    .setHandle(methodHandle)
+                    .setReturnType(returnType)
+                    .addAllParameters(parameters)
+                    .addAllExceptions(exceptions)
+                    .setJumpTarget(jumpTarget)
+                    .build();
+            addMethodToCurrentType(method);
             methodStack.push(method);
             visitChildren.run();
             methodStack.pop();
         }
 
+        private void addMethodToCurrentType(Method method) {
+            ClassType top = typeStack.pop();
+            typeStack.push(top.toBuilder()
+                    .addMethods(method)
+                    .build());
+        }
+
         @Override
         public void visit(japa.parser.ast.body.FieldDeclaration node, Object arg) {
             Preconditions.checkNotNull(node);
-            TypeHandle type = symbolTable.resolveTypeHandle(FullTypeName.of(node.getType().toString()));
-            usages.add(new TypeUsage(type, nodeJumpTarget(file, node.getType()), TypeUsage.Kind.FIELD));
+            TypeHandle type = symbolTable.resolveTypeHandle(node.getType().toString());
+            usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
+                    .setType(type)
+                    .setKind(TypeUsage.Kind.FIELD)
+                    .build(), nodeJumpTarget(file, node.getType())));
             for (VariableDeclarator varDecl : node.getVariables()) {
                 JumpTarget fieldTarget = nodeJumpTarget(file, varDecl.getId());
-                FullMemberName fullMemberName = FullMemberName.of(currentType().getName(), varDecl.getId().getName());
-                Field field = new Field(
-                        new FieldHandle(generateId(), fullMemberName),
-                        type,
-                        EnumSet.noneOf(Modifier.class),
-                        fieldTarget);
-                currentType().getFields().add(field);
-                usages.add(new FieldUsage(field.getHandle(), fieldTarget, FieldUsage.Kind.FIELD_DECLARATION));
+                String fullMemberName = currentTypeName() + "." + varDecl.getId().getName();
+                FieldHandle fieldHandle = FieldHandle.newBuilder()
+                        .setId(generateId())
+                        .setName(fullMemberName)
+                        .build();
+                Field field = Field.newBuilder()
+                        .setHandle(fieldHandle)
+                        .setType(type)
+                        .setJumpTarget(fieldTarget)
+                        .build();
+                addFieldToCurrentType(field);
+                usages.add(TypeUtils.usageOf(FieldUsage.newBuilder()
+                        .setField(field.getHandle())
+                        .setKind(FieldUsage.Kind.FIELD_DECLARATION)
+                        .build(), fieldTarget));
             }
             super.visit(node, arg);
+        }
+
+        public void addFieldToCurrentType(Field field) {
+            ClassType top = typeStack.pop();
+            typeStack.push(top.toBuilder()
+                    .addFields(field)
+                    .build());
         }
 
         @Override
         public void visit(VariableDeclarationExpr node, Object arg) {
             Preconditions.checkNotNull(node);
-            TypeHandle type = symbolTable.resolveTypeHandle(FullTypeName.of(node.getType().toString()));
-            usages.add(new TypeUsage(
-                    type, nodeJumpTarget(file, node.getType()), TypeUsage.Kind.LOCAL_VARIABLE));
+            TypeHandle type = symbolTable.resolveTypeHandle(node.getType().toString());
+            usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
+                    .setType(type)
+                    .setKind(TypeUsage.Kind.LOCAL_VARIABLE)
+                    .build(), nodeJumpTarget(file, node.getType())));
             super.visit(node, arg);
         }
 
         private ClassType currentType() {
-            return typeStack.getFirst();
+            if (typeStack.isEmpty()) {
+                return null;
+            } else {
+                return typeStack.getFirst();
+            }
+        }
+
+        private String currentTypeName() {
+            ClassType current = currentType();
+            if (current == null) {
+                return null;
+            } else {
+                return current.getHandle().getName();
+            }
         }
 
         private Method currentMethod() {
             return methodStack.getLast();
         }
 
-        private String findMethodName() {
-            return currentMethod().getName().toString();
-        }
-
         public List<Usage> getUsages() { return usages; }
 
-        public List<ClassType> getClassTypes() { return discoveredTypes; }
+        public List<ClassType> getClassTypes() { return discoveredClasses; }
 
         private <T> List<T> nullToEmptyList(List<T> list) {
             return list == null ? ImmutableList.<T>of() : list;
@@ -309,6 +381,15 @@ public final class SecondPassProcessor {
             } catch (IOException e) {
                 throw new SkipCheckingExceptionWrapper(e);
             }
+        }
+
+        public List<String> getOuterClassNames() {
+            List<String> results = Lists.newArrayListWithCapacity(typeStack.size());
+            for (ClassType clazz : typeStack) {
+                results.add(getSimpleName(clazz.getHandle().getName()));
+            }
+            Collections.reverse(results);
+            return results;
         }
     }
 

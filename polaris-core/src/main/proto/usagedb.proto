@@ -1,0 +1,8 @@
+import "parser.proto";
+option java_package = "com.codingstory.polaris.usagedb";
+option java_outer_classname = "UsageDbProtos";
+
+message UsageData {
+    optional Usage usage = 1;
+    // TODO: MethodUsage, FieldUsage
+}

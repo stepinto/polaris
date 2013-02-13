@@ -1,9 +1,6 @@
 package com.codingstory.polaris;
 
-import com.codingstory.polaris.parser.TFileHandle;
 import com.google.common.collect.ImmutableSet;
-
-import java.util.List;
 
 import static junit.framework.Assert.assertEquals;
 

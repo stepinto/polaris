@@ -1,12 +1,11 @@
 package com.codingstory.polaris.usagedb;
 
-import com.codingstory.polaris.JumpTarget;
-import com.codingstory.polaris.parser.FileHandle;
-import com.codingstory.polaris.parser.FullTypeName;
-import com.codingstory.polaris.parser.Position;
-import com.codingstory.polaris.parser.Span;
-import com.codingstory.polaris.parser.TypeHandle;
-import com.codingstory.polaris.parser.TypeUsage;
+import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.FileHandle;
+import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
+import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
+import com.codingstory.polaris.parser.ParserProtos.Usage;
+import com.codingstory.polaris.parser.TypeUtils;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import org.junit.Before;
@@ -18,6 +17,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import static com.codingstory.polaris.parser.TypeUtils.handleOf;
+import static com.codingstory.polaris.parser.TypeUtils.positionOf;
+import static com.codingstory.polaris.parser.TypeUtils.spanOf;
+import static com.codingstory.polaris.parser.TypeUtils.usageOf;
 import static org.junit.Assert.assertEquals;
 
 public class UsageDbTest {
@@ -35,26 +38,43 @@ public class UsageDbTest {
         UsageDbWriter w = new UsageDbWriterImpl(tempDir);
         long typeId = 100L;
         long fileId = 200L;
-        FileHandle file = new FileHandle(fileId, "project", "/filename");
-        TypeHandle handle = new TypeHandle(typeId, FullTypeName.of("MyClass"));
-        TypeUsage usage1 = new TypeUsage(
-                handle,
-                new JumpTarget(file, new Span(new Position(0, 10), new Position(0, 20))),
-                TypeUsage.Kind.METHOD_SIGNATURE);
-        TypeUsage usage2 = new TypeUsage(
-                handle,
-                new JumpTarget(file, new Span(new Position(0, 20), new Position(0, 30))),
-                TypeUsage.Kind.METHOD_SIGNATURE);
+        FileHandle file = FileHandle.newBuilder()
+                .setId(fileId)
+                .setPath("project")
+                .setPath("/filename")
+                .build();
+        ClassTypeHandle clazz = ClassTypeHandle.newBuilder()
+                .setId(typeId)
+                .setName("MyClass")
+                .setResolved(true)
+                .build();
+        JumpTarget jumpTarget1 = JumpTarget.newBuilder()
+                .setFile(file)
+                .setSpan(spanOf(positionOf(0, 10), positionOf(0, 20)))
+                .build();
+        Usage usage1 = usageOf(TypeUsage.newBuilder()
+                .setType(handleOf(clazz))
+                .setKind(TypeUsage.Kind.METHOD_SIGNATURE)
+                .build(), jumpTarget1);
+        JumpTarget jumpTarget2 = JumpTarget.newBuilder()
+                .setFile(file)
+                .setSpan(spanOf(positionOf(0, 20), positionOf(0, 30)))
+                .build();
+        Usage usage2 = usageOf(TypeUsage.newBuilder()
+                .setType(handleOf(clazz))
+                .setKind(TypeUsage.Kind.METHOD_SIGNATURE)
+                .build(), jumpTarget2);
         w.write(usage1);
         w.write(usage2);
         w.close();
         UsageDb r = new UsageDbImpl(tempDir);
-        List<TypeUsage> usages = Lists.newArrayList(r.query(typeId));
+        List<Usage> usages = Lists.newArrayList(r.query(typeId));
         assertEquals(2, usages.size());
-        Collections.sort(usages, new Comparator<TypeUsage>() {
+        Collections.sort(usages, new Comparator<Usage>() {
             @Override
-            public int compare(TypeUsage left, TypeUsage right) {
-                return left.getJumpTarget().getSpan().compareTo(right.getJumpTarget().getSpan());
+            public int compare(Usage left, Usage right) {
+                return TypeUtils.SPAN_COMPARATOR.compare(
+                        left.getJumpTarget().getSpan(), right.getJumpTarget().getSpan());
             }
         });
         assertEquals(2, usages.size());

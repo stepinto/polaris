@@ -2,10 +2,10 @@ package com.codingstory.polaris.typedb;
 
 import com.codingstory.polaris.IdUtils;
 import com.codingstory.polaris.SnappyUtils;
-import com.codingstory.polaris.parser.ClassType;
-import com.codingstory.polaris.parser.Field;
-import com.codingstory.polaris.parser.FullTypeName;
-import com.codingstory.polaris.parser.Method;
+import com.codingstory.polaris.parser.ParserProtos.ClassType;
+import com.codingstory.polaris.parser.ParserProtos.Field;
+import com.codingstory.polaris.parser.ParserProtos.Method;
+import com.codingstory.polaris.typedb.TypeDbProtos.TypeData;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -24,9 +24,6 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.TException;
-import org.apache.thrift.protocol.TBinaryProtocol;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,7 +31,6 @@ import java.util.List;
 
 public class TypeDbImpl implements TypeDb {
     private static final Log LOG = LogFactory.getLog(TypeDbImpl.class);
-    private static final TDeserializer DESERIALIZER = new TDeserializer(new TBinaryProtocol.Factory());
     private static final ImmutableList<String> FIELDS_FOR_AUTO_COMPLETION = ImmutableList.of(
             TypeDbIndexedField.TYPE_CASE_INSENSITIVE,
             TypeDbIndexedField.TYPE_ACRONYM_CASE_INSENSITIVE,
@@ -64,11 +60,11 @@ public class TypeDbImpl implements TypeDb {
     }
 
     @Override
-    public List<ClassType> getTypeByName(FullTypeName type, String project, int n) throws IOException {
+    public List<ClassType> getTypeByName(String type, String project, int n) throws IOException {
         Preconditions.checkNotNull(type);
         Preconditions.checkArgument(n >= 0);
         BooleanQuery query = new BooleanQuery();
-        query.add(new TermQuery(new Term(TypeDbIndexedField.FULL_TYPE, type.toString())), BooleanClause.Occur.MUST);
+        query.add(new TermQuery(new Term(TypeDbIndexedField.FULL_TYPE, type)), BooleanClause.Occur.MUST);
         if (!Strings.isNullOrEmpty(project)) {
             query.add(new TermQuery(new Term(TypeDbIndexedField.PROJECT, project)), BooleanClause.Occur.MUST);
         }
@@ -81,7 +77,7 @@ public class TypeDbImpl implements TypeDb {
     }
 
     @Override
-    public List<ClassType> queryFuzzy(String project, FullTypeName type, int n) throws IOException {
+    public List<ClassType> queryFuzzy(String project, String type, int n) throws IOException {
         return null;
     }
 
@@ -127,7 +123,7 @@ public class TypeDbImpl implements TypeDb {
             LOG.warn("Ambiguous field id: " + id);
         }
         ClassType classType = retrieveDocument(hits.scoreDocs[0].doc);
-        for (Field field : classType.getFields()) {
+        for (Field field : classType.getFieldsList()) {
             if (field.getHandle().getId() == id) {
                 return field;
             }
@@ -148,8 +144,8 @@ public class TypeDbImpl implements TypeDb {
             LOG.warn("Ambiguous method id: " + id);
         }
         ClassType classType = retrieveDocument(hits.scoreDocs[0].doc);
-        for (Method method : classType.getMethods()) {
-            if (method.getId() == id) {
+        for (Method method : classType.getMethodsList()) {
+            if (method.getHandle().getId() == id) {
                 return method;
             }
         }
@@ -164,14 +160,9 @@ public class TypeDbImpl implements TypeDb {
     }
 
     private ClassType retrieveDocument(int docId) throws IOException {
-        try {
-            Document document = reader.document(docId);
-            byte[] binaryData = document.getBinaryValue(TypeDbIndexedField.TYPE_DATA);
-            TTypeData typeData = new TTypeData();
-            DESERIALIZER.deserialize(typeData, SnappyUtils.uncompress(binaryData));
-            return ClassType.createFromThrift(typeData.getClassType());
-        } catch (TException e) {
-            throw new IOException(e);
-        }
+        Document document = reader.document(docId);
+        TypeData typeData = TypeData.parseFrom(
+                SnappyUtils.uncompress(document.getBinaryValue(TypeDbIndexedField.TYPE_DATA)));
+        return typeData.getClassType();
     }
 }

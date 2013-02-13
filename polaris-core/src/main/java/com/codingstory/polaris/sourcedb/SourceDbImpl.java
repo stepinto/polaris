@@ -1,8 +1,9 @@
 package com.codingstory.polaris.sourcedb;
 
 import com.codingstory.polaris.SnappyUtils;
-import com.codingstory.polaris.parser.FileHandle;
-import com.codingstory.polaris.parser.SourceFile;
+import com.codingstory.polaris.parser.ParserProtos.FileHandle;
+import com.codingstory.polaris.parser.ParserProtos.SourceFile;
+import com.codingstory.polaris.sourcedb.SourceDbProtos.SourceData;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
@@ -18,9 +19,6 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.TException;
-import org.apache.thrift.protocol.TBinaryProtocol;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,7 +28,6 @@ import java.util.List;
 
 public class SourceDbImpl implements SourceDb {
     private static final Log LOG = LogFactory.getLog(SourceDbImpl.class);
-    private static final TDeserializer DESERIALIZER = new TDeserializer(new TBinaryProtocol.Factory());
     private final IndexReader reader;
     private final IndexSearcher searcher;
 
@@ -54,10 +51,11 @@ public class SourceDbImpl implements SourceDb {
             int docId = scoreDoc.doc;
             Document document = reader.document(docId);
             if (document.get(SourceDbIndexedField.FILE_ID_RAW) != null) {
-                files.add(new FileHandle(
-                        Long.parseLong(document.get(SourceDbIndexedField.FILE_ID_RAW)),
-                        document.get(SourceDbIndexedField.PROJECT_RAW),
-                        document.get(SourceDbIndexedField.PATH_RAW)));
+                files.add(FileHandle.newBuilder()
+                        .setId(Long.parseLong(document.get(SourceDbIndexedField.FILE_ID_RAW)))
+                        .setProject(document.get(SourceDbIndexedField.PROJECT_RAW))
+                        .setPath(document.get(SourceDbIndexedField.PATH_RAW))
+                        .build());
             } else {
                 dirs.add(document.get(SourceDbIndexedField.PATH_RAW));
             }
@@ -126,15 +124,10 @@ public class SourceDbImpl implements SourceDb {
     }
 
     private SourceFile retrieveDocument(int docId) throws IOException {
-        try {
-            Document document = reader.document(docId);
-            byte[] binaryData = document.getBinaryValue(SourceDbIndexedField.SOURCE_DATA);
-            TSourceData sourceData = new TSourceData();
-            DESERIALIZER.deserialize(sourceData, SnappyUtils.uncompress(binaryData));
-            return SourceFile.createFromThrift(sourceData.getSourceFile());
-        } catch (TException e) {
-            throw new IOException(e);
-        }
+        Document document = reader.document(docId);
+        SourceData sourceData = SourceData.parseFrom(
+                SnappyUtils.uncompress(document.getBinaryValue(SourceDbIndexedField.SOURCE_DATA)));
+        return sourceData.getSourceFile();
     }
 
     @Override

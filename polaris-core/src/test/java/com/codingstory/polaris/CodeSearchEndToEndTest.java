@@ -1,26 +1,25 @@
 package com.codingstory.polaris;
 
 import com.codingstory.polaris.indexing.IndexPathUtils;
-import com.codingstory.polaris.parser.ClassType;
-import com.codingstory.polaris.parser.Field;
-import com.codingstory.polaris.parser.FullTypeName;
-import com.codingstory.polaris.parser.TFileHandle;
-import com.codingstory.polaris.parser.TTypeUsage;
-import com.codingstory.polaris.parser.TypeUsage;
+import com.codingstory.polaris.parser.ParserProtos.ClassType;
+import com.codingstory.polaris.parser.ParserProtos.Field;
+import com.codingstory.polaris.parser.ParserProtos.FileHandle;
+import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
+import com.codingstory.polaris.parser.ParserProtos.Usage;
 import com.codingstory.polaris.pipeline.IndexPipeline;
-import com.codingstory.polaris.search.CodeSearchServiceImpl;
-import com.codingstory.polaris.search.TCodeSearchService;
-import com.codingstory.polaris.search.TGetTypeRequest;
-import com.codingstory.polaris.search.TGetTypeResponse;
-import com.codingstory.polaris.search.TLayoutRequest;
-import com.codingstory.polaris.search.TLayoutResponse;
-import com.codingstory.polaris.search.TListTypeUsagesRequest;
-import com.codingstory.polaris.search.TListTypeUsagesResponse;
-import com.codingstory.polaris.search.TSearchRequest;
-import com.codingstory.polaris.search.TSearchResponse;
-import com.codingstory.polaris.search.TSourceRequest;
-import com.codingstory.polaris.search.TSourceResponse;
-import com.codingstory.polaris.search.TStatusCode;
+import com.codingstory.polaris.search.CodeSearchImpl;
+import com.codingstory.polaris.search.SearchProtos.CodeSearch;
+import com.codingstory.polaris.search.SearchProtos.GetTypeRequest;
+import com.codingstory.polaris.search.SearchProtos.GetTypeResponse;
+import com.codingstory.polaris.search.SearchProtos.LayoutRequest;
+import com.codingstory.polaris.search.SearchProtos.LayoutResponse;
+import com.codingstory.polaris.search.SearchProtos.ListTypeUsagesRequest;
+import com.codingstory.polaris.search.SearchProtos.ListTypeUsagesResponse;
+import com.codingstory.polaris.search.SearchProtos.SearchRequest;
+import com.codingstory.polaris.search.SearchProtos.SearchResponse;
+import com.codingstory.polaris.search.SearchProtos.SourceRequest;
+import com.codingstory.polaris.search.SearchProtos.SourceResponse;
+import com.codingstory.polaris.search.SearchProtos.StatusCode;
 import com.codingstory.polaris.typedb.TypeDb;
 import com.codingstory.polaris.typedb.TypeDbImpl;
 import com.google.common.base.Function;
@@ -28,8 +27,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+import com.google.protobuf.ServiceException;
 import org.apache.commons.io.FileUtils;
-import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -53,7 +52,7 @@ public class CodeSearchEndToEndTest {
     }
 
     @Test
-    public void testSource() throws IOException, TException {
+    public void testSource() throws IOException, ServiceException {
         String randomJavaPath = "/src/java/main/com/java/util/Random.java";
         String randomJavaContent = "package java.util; class Random { public int nextInt() { return 0; } }";
         writeFile("jdk" + randomJavaPath, randomJavaContent);
@@ -62,89 +61,96 @@ public class CodeSearchEndToEndTest {
         writeFile("jdk" + fileJavaPath, fileJavaContent);
         buildIndex(ImmutableList.of("jdk"));
 
-        TCodeSearchService.Iface searcher = createSearcher();
-        TSourceRequest req = new TSourceRequest();
-        req.setProjectName("jdk");
-        req.setFileName("/src/java/main/com/java/io/File.java");
-        TSourceResponse resp = searcher.source(req);
-        assertEquals(TStatusCode.OK, resp.getStatus());
+        CodeSearch.BlockingInterface searcher = createSearcher();
+        SourceRequest req = SourceRequest.newBuilder()
+                .setProjectName("jdk")
+                .setFileName("/src/java/main/com/java/io/File.java")
+                .build();
+        SourceResponse resp = searcher.source(NoOpController.getInstance(), req);
+        assertEquals(StatusCode.OK, resp.getStatus());
         assertEquals("jdk", resp.getSource().getHandle().getProject());
         assertEquals(fileJavaPath, resp.getSource().getHandle().getPath());
         assertEquals(fileJavaContent, resp.getSource().getSource());
     }
 
     @Test
-    public void testLayout() throws IOException, TException {
+    public void testLayout() throws IOException, ServiceException {
         writeFile("project/src/com/company/A.java", "");
         writeFile("project/src/com/company/module1/B.java", "");
         buildIndex(ImmutableList.of("project"));
 
-        TCodeSearchService.Iface searcher = createSearcher();
-        TLayoutRequest req = new TLayoutRequest();
-        req.setProjectName("project");
-        req.setDirectoryName("/src/com/company");
-        TLayoutResponse resp = searcher.layout(req);
-        assertEquals(TStatusCode.OK, resp.getStatus());
-        assertEqualsIgnoreOrder(ImmutableList.of("/src/com/company/module1/"), resp.getDirectories());
+        CodeSearch.BlockingInterface searcher = createSearcher();
+        LayoutRequest req = LayoutRequest.newBuilder()
+                .setProjectName("project")
+                .setDirectoryName("/src/com/company")
+                .build();
+        LayoutResponse resp = searcher.layout(NoOpController.getInstance(), req);
+        assertEquals(StatusCode.OK, resp.getStatus());
+        assertEqualsIgnoreOrder(ImmutableList.of("/src/com/company/module1/"), resp.getDirectoriesList());
         assertEqualsIgnoreOrder(ImmutableList.of("/src/com/company/A.java"),
-                Lists.transform(resp.getFiles(), new Function<TFileHandle, String>() {
+                Lists.transform(resp.getFilesList(), new Function<FileHandle, String>() {
                     @Override
-                    public String apply(TFileHandle h) {
+                    public String apply(FileHandle h) {
                         return h.getPath();
                     }
                 }));
     }
 
     @Test
-    public void testSearchForType() throws IOException, TException {
+    public void testSearchForType() throws IOException, ServiceException {
         writeFile("project/src/com/company/A.java", "package com.company; class A {}");
         buildIndex(ImmutableList.of("project"));
 
-        TCodeSearchService.Iface searcher = createSearcher();
-        TSearchRequest req = new TSearchRequest();
-        req.setQuery("com.company.A");
-        TSearchResponse resp = searcher.search(req);
-        assertEquals(TStatusCode.OK, resp.getStatus());
+        CodeSearch.BlockingInterface searcher = createSearcher();
+        SearchRequest req = SearchRequest.newBuilder()
+                .setQuery("com.company.A")
+                .build();
+        SearchResponse resp = searcher.search(NoOpController.getInstance(), req);
+        assertEquals(StatusCode.OK, resp.getStatus());
         assertEquals(1, resp.getCount());
-        assertEquals("/src/com/company/A.java", resp.getHits().get(0).getPath());
+        assertEquals("/src/com/company/A.java", resp.getHits(0).getPath());
     }
 
     @Test
-    public void testGetType() throws IOException, TException {
+    public void testGetType() throws IOException, ServiceException {
         writeFile("project/src/com/company/A.java", "package com.company; class A{}");
         writeFile("project/src/com/company/B.java", "package com.company; class B{}");
         buildIndex(ImmutableList.of("project"));
 
-        TCodeSearchService.Iface searcher = createSearcher();
-        TGetTypeRequest req = new TGetTypeRequest();
-        req.setTypeName("com.company.A");
-        TGetTypeResponse resp = searcher.getType(req);
-        assertEquals(TStatusCode.OK, resp.getStatus());
-        ClassType clazz = ClassType.createFromThrift(resp.getClassType());
-        assertEquals(FullTypeName.of("com.company.A"), clazz.getName());
+        CodeSearch.BlockingInterface searcher = createSearcher();
+        GetTypeRequest req = GetTypeRequest.newBuilder()
+                .setTypeName("com.company.A")
+                .build();
+        GetTypeResponse resp = searcher.getType(NoOpController.getInstance(), req);
+        assertEquals(StatusCode.OK, resp.getStatus());
+        ClassType clazz = resp.getClassType();
+        assertEquals("com.company.A", clazz.getHandle().getName());
     }
 
     @Test
-    public void testListTypeUsages() throws IOException, TException {
+    public void testListTypeUsages() throws IOException, ServiceException {
         writeFile("project/src/com/company/A.java", "package com.company; class A {}");
         writeFile("project/src/com/company/B.java", "package com.company; class B { A a; }");
         buildIndex(ImmutableList.of("project"));
 
         TypeDb typeDb = new TypeDbImpl(IndexPathUtils.getTypeDbPath(indexDir));
-        ClassType type = Iterables.getOnlyElement(typeDb.getTypeByName(
-                FullTypeName.of("com.company.A"), null, 2));
+        ClassType type = Iterables.getOnlyElement(typeDb.getTypeByName("com.company.A", null, 2));
         long typeId = type.getHandle().getId();
-        TCodeSearchService.Iface searcher = createSearcher();
-        TListTypeUsagesRequest req = new TListTypeUsagesRequest();
-        req.setTypeId(typeId);
-        TListTypeUsagesResponse resp = searcher.listTypeUsages(req);
-        assertEquals(TStatusCode.OK, resp.getStatus());
+        CodeSearch.BlockingInterface searcher = createSearcher();
+        ListTypeUsagesRequest req = ListTypeUsagesRequest.newBuilder()
+                .setTypeId(typeId)
+                .build();
+        ListTypeUsagesResponse resp = searcher.listTypeUsages(NoOpController.getInstance(), req);
+        assertEquals(StatusCode.OK, resp.getStatus());
         boolean found = false;
-        for (TTypeUsage t : resp.getUsages()) {
-            TypeUsage usage = TypeUsage.createFromThrift(t);
-            if (usage.getKind() == TypeUsage.Kind.FIELD) {
-                found = true;
-                break;
+        System.out.println("resp.getUsagesList() = " + resp.getUsagesList());
+        for (Usage usage : resp.getUsagesList()) {
+            if (usage.getKind() == Usage.Kind.TYPE) {
+                TypeUsage tu = usage.getType();
+                if (tu.getKind() == TypeUsage.Kind.FIELD) {
+                    found = true;
+                    break;
+                }
             }
         }
         assertTrue(found);
@@ -157,16 +163,16 @@ public class CodeSearchEndToEndTest {
         buildIndex(ImmutableList.of("project1", "project2"));
 
         TypeDb typeDb = new TypeDbImpl(IndexPathUtils.getTypeDbPath(indexDir));
-        ClassType class1 = Iterables.getOnlyElement(typeDb.getTypeByName(FullTypeName.of("project1.A"), "project1", 2));
-        ClassType class2 = Iterables.getOnlyElement(typeDb.getTypeByName(FullTypeName.of("project2.B"), "project2", 2));
-        Field field1 = Iterables.getOnlyElement(class1.getFields());
-        Field field2 = Iterables.getOnlyElement(class2.getFields());
-        assertEquals(class2.getHandle(), field1.getType());
-        assertEquals(class1.getHandle(), field2.getType());
+        ClassType class1 = Iterables.getOnlyElement(typeDb.getTypeByName("project1.A", "project1", 2));
+        ClassType class2 = Iterables.getOnlyElement(typeDb.getTypeByName("project2.B", "project2", 2));
+        Field field1 = Iterables.getOnlyElement(class1.getFieldsList());
+        Field field2 = Iterables.getOnlyElement(class2.getFieldsList());
+        assertEquals(class2.getHandle(), field1.getType().getClazz());
+        assertEquals(class1.getHandle(), field2.getType().getClazz());
     }
 
-    private TCodeSearchService.Iface createSearcher() throws IOException {
-        return new CodeSearchServiceImpl(indexDir);
+    private CodeSearch.BlockingInterface createSearcher() throws IOException {
+        return new CodeSearchImpl(indexDir);
     }
 
     private void writeFile(String path, String content) throws IOException {

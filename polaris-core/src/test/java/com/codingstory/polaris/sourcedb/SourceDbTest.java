@@ -1,7 +1,7 @@
 package com.codingstory.polaris.sourcedb;
 
-import com.codingstory.polaris.parser.FileHandle;
-import com.codingstory.polaris.parser.SourceFile;
+import com.codingstory.polaris.parser.ParserProtos.FileHandle;
+import com.codingstory.polaris.parser.ParserProtos.SourceFile;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import org.junit.Before;
@@ -26,8 +26,26 @@ public class SourceDbTest {
     @Test
     public void testSource() throws IOException {
         SourceDbWriter w = new SourceDbWriterImpl(tempDir);
-        w.writeSourceFile(new SourceFile(new FileHandle(1L, TEST_PROJECT, "/dir/a"), "a", "a"));
-        w.writeSourceFile(new SourceFile(new FileHandle(2L, TEST_PROJECT, "/dir/b"), "b", "b"));
+        FileHandle f1 = FileHandle.newBuilder()
+                .setId(1L)
+                .setProject(TEST_PROJECT)
+                .setPath("/dir/a")
+                .build();
+        w.writeSourceFile(SourceFile.newBuilder()
+                .setHandle(f1)
+                .setSource("a")
+                .setAnnotatedSource("a")
+                .build());
+        FileHandle f2 = FileHandle.newBuilder()
+                .setId(2L)
+                .setProject(TEST_PROJECT)
+                .setPath("/dir/b")
+                .build();
+        w.writeSourceFile(SourceFile.newBuilder()
+                .setHandle(f2)
+                .setSource("b")
+                .setAnnotatedSource("b")
+                .build());
         w.close();
 
         SourceDb r = new SourceDbImpl(tempDir);
@@ -43,10 +61,26 @@ public class SourceDbTest {
     @Test
     public void testListDirectory() throws IOException {
         SourceDbWriter w = new SourceDbWriterImpl(tempDir);
-        FileHandle f1 = new FileHandle(1L, TEST_PROJECT, "/dir/a");
-        w.writeSourceFile(new SourceFile(f1, "a", "a"));
-        FileHandle f2 = new FileHandle(2L, TEST_PROJECT, "/dir/b");
-        w.writeSourceFile(new SourceFile(f2, "b", "b"));
+        FileHandle f1 = FileHandle.newBuilder()
+                .setId(1L)
+                .setProject(TEST_PROJECT)
+                .setPath("/dir/a")
+                .build();
+        w.writeSourceFile(SourceFile.newBuilder()
+                .setHandle(f1)
+                .setSource("a")
+                .setAnnotatedSource("a")
+                .build());
+        FileHandle f2 = FileHandle.newBuilder()
+                .setId(2L)
+                .setProject(TEST_PROJECT)
+                .setPath("/dir/b")
+                .build();
+        w.writeSourceFile(SourceFile.newBuilder()
+                .setHandle(f2)
+                .setSource("b")
+                .setAnnotatedSource("b")
+                .build());
         w.writeDirectory(TEST_PROJECT, "/dir/c");
         w.writeDirectory(TEST_PROJECT, "/dir");
         w.close();

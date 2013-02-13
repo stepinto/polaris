@@ -1,5 +1,11 @@
 package com.codingstory.polaris.parser;
 
+import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.Position;
+import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
+import com.codingstory.polaris.parser.ParserProtos.Usage;
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -24,7 +30,7 @@ public class SourceAnnotator {
     private static final Comparator<Usage> USAGE_COMPARATOR = new Comparator<Usage>() {
         @Override
         public int compare(Usage left, Usage right) {
-            return left.getJumpTarget().getSpan().compareTo(right.getJumpTarget().getSpan());
+            return TypeUtils.SPAN_COMPARATOR.compare(left.getJumpTarget().getSpan(), right.getJumpTarget().getSpan());
         }
     };
 
@@ -47,7 +53,7 @@ public class SourceAnnotator {
             Usage currentUsage = sortedUsages.get(j);
             Position currentUsageFrom = currentUsage.getJumpTarget().getSpan().getFrom();
             Position currentPosition = in2.getPosition();
-            int cmp = currentPosition.compareTo(currentUsageFrom);
+            int cmp = TypeUtils.POSITION_COMPARATOR.compare(currentPosition, currentUsageFrom);
             if (cmp < 0) {
                 pw.write(escape((char) in2.read()));
             } else if (cmp > 0) {
@@ -55,7 +61,8 @@ public class SourceAnnotator {
             } else {
                 Position currentUsageTo = currentUsage.getJumpTarget().getSpan().getTo();
                 StringBuilder text = new StringBuilder();
-                while (in2.getPosition().compareTo(currentUsageTo) < 0 && in2.peek() != 1) {
+                while (TypeUtils.POSITION_COMPARATOR.compare(in2.getPosition(), currentUsageTo) < 0 &&
+                        in2.peek() != -1) {
                     text.append((char) in2.read());
                 }
                 emit(pw, new String(text), currentUsage);
@@ -73,22 +80,18 @@ public class SourceAnnotator {
     }
 
     private static boolean accepts(Usage usage) {
-        if (usage instanceof TypeUsage) {
-            return true;
-        } else {
-            return false;
-        }
+        return Objects.equal(usage.getKind(), Usage.Kind.TYPE);
     }
 
     private static void emit(PrintWriter out, String text, Usage usage) {
-        if (usage instanceof TypeUsage) {
-            TypeUsage typeUsage = (TypeUsage) usage;
+        if (Objects.equal(usage.getKind(), Usage.Kind.TYPE)) {
+            TypeUsage typeUsage = usage.getType();
             TypeHandle type = typeUsage.getType();
-            if (!TypeUtils.isPrimitiveTypeHandle(type)) {
-                String typeNameStr = type.getName().toString();
-                out.printf("<type-usage type=\"%s\" type-id=\"%d\" resolved=\"%s\" kind=\"%d\">%s</type-usage>",
-                        escape(typeNameStr), type.getId(), Boolean.toString(type.isResolved()),
-                        typeUsage.getKind().toThrift().getValue(), escape(text));
+            if (Objects.equal(type.getKind(), ParserProtos.TypeKind.CLASS)) {
+                ClassTypeHandle clazz = type.getClazz();
+                out.printf("<type-usage type=\"%s\" type-id=\"%d\" resolved=\"%s\" kind=\"%s\">%s</type-usage>",
+                        escape(clazz.getName()), type.getClazz().getId(), Boolean.toString(clazz.getResolved()),
+                        typeUsage.getKind().name(), escape(text));
                 LOG.debug("Render annotation: " + typeUsage);
                 return;
             }
@@ -149,6 +152,9 @@ public class SourceAnnotator {
             if (ch == '\n') {
                 line++;
                 column = 0;
+            } else if (ch == '\t') {
+                // JavaParser does not have a way to set tab size. It assume a tab size of 8 when reporting positions.
+                column += 8;
             } else {
                 column++;
             }
@@ -156,7 +162,10 @@ public class SourceAnnotator {
         }
 
         public Position getPosition() {
-            return new Position(line, column);
+            return Position.newBuilder()
+                    .setLine(line)
+                    .setColumn(column)
+                    .build();
         }
     }
 }

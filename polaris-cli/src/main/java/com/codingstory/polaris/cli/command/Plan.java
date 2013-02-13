@@ -5,9 +5,9 @@ import com.codingstory.polaris.cli.Help;
 import com.codingstory.polaris.cli.Option;
 import com.codingstory.polaris.cli.Run;
 import com.codingstory.polaris.pipeline.IndexPipeline;
-import com.sun.org.apache.commons.logging.Log;
-import com.sun.org.apache.commons.logging.LogFactory;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
 import java.io.IOException;

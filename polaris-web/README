@@ -1,2 +1,0 @@
-$ npm install express less-middleware jade thrift
-$ node app.js

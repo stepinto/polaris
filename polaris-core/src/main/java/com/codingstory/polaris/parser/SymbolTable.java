@@ -8,8 +8,18 @@ import com.google.common.collect.Maps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.codingstory.polaris.parser.ParserProtos.ClassType;
+import com.codingstory.polaris.parser.ParserProtos.Field;
+import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.Type;
+import com.codingstory.polaris.parser.ParserProtos.PrimitiveType;
+import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.TypeKind;
+
 import java.util.LinkedList;
 import java.util.Map;
+
+import static com.codingstory.polaris.parser.TypeUtils.handleOf;
 
 /**
  * Symbol table for types.
@@ -46,18 +56,16 @@ public class SymbolTable {
         }
     }
 
-    private final Map<FullTypeName, ClassType> fullyNamedTypes = Maps.newHashMap();
+    private final Map<String, ClassType> fullyNamedTypes = Maps.newHashMap();
     private String packageScope;
-    private Map<String, FullTypeName> imports;
+    private Map<String, String> imports;
 
     public static class Frame {
         private final Map<String, ClassType> shortlyNamedTypes = Maps.newHashMap();
-        private final Map<String, FullTypeName> imports = Maps.newHashMap();
 
         public void registerClassType(ClassType classType) {
             Preconditions.checkNotNull(classType);
-            FullTypeName typeName = classType.getName();
-            shortlyNamedTypes.put(typeName.getTypeName(), classType);
+            shortlyNamedTypes.put(classType.getHandle().getName(), classType);
         }
 
         public ClassType lookUpClassBySimpleName(String name) {
@@ -79,13 +87,23 @@ public class SymbolTable {
      * Resolves primitive type or class.
      *
      * @return the resolved type on success, otherwise {@code null} */
-    public Type resolveType(FullTypeName name) {
+    public Type resolveType(String name) {
         Preconditions.checkNotNull(name);
-        Type primitiveType = TypeResolver.resolvePrimitiveType(name);
-        if (primitiveType != null) {
-            return primitiveType;
+        PrimitiveType primitive = PrimitiveTypes.parse(name);
+        if (primitive != null) {
+            return Type.newBuilder()
+                    .setKind(TypeKind.PRIMITIVE)
+                    .setPrimitive(primitive)
+                    .build();
         }
-        return lookUpClassType(name);
+        ClassType clazz = resolveClass(name);
+        if (clazz != null) {
+            return Type.newBuilder()
+                    .setKind(TypeKind.CLASS)
+                    .setClazz(clazz)
+                    .build();
+        }
+        return null;
     }
 
     /**
@@ -93,29 +111,49 @@ public class SymbolTable {
      *
      * @return the hanlde of the resolved type on success, otherwise an unresolved type
      */
-    public TypeHandle resolveTypeHandle(FullTypeName name) {
-        Type type = resolveType(name);
-        if (type != null) {
-            return type.getHandle();
+    public TypeHandle resolveTypeHandle(String name) {
+        PrimitiveType primitive = resolvePrimitive(name);
+        if (primitive != null) {
+            return handleOf(primitive);
         }
-        FullTypeName fullName = resolveImportAlias(name.getTypeName());
-        return TypeHandle.createUnresolved(fullName == null ? name : fullName);
+        return handleOf(resolveClassHandle(name));
     }
 
-    public ClassType lookUpClassType(FullTypeName name) {
+    public PrimitiveType resolvePrimitive(String name) {
+        return PrimitiveTypes.parse(name);
+    }
+
+    public ClassTypeHandle resolveClassHandle(String name) {
+        ClassType clazz = resolveClass(name);
+        if (clazz != null) {
+            return clazz.getHandle();
+        }
+
+        String fullName = resolveImportAlias(name);
+        if (fullName != null) {
+            return ClassTypeHandle.newBuilder()
+                    .setResolved(false)
+                    .setName(fullName)
+                    .build();
+        }
+        return ClassTypeHandle.newBuilder()
+                .setResolved(false)
+                .setName(name)
+                .build();
+    }
+
+    public ClassType resolveClass(String name) {
         Preconditions.checkNotNull(name);
         ClassType clazz = null;
         String reason = null;
         do {
-            if (name.hasPackageName()) {
-                clazz = fullyNamedTypes.get(name);
+            if ((clazz = fullyNamedTypes.get(name)) != null) {
                 reason = "fully qualified";
                 break;
             }
 
             // search in imported packages
-            String simpleName = name.getTypeName();
-            FullTypeName imported = resolveImportAlias(simpleName);
+            String imported = resolveImportAlias(name);
             if (imported != null && (clazz = fullyNamedTypes.get(imported)) != null) {
                 reason = "imported";
                 break;
@@ -123,7 +161,7 @@ public class SymbolTable {
 
             // search in same package
             if (!Strings.isNullOrEmpty(packageScope) &&
-                    (clazz = fullyNamedTypes.get(FullTypeName.of(packageScope, simpleName))) != null) {
+                    (clazz = fullyNamedTypes.get(packageScope + "." + name)) != null) {
                 reason = "same package";
                 break;
             }
@@ -149,7 +187,7 @@ public class SymbolTable {
             throw new IllegalStateException("No frames");
         }
         Preconditions.checkNotNull(classType);
-        fullyNamedTypes.put(classType.getName(), classType);
+        fullyNamedTypes.put(classType.getHandle().getName(), classType);
         currentFrame().registerClassType(classType);
     }
 
@@ -182,21 +220,21 @@ public class SymbolTable {
         Preconditions.checkNotNull(pkg);
         for (Frame frame : frames) {
             for (ClassType clazz : frame.getClasses()) {
-                if (Objects.equal(clazz.getName().getPackageName(), pkg)) {
+                if (Objects.equal(TypeUtils.getPackage(clazz.getHandle().getName()), pkg)) {
                     registerImportClass(clazz.getHandle());
                 }
             }
         }
     }
 
-    public void registerImportClass(TypeHandle classHandle) {
-        Preconditions.checkNotNull(classHandle);
-        FullTypeName name = classHandle.getName();
-        imports.put(name.getTypeName(), name);
+    public void registerImportClass(ClassTypeHandle handle) {
+        Preconditions.checkNotNull(handle);
+        String fullName = handle.getName();
+        imports.put(TypeUtils.getSimpleName(fullName), fullName);
     }
 
-    private FullTypeName resolveImportAlias(String alias) {
-        FullTypeName result = imports.get(alias);
+    private String resolveImportAlias(String alias) {
+        String result = imports.get(alias);
         if (result == null) {
             LOG.debug("Cannot resolve import alias " + alias);
             return null;

@@ -4,20 +4,22 @@ import com.codingstory.polaris.IdGenerator;
 import com.codingstory.polaris.SimpleIdGenerator;
 import com.codingstory.polaris.indexing.DirectoryTranverser;
 import com.codingstory.polaris.indexing.IndexPathUtils;
-import com.codingstory.polaris.parser.ClassType;
-import com.codingstory.polaris.parser.FileHandle;
 import com.codingstory.polaris.parser.FirstPassProcessor;
 import com.codingstory.polaris.parser.ImportExtractor;
+import com.codingstory.polaris.parser.ParserProtos;
+import com.codingstory.polaris.parser.ParserProtos.ClassType;
+import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.FileHandle;
+import com.codingstory.polaris.parser.ParserProtos.SourceFile;
+import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
+import com.codingstory.polaris.parser.ParserProtos.Usage;
 import com.codingstory.polaris.parser.SecondPassProcessor;
 import com.codingstory.polaris.parser.SourceAnnotator;
-import com.codingstory.polaris.parser.SourceFile;
 import com.codingstory.polaris.parser.SymbolTable;
-import com.codingstory.polaris.parser.TClassType;
-import com.codingstory.polaris.parser.TFileHandle;
-import com.codingstory.polaris.parser.TSourceFile;
-import com.codingstory.polaris.parser.TTypeUsage;
-import com.codingstory.polaris.parser.TypeUsage;
-import com.codingstory.polaris.parser.Usage;
+import com.codingstory.polaris.pipeline.PipelineProtos.FileContent;
+import com.codingstory.polaris.pipeline.PipelineProtos.FileImports;
+import com.codingstory.polaris.pipeline.PipelineProtos.ParsedFile;
 import com.codingstory.polaris.repo.GitUtils;
 import com.codingstory.polaris.repo.Repository;
 import com.codingstory.polaris.sourcedb.SourceDbWriter;
@@ -26,6 +28,7 @@ import com.codingstory.polaris.typedb.TypeDbWriter;
 import com.codingstory.polaris.typedb.TypeDbWriterImpl;
 import com.codingstory.polaris.usagedb.UsageDbWriter;
 import com.codingstory.polaris.usagedb.UsageDbWriterImpl;
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
@@ -55,10 +58,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TBinaryProtocol;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -68,7 +67,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import static org.apache.crunch.types.PTypes.thrifts;
+import static org.apache.crunch.types.PTypes.protos;
 import static org.apache.crunch.types.writable.Writables.longs;
 import static org.apache.crunch.types.writable.Writables.strings;
 import static org.apache.crunch.types.writable.Writables.tableOf;
@@ -78,12 +77,10 @@ public class IndexPipeline implements Serializable {
 
     private static final Log LOG = LogFactory.getLog(IndexPipeline.class);
     private static final IdGenerator ID_GENERATOR = new SimpleIdGenerator(); // Just OK for local MR.
-    private static final TSerializer SERIALIZER = new TSerializer(new TBinaryProtocol.Factory());
-    private static final TDeserializer DESERIALIZER = new TDeserializer(new TBinaryProtocol.Factory());
     private static final WritableTypeFamily TYPE_FAMILY = WritableTypeFamily.getInstance();
-    private static final PType<TFileHandle> T_FILE_HANDLE_PTYPE = thrifts(TFileHandle.class, TYPE_FAMILY);
-    private static final PType<TParsedFile> T_PARSED_FILE_PTYPE = thrifts(TParsedFile.class, TYPE_FAMILY);
-    private static final PType<TFileContent> T_FILE_CONTENT_PTYPE = thrifts(TFileContent.class, TYPE_FAMILY);
+    private static final PType<ParsedFile> PARSED_FILE_PTYPE = protos(ParsedFile.class, TYPE_FAMILY);
+    private static final PType<FileContent> FILE_CONTENT_PTYPE = protos(FileContent.class, TYPE_FAMILY);
+    private static final PType<FileImports> FILE_IMPORTS_PTYPE = protos(FileImports.class, TYPE_FAMILY);
 
     private final transient Configuration conf; // "transient" No need to access it from MR tasks.
     private final transient FileSystem fs;
@@ -98,7 +95,7 @@ public class IndexPipeline implements Serializable {
     public IndexPipeline() {
         try {
             conf = new Configuration();
-            conf.setInt("io.sort.mb", 50); // To fit into 256MB heap.
+            conf.setInt("io.sort.mb", 32); // To fit into 256MB heap.
             conf.setBoolean("mapreduce.map.output.compress", true);
             conf.setBoolean("mapreduce.output.fileoutputformat.compress", true);
             conf.setStrings("mapreduce.output.fileoutputformat.compress.type", "BLOCK");
@@ -153,10 +150,10 @@ public class IndexPipeline implements Serializable {
     private MRPipeline setUpPipeline() {
         MRPipeline pipeline = new MRPipeline(IndexPipeline.class, "polaris-index-pipeline", conf);
         pipeline.enableDebug();
-        PCollection<TFileContent> fileContents = pipeline
-            .read(At.sequenceFile(new Path(inputDir1.getPath()), T_FILE_CONTENT_PTYPE));
-        PCollection<TParsedFile> parsedFiles1stPass = discoverClasses(fileContents);
-        PCollection<TFileImports> fileImports = extractImports(fileContents);
+        PCollection<FileContent> fileContents = pipeline
+            .read(At.sequenceFile(new Path(inputDir1.getPath()), FILE_CONTENT_PTYPE));
+        PCollection<ParsedFile> parsedFiles1stPass = discoverClasses(fileContents);
+        PCollection<FileImports> fileImports = extractImports(fileContents);
         PTable<Long, Long> importGraph1 =
                 guessImportGraphByImportedClasses(fileImports, parsedFiles1stPass);
         PTable<Long, Long> importGraph2 =
@@ -165,8 +162,8 @@ public class IndexPipeline implements Serializable {
         // TODO: reverseImportGraphByImportedPackage
         // TODO: reverseImportGraphByFilePackage
         // TODO: Iterate to compute transitive closure
-        PCollection<TParsedFile> parsedFiles2ndPass = discoverMembers(fileContents, parsedFiles1stPass, importGraph);
-        pipeline.write(parsedFiles2ndPass, At.sequenceFile(new Path(outputDir.getPath()), T_PARSED_FILE_PTYPE));
+        PCollection<ParsedFile> parsedFiles2ndPass = discoverMembers(fileContents, parsedFiles1stPass, importGraph);
+        pipeline.write(parsedFiles2ndPass, At.sequenceFile(new Path(outputDir.getPath()), PARSED_FILE_PTYPE));
         return pipeline;
     }
 
@@ -176,66 +173,66 @@ public class IndexPipeline implements Serializable {
         }
     }
 
-    private PCollection<TFileImports> extractImports(PCollection<TFileContent> fileContents) {
-        return fileContents.parallelDo("ExtractImports", new DoFn<TFileContent, TFileImports>() {
-                @Override
-                public void process(TFileContent in, Emitter<TFileImports> emitter) {
-                    try {
-                        ImportExtractor.Result result = ImportExtractor.findImports(
-                                new ByteArrayInputStream(in.getContent().getBytes()));
-                        TFileImports out = new TFileImports();
-                        out.setFile(in.getFile());
-                        out.setPackage_(result.getPackage());
-                        out.setImportedClasses(result.getImportedClasses());
-                        out.setImportedPackages(result.getImportedPackages());
-                        emitter.emit(out);
-                    } catch (IOException e) {
-                        LOG.warn("Failed to parse " + FileHandle.createFromThrift(in.getFile()));
-                        LOG.debug("Exception", e);
-                    }
+    private PCollection<FileImports> extractImports(PCollection<FileContent> fileContents) {
+        return fileContents.parallelDo("ExtractImports", new DoFn<FileContent, FileImports>() {
+            @Override
+            public void process(FileContent in, Emitter<FileImports> emitter) {
+                try {
+                    ImportExtractor.Result result = ImportExtractor.findImports(
+                            new ByteArrayInputStream(in.getContent().getBytes()));
+                    emitter.emit(FileImports.newBuilder()
+                            .setFile(in.getFile())
+                            .setPackage(result.getPackage())
+                            .addAllImportedClasses(result.getImportedClasses())
+                            .addAllImportedPackages(result.getImportedPackages())
+                            .build());
+                } catch (IOException e) {
+                    LOG.warn("Failed to parse " + in.getFile());
+                    LOG.debug("Exception", e);
                 }
-            }, thrifts(TFileImports.class, TYPE_FAMILY));
+            }
+        }, FILE_IMPORTS_PTYPE);
     }
 
-    private PCollection<TParsedFile> discoverClasses(PCollection<TFileContent> fileContents) {
-        PCollection<TParsedFile> parsedFiles =
-                fileContents.parallelDo("FirstPass", new DoFn<TFileContent, TParsedFile>() {
+    private PCollection<ParsedFile> discoverClasses(PCollection<FileContent> fileContents) {
+        PCollection<ParsedFile> parsedFiles =
+                fileContents.parallelDo("FirstPass", new DoFn<FileContent, ParsedFile>() {
                     @Override
-                    public void process(TFileContent in, Emitter<TParsedFile> emitter) {
+                    public void process(FileContent in, Emitter<ParsedFile> emitter) {
                         try {
                             FirstPassProcessor.Result result = FirstPassProcessor.process(
-                                    FileHandle.createFromThrift(in.getFile()),
+                                    in.getFile(),
                                     new ByteArrayInputStream(in.getContent().getBytes()),
                                     ID_GENERATOR,
                                     new SymbolTable());
-                            TSourceFile sourceFile = new TSourceFile();
-                            sourceFile.setHandle(in.getFile());
-                            // Don't save file content for now, since TParsedFile produced by 1st pass is
+                            SourceFile sourceFile = SourceFile.newBuilder()
+                                    .setHandle(in.getFile())
+                                    .build();
+                            // Don't save file content for now, since ParsedFile produced by 1st pass is
                             // joined and duplicated for many times (= number of references).
-                            TParsedFile out = new TParsedFile();
-                            out.setSource(sourceFile);
-                            out.setPackage_(result.getPackage());
-                            for (ClassType classType : result.getDiscoveredClasses()) {
-                                out.addToClasses(classType.toThrift());
-                            }
+                            ParsedFile out = ParsedFile.newBuilder()
+                                    .setSource(sourceFile)
+                                    .setPackage(result.getPackage())
+                                    .addAllClasses(result.getDiscoveredClasses())
+                                    .build();
                             emitter.emit(out);
                         } catch (IOException e) {
-                            LOG.warn("Failed to parse " + FileHandle.createFromThrift(in.getFile()));
+                            LOG.warn("Failed to parse " + in.getFile());
                             LOG.debug("Exception", e);
                         }
                     }
-                }, thrifts(TParsedFile.class, TYPE_FAMILY));
+                }, PARSED_FILE_PTYPE);
 
         // Force first pass is executed once.
         return pivotParsedFilesByFileId(parsedFiles).collectValues().values().parallelDo(
-                new DoFn<Collection<TParsedFile>, TParsedFile>() {
+                new DoFn<Collection<ParsedFile>, ParsedFile>() {
                     @Override
-                    public void process(Collection<TParsedFile> in, Emitter<TParsedFile> emitter) {
-                        for (TParsedFile t : in) {
+                    public void process(Collection<ParsedFile> in, Emitter<ParsedFile> emitter) {
+                        for (ParsedFile t : in) {
                             emitter.emit(t);
                         }
                     }
-                }, T_PARSED_FILE_PTYPE);
+                }, PARSED_FILE_PTYPE);
     }
 
     private void setUpInputAndOutputDirs() throws IOException {
@@ -247,7 +244,6 @@ public class IndexPipeline implements Serializable {
         outputDir = new File(workingDir, "out");
         FileUtils.forceMkdir(inputDir1);
         FileUtils.forceMkdir(inputDir2);
-        FileUtils.forceMkdir(outputDir);
         conf.set("hadoop.tmp.dir", workingDir.getPath());
         conf.set("crunch.tmp.dir", workingDir.getPath());
         LOG.info("Temporary working dirctory: " + workingDir);
@@ -269,57 +265,58 @@ public class IndexPipeline implements Serializable {
     private void doReadProjectDir(String project, File dir) throws IOException {
         Preconditions.checkNotNull(project);
         Preconditions.checkNotNull(dir);
-        try {
-            SequenceFile.Writer w1 = SequenceFile.createWriter(fs, conf,
-                    new Path(new File(inputDir1, "sources-of-" + project).getPath()),
-                    NullWritable.class, BytesWritable.class);
-            SequenceFile.Writer w2 = SequenceFile.createWriter(fs, conf,
-                    new Path(new File(inputDir2, "dirs-of-" + project).getPath()),
-                    NullWritable.class, BytesWritable.class);
+        SequenceFile.Writer w1 = SequenceFile.createWriter(fs, conf,
+                new Path(new File(inputDir1, "sources-of-" + project).getPath()),
+                NullWritable.class, BytesWritable.class);
+        SequenceFile.Writer w2 = SequenceFile.createWriter(fs, conf,
+                new Path(new File(inputDir2, "dirs-of-" + project).getPath()),
+                NullWritable.class, BytesWritable.class);
 
-            final List<File> sourceDirs = Lists.newArrayList();
-            final List<File> sourceFiles = Lists.newArrayList();
-            DirectoryTranverser.traverse(dir, new DirectoryTranverser.Visitor() {
-                @Override
-                public void visit(File file) {
-                    if (file.isHidden()) {
-                        return;
-                    }
-                    if (file.isDirectory()) {
-                        sourceDirs.add(file);
-                    } else if (file.getName().endsWith(".java")) {
-                        sourceFiles.add(file);
-                    }
+        final List<File> sourceDirs = Lists.newArrayList();
+        final List<File> sourceFiles = Lists.newArrayList();
+        DirectoryTranverser.traverse(dir, new DirectoryTranverser.Visitor() {
+            @Override
+            public void visit(File file) {
+                if (file.isHidden()) {
+                    return;
                 }
-            });
-
-            LOG.info("Found " + sourceFiles.size() + " file(s)");
-            long count = 0;
-            for (File sourceFile : sourceFiles) {
-                TFileContent in = new TFileContent();
-                FileHandle handle = new FileHandle(ID_GENERATOR.next(), project,
-                        StringUtils.removeStart(sourceFile.getPath(), dir.getPath()));
-                in.setFile(handle.toThrift());
-                in.setContent(FileUtils.readFileToString(sourceFile));
-                w1.append(NullWritable.get(), new BytesWritable(SERIALIZER.serialize(in)));
-                count++;
-                if (count % 5000 == 0) {
-                    LOG.info("Processed " + count + " files");
+                if (file.isDirectory()) {
+                    sourceDirs.add(file);
+                } else if (file.getName().endsWith(".java")) {
+                    sourceFiles.add(file);
                 }
             }
-            w1.close();
+        });
 
-            for (File sourceDir : sourceDirs) {
-                TFileHandle f = new TFileHandle();
-                f.setId(ID_GENERATOR.next());
-                f.setProject(project);
-                f.setPath(StringUtils.removeStart(sourceDir.getPath(), dir.getPath()) + "/");
-                w2.append(NullWritable.get(), new BytesWritable(SERIALIZER.serialize(f)));
+        LOG.info("Found " + sourceFiles.size() + " file(s)");
+        long count = 0;
+        for (File sourceFile : sourceFiles) {
+            FileHandle handle = FileHandle.newBuilder()
+                    .setId(ID_GENERATOR.next())
+                    .setProject(project)
+                    .setPath(StringUtils.removeStart(sourceFile.getPath(), dir.getPath()))
+                    .build();
+            FileContent in = FileContent.newBuilder()
+                    .setFile(handle)
+                    .setContent(FileUtils.readFileToString(sourceFile))
+                    .build();
+            w1.append(NullWritable.get(), new BytesWritable(in.toByteArray()));
+            count++;
+            if (count % 5000 == 0) {
+                LOG.info("Processed " + count + " files");
             }
-            w2.close();
-        } catch (TException e) {
-            throw new AssertionError(e);
         }
+        w1.close();
+
+        for (File sourceDir : sourceDirs) {
+            FileHandle f = FileHandle.newBuilder()
+                    .setId(ID_GENERATOR.next())
+                    .setProject(project)
+                    .setPath(StringUtils.removeStart(sourceDir.getPath(), dir.getPath()) + "/")
+                    .build();
+            w2.append(NullWritable.get(), new BytesWritable(f.toByteArray()));
+        }
+        w2.close();
     }
 
     private File checkOutWorkTree(Repository repo) throws IOException {
@@ -329,17 +326,14 @@ public class IndexPipeline implements Serializable {
     }
 
     private PTable<Long, Long> guessImportGraphByImportedClasses(
-            PCollection<TFileImports> fileImports,
-            PCollection<TParsedFile> parsedFiles) {
+            PCollection<FileImports> fileImports,
+            PCollection<ParsedFile> parsedFiles) {
         PTable<String, Long> left = fileImports.parallelDo(
                 "ParsedFilesByImportedClasses",
-                new DoFn<TFileImports, Pair<String, Long>>() {
+                new DoFn<FileImports, Pair<String, Long>>() {
                     @Override
-                    public void process(TFileImports in, Emitter<Pair<String, Long>> emitter) {
-                        if (!in.isSetImportedClasses()) {
-                            return;
-                        }
-                        for (String clazz : in.getImportedClasses()) {
+                    public void process(FileImports in, Emitter<Pair<String, Long>> emitter) {
+                        for (String clazz : in.getImportedClassesList()) {
                             emitter.emit(Pair.of(clazz, in.getFile().getId()));
                         }
                     }
@@ -347,15 +341,12 @@ public class IndexPipeline implements Serializable {
 
         PTable<String, Long> right = parsedFiles.parallelDo(
                 "ParsedFilesByDeclaredClasses",
-                new DoFn<TParsedFile, Pair<String, Long>>() {
+                new DoFn<ParsedFile, Pair<String, Long>>() {
                     @Override
                     public void process(
-                            TParsedFile in,
+                            ParsedFile in,
                             Emitter<Pair<String, Long>> emitter) {
-                        if (!in.isSetClasses()) {
-                            return;
-                        }
-                        for (TClassType clazz : in.getClasses()) {
+                        for (ClassType clazz : in.getClassesList()) {
                             emitter.emit(Pair.of(clazz.getHandle().getName(), in.getSource().getHandle().getId()));
                         }
                     }
@@ -366,12 +357,12 @@ public class IndexPipeline implements Serializable {
     }
 
     /** Produces import relation A -> B if A and B are in same package. */
-    private PTable<Long, Long> guessImportGraphBySamePackage(PCollection<TParsedFile> parsedFiles) {
-        PTable<String, TParsedFile> parsedFilesByPackage = pivotParsedFilesByPackage(parsedFiles);
+    private PTable<Long, Long> guessImportGraphBySamePackage(PCollection<ParsedFile> parsedFiles) {
+        PTable<String, ParsedFile> parsedFilesByPackage = pivotParsedFilesByPackage(parsedFiles);
         return Join.innerJoin(parsedFilesByPackage, parsedFilesByPackage).values().parallelDo(
-                new MapFn<Pair<TParsedFile, TParsedFile>, Pair<Long, Long>>() {
+                new MapFn<Pair<ParsedFile, ParsedFile>, Pair<Long, Long>>() {
                     @Override
-                    public Pair<Long, Long> map(Pair<TParsedFile, TParsedFile> in) {
+                    public Pair<Long, Long> map(Pair<ParsedFile, ParsedFile> in) {
                         return Pair.of(
                                 in.first().getSource().getHandle().getId(),
                                 in.second().getSource().getHandle().getId());
@@ -379,100 +370,91 @@ public class IndexPipeline implements Serializable {
                 }, tableOf(longs(), longs()));
     }
 
-    private PCollection<TParsedFile> discoverMembers(
-            PCollection<TFileContent> fileContents,
-            PCollection<TParsedFile> parsedFiles,
+    private PCollection<ParsedFile> discoverMembers(
+            PCollection<FileContent> fileContents,
+            PCollection<ParsedFile> parsedFiles,
             PTable<Long, Long> importGraph) {
         // Assume A imports B...
-        PTable<Long, TParsedFile> parsedFilesById = pivotParsedFilesByFileId(
+        PTable<Long, ParsedFile> parsedFilesById = pivotParsedFilesByFileId(
                 fillFileContents(parsedFiles, fileContents)); // A -> class A {...}
         PTable<Long, Long> invertImportGraph = inverse(importGraph, tableOf(longs(), longs())); // B -> A
-        PTable<Long, TParsedFile> parsedFilesByImporterId = invertImportGraph.join(
+        PTable<Long, ParsedFile> parsedFilesByImporterId = invertImportGraph.join(
                 parsedFilesById).values().parallelDo( // A -> class B {...}
-                        IdentityFn.<Pair<Long, TParsedFile>>getInstance(),
-                        tableOf(longs(), T_PARSED_FILE_PTYPE));
+                        IdentityFn.<Pair<Long, ParsedFile>>getInstance(),
+                        tableOf(longs(), PARSED_FILE_PTYPE));
 
         // Left join because a file can be imported by nobody.
         return Join.leftJoin(parsedFilesById, parsedFilesByImporterId.collectValues()).values()
-                .parallelDo("SecondPass", new MapFn<Pair<TParsedFile, Collection<TParsedFile>>, TParsedFile>() {
+                .parallelDo("SecondPass", new MapFn<Pair<ParsedFile, Collection<ParsedFile>>, ParsedFile>() {
                     @Override
-                    public TParsedFile map(Pair<TParsedFile, Collection<TParsedFile>> in) {
+                    public ParsedFile map(Pair<ParsedFile, Collection<ParsedFile>> in) {
                         try {
-                            TParsedFile currentFile = in.first();
-                            TFileHandle fileHandle = currentFile.getSource().getHandle();
-                            Collection<TParsedFile> importedFiles = in.second();
-                            List<TParsedFile> importedFilesPlusSelf = Lists.newArrayList();
+                            ParsedFile currentFile = in.first();
+                            FileHandle fileHandle = currentFile.getSource().getHandle();
+                            Collection<ParsedFile> importedFiles = in.second();
+                            List<ParsedFile> importedFilesPlusSelf = Lists.newArrayList();
                             importedFilesPlusSelf.add(currentFile);
                             if (importedFiles != null) {
                                 importedFilesPlusSelf.addAll(importedFiles);
                             }
                             SymbolTable symbolTable = new SymbolTable();
-                            for (TParsedFile t : importedFilesPlusSelf) {
-                                if (t.isSetClasses()) {
-                                    for (TClassType tclazz : t.getClasses()) {
-                                        ClassType clazz = ClassType.createFromThrift(tclazz);
-                                        symbolTable.registerClassType(clazz);
-                                    }
+                            for (ParsedFile t : importedFilesPlusSelf) {
+                                for (ClassType clazz : t.getClassesList()) {
+                                    symbolTable.registerClassType(clazz);
                                 }
                             }
                             String content = currentFile.getSource().getSource();
                             SecondPassProcessor.Result result = SecondPassProcessor.extract(
                                     fileHandle.getProject(),
-                                    FileHandle.createFromThrift(fileHandle),
+                                    fileHandle,
                                     new ByteArrayInputStream(content.getBytes()),
                                     symbolTable,
                                     ID_GENERATOR,
-                                    currentFile.getPackage_());
-                            for (ClassType clazz : result.getClassTypes()) {
-                                currentFile.getClasses().clear();
-                                currentFile.addToClasses(clazz.toThrift());
-                            }
-                            for (Usage usage : result.getUsages()) {
-                                if (usage instanceof TypeUsage) {
-                                    // TODO: We only support TypeUsage now.
-                                    currentFile.addToTypeUsages(((TypeUsage) usage).toThrift());
-                                }
-                            }
+                                    currentFile.getPackage());
                             String annotated = SourceAnnotator.annotate(
                                     new ByteArrayInputStream(content.getBytes()),
                                     result.getUsages());
-                            currentFile.getSource().setAnnotatedSource(annotated);
-                            return currentFile;
+                            return ParsedFile.newBuilder()
+                                    .setPackage(currentFile.getPackage())
+                                    .addAllClasses(result.getClassTypes())
+                                    .addAllUsages(result.getUsages())
+                                    .setSource(currentFile.getSource().toBuilder().setAnnotatedSource(annotated).build())
+                                    .build();
                         } catch (IOException e) {
                             // Since we've inner-joined "parsedFilesById", no exceptions should occur.
                             throw new AssertionError(e);
                         }
                     }
-                }, T_PARSED_FILE_PTYPE);
+                }, PARSED_FILE_PTYPE);
     }
 
-    private PTable<Long, TParsedFile> pivotParsedFilesByFileId(PCollection<TParsedFile> parsedFiles) {
+    private PTable<Long, ParsedFile> pivotParsedFilesByFileId(PCollection<ParsedFile> parsedFiles) {
         return parsedFiles.parallelDo(
                 "ParsedFilesByFileId",
-                new MapFn<TParsedFile, Pair<Long, TParsedFile>>() {
+                new MapFn<ParsedFile, Pair<Long, ParsedFile>>() {
                     @Override
-                    public Pair<Long, TParsedFile> map(TParsedFile in) {
+                    public Pair<Long, ParsedFile> map(ParsedFile in) {
                         return Pair.of(in.getSource().getHandle().getId(), in);
                     }
-                }, tableOf(longs(), T_PARSED_FILE_PTYPE));
+                }, tableOf(longs(), PARSED_FILE_PTYPE));
     }
 
-    private PTable<String,TParsedFile> pivotParsedFilesByPackage(PCollection<TParsedFile> parsedFiles) {
-        return parsedFiles.by("ParsedFilesByPackage", new MapFn<TParsedFile, String>() {
+    private PTable<String,ParsedFile> pivotParsedFilesByPackage(PCollection<ParsedFile> parsedFiles) {
+        return parsedFiles.by("ParsedFilesByPackage", new MapFn<ParsedFile, String>() {
             @Override
-            public String map(TParsedFile in) {
-                return in.getPackage_();
+            public String map(ParsedFile in) {
+                return in.getPackage();
             }
         }, strings());
     }
 
-    private static PTable<Long, TFileContent> pivotFileContentById(PCollection<TFileContent> fileContents) {
-        return fileContents.parallelDo("FileContentsById", new MapFn<TFileContent, Pair<Long, TFileContent>>() {
+    private static PTable<Long, FileContent> pivotFileContentById(PCollection<FileContent> fileContents) {
+        return fileContents.parallelDo("FileContentsById", new MapFn<FileContent, Pair<Long, FileContent>>() {
             @Override
-            public Pair<Long, TFileContent> map(TFileContent in) {
+            public Pair<Long, FileContent> map(FileContent in) {
                 return Pair.of(in.getFile().getId(), in);
             }
-        }, tableOf(longs(), T_FILE_CONTENT_PTYPE));
+        }, tableOf(longs(), FILE_CONTENT_PTYPE));
     }
 
     private static <K, V> PTable<V, K> inverse(PTable<K, V> table, PTableType<V, K> ptype) {
@@ -484,22 +466,27 @@ public class IndexPipeline implements Serializable {
         }, ptype);
     }
 
-    private PCollection<TParsedFile> fillFileContents(
-            PCollection<TParsedFile> parsedFiles,
-            PCollection<TFileContent> fileContents) {
-        PTable<Long, TParsedFile> left = pivotParsedFilesByFileId(parsedFiles);
-        PTable<Long, TFileContent> right = pivotFileContentById(fileContents);
+    private PCollection<ParsedFile> fillFileContents(
+            PCollection<ParsedFile> parsedFiles,
+            PCollection<FileContent> fileContents) {
+        PTable<Long, ParsedFile> left = pivotParsedFilesByFileId(parsedFiles);
+        PTable<Long, FileContent> right = pivotFileContentById(fileContents);
         return left.join(right).values().parallelDo(
                 "JoinParsedFilesAndFileContents",
-                new MapFn<Pair<TParsedFile, TFileContent>, TParsedFile>() {
+                new MapFn<Pair<ParsedFile, FileContent>, ParsedFile>() {
                     @Override
-                    public TParsedFile map(Pair<TParsedFile, TFileContent> in) {
-                        TParsedFile parsedFile = in.first();
-                        TFileContent fileContent = in.second();
-                        parsedFile.getSource().setSource(fileContent.getContent());
-                        return parsedFile;
+                    public ParsedFile map(Pair<ParsedFile, FileContent> in) {
+                        ParsedFile parsedFile = in.first();
+                        FileContent fileContent = in.second();
+                        SourceFile source = parsedFile.getSource()
+                                .toBuilder()
+                                .setSource(fileContent.getContent())
+                                .build();
+                        return parsedFile.toBuilder()
+                                .setSource(source)
+                                .build();
                     }
-                }, T_PARSED_FILE_PTYPE);
+                }, PARSED_FILE_PTYPE);
     }
 
     private void buildIndexFromPipelineOutput() throws IOException {
@@ -521,23 +508,23 @@ public class IndexPipeline implements Serializable {
                 SequenceFile.Reader r = new SequenceFile.Reader(fs, new Path(file.getPath()), conf);
                 BytesWritable value = new BytesWritable();
                 while (r.next(NullWritable.get(), value)) {
-                    TParsedFile parsedFile = new TParsedFile();
-                    DESERIALIZER.deserialize(
-                            parsedFile,
-                            Arrays.copyOf(value.getBytes(), value.getLength()));
-                    if (parsedFile.isSetClasses()) {
-                        for (TClassType t : parsedFile.getClasses()) {
-                            typeDb.write(ClassType.createFromThrift(t));
-                        }
+                    ParsedFile parsedFile = ParsedFile.parseFrom(Arrays.copyOf(value.getBytes(), value.getLength()));
+                    for (ClassType clazz : parsedFile.getClassesList()) {
+                        typeDb.write(clazz);
                     }
-                    if (parsedFile.isSetSource()) {
-                        sourceDb.writeSourceFile(SourceFile.createFromThrift(parsedFile.getSource()));
+                    if (parsedFile.hasSource()) {
+                        sourceDb.writeSourceFile(parsedFile.getSource());
                     }
-                    if (parsedFile.isSetTypeUsages()) {
-                        for (TTypeUsage t : parsedFile.getTypeUsages()) {
-                            TypeUsage typeUsage = TypeUsage.createFromThrift(t);
-                            if (typeUsage.getType().isResolved()) {
-                                usageDb.write(TypeUsage.createFromThrift(t));
+                    for (Usage u : parsedFile.getUsagesList()) {
+                        // TODO: save all kinds of usages
+                        if (Objects.equal(u.getKind(), Usage.Kind.TYPE)) {
+                            TypeUsage typeUsage = u.getType();
+                            TypeHandle type = typeUsage.getType();
+                            if (Objects.equal(type.getKind(), ParserProtos.TypeKind.CLASS)) {
+                                ClassTypeHandle clazz = type.getClazz();
+                                if (clazz.getResolved()) {
+                                    usageDb.write(u);
+                                }
                             }
                         }
                     }
@@ -552,15 +539,12 @@ public class IndexPipeline implements Serializable {
                 SequenceFile.Reader r = new SequenceFile.Reader(fs, new Path(file.getPath()), conf);
                 BytesWritable value = new BytesWritable();
                 while (r.next(NullWritable.get(), value)) {
-                    TFileHandle f = new TFileHandle();
-                    DESERIALIZER.deserialize(f, Arrays.copyOf(value.getBytes(), value.getLength()));
+                    FileHandle f = FileHandle.parseFrom(Arrays.copyOf(value.getBytes(), value.getLength()));
                     sourceDb.writeDirectory(f.getProject(), f.getPath());
                 }
             }
 
             LOG.info("Index files are written to " + indexDir);
-        } catch (TException e) {
-            throw new AssertionError(e);
         } finally {
             IOUtils.closeQuietly(typeDb);
             IOUtils.closeQuietly(sourceDb);

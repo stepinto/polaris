@@ -9,16 +9,7 @@ Prestiques
 * Maven 2+
 * Git
 * GNU Toolchain (gcc, g++, make, automake, autoconf, libtool...)
-
-Build Apache Thrift
--------------------
-		$ git clone https://git-wip-us.apache.org/repos/asf/thrift.git
-		$ cd thrift
-		$ curl https://issues.apache.org/jira/secure/attachment/12562777/thrift-1816.patch | patch -p1
-		$ ./bootstrap.sh
-		$ ./configure  # you need to compile the thrift compiler at least
-		$ make
-		$ sudo make install
+* Protocol Buffers 2.40+
 
 Build Apache Crunch
 -------------------
@@ -42,8 +33,6 @@ Run
 
 2. Start searcher
 
-		$ ./polaris searchserver
+		$ ./polaris devserver
 
-3. Start web UI
-	
-TBD
+    Navigate to http://localhost:8080.

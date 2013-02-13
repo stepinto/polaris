@@ -1,7 +1,7 @@
 package com.codingstory.polaris.sourcedb;
 
-import com.codingstory.polaris.parser.FileHandle;
-import com.codingstory.polaris.parser.SourceFile;
+import com.codingstory.polaris.parser.ParserProtos.FileHandle;
+import com.codingstory.polaris.parser.ParserProtos.SourceFile;
 import com.google.common.base.Objects;
 
 import java.io.Closeable;

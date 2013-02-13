@@ -1,6 +1,6 @@
 package com.codingstory.polaris.sourcedb;
 
-import com.codingstory.polaris.parser.SourceFile;
+import com.codingstory.polaris.parser.ParserProtos.SourceFile;
 
 import java.io.Closeable;
 import java.io.IOException;

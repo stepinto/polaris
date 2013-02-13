@@ -1,42 +1,7 @@
 package com.codingstory.polaris.indexing;
 
-import com.codingstory.polaris.IdGenerator;
-import com.codingstory.polaris.SimpleIdGenerator;
-import com.codingstory.polaris.SkipCheckingExceptionWrapper;
-import com.codingstory.polaris.parser.ClassType;
-import com.codingstory.polaris.parser.ParserOptions;
-import com.codingstory.polaris.parser.ProjectParser;
-import com.codingstory.polaris.parser.SourceFile;
-import com.codingstory.polaris.parser.TypeHandle;
-import com.codingstory.polaris.parser.TypeUsage;
-import com.codingstory.polaris.parser.TypeUtils;
-import com.codingstory.polaris.parser.Usage;
-import com.codingstory.polaris.repo.GitUtils;
-import com.codingstory.polaris.repo.Repository;
-import com.codingstory.polaris.sourcedb.SourceDbWriter;
-import com.codingstory.polaris.sourcedb.SourceDbWriterImpl;
-import com.codingstory.polaris.typedb.TypeDb;
-import com.codingstory.polaris.typedb.TypeDbImpl;
-import com.codingstory.polaris.typedb.TypeDbWriter;
-import com.codingstory.polaris.typedb.TypeDbWriterImpl;
-import com.codingstory.polaris.usagedb.UsageDbWriter;
-import com.codingstory.polaris.usagedb.UsageDbWriterImpl;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.io.Files;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.filefilter.HiddenFileFilter;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-
 public final class IndexBuilder {
+    /*
     private static final Log LOG = LogFactory.getLog(IndexBuilder.class);
 
     public static class Stats {
@@ -242,4 +207,5 @@ public final class IndexBuilder {
             usageDbCreator.close();
         }
     }
+    */
 }

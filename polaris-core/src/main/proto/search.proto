@@ -1,0 +1,132 @@
+import "parser.proto";
+
+option java_package = "com.codingstory.polaris.search";
+option java_outer_classname = "SearchProtos";
+option java_generic_services = true;
+
+enum StatusCode {
+    OK = 0;
+    FILE_NOT_FOUND = -1001;
+    MISSING_FIELDS = -1002;
+    NOT_IMPLEMENTED = 1003;
+    NOT_UNIQUE = -1004;
+    UNKNOWN_ERROR = -1099;
+}
+
+message Hit {
+    optional string project = 1;
+    optional string path = 2;
+    optional JumpTarget jumpTarget = 3;
+    optional string summary = 4;
+    optional double score = 5;
+    optional ClassType classType = 6; // if this match is a type
+    optional string queryHint = 7; // for query completion
+}
+
+message SearchRequest {
+    optional string query = 1;
+    optional int32 rankFrom = 2;
+    optional int32 rankTo = 3;
+}
+
+message SearchResponse {
+    optional StatusCode status = 1;
+    repeated Hit hits = 2;
+    optional int64 latency = 3;
+    optional int64 count = 4;
+}
+
+message SourceRequest {
+    optional int64 fileId = 1;
+    optional string projectName = 2;
+    optional string fileName = 3;
+}
+
+message SourceResponse {
+    optional StatusCode status = 1;
+    optional SourceFile source = 2;
+}
+
+message CompleteRequest {
+    optional string query = 1;
+    optional int32 limit = 2;
+}
+
+message CompleteResponse {
+    optional StatusCode status = 1;
+    repeated Hit hits = 4;
+    optional int64 latency = 3;
+    // OBSOLETED repeated string entries = 2;
+}
+
+message LayoutRequest {
+    optional string projectName = 1;
+    optional string directoryName = 2;
+}
+
+message LayoutResponse {
+    optional StatusCode status = 1;
+    repeated string directories = 3;
+    repeated FileHandle files = 4;
+}
+
+message GetTypeRequest {
+    // If "typeId" is specified, "project" and "typeName" are ignored.
+    optional int64 typeId = 1;
+    optional string project = 2; // search in all projects if empty
+    optional string typeName = 3; // full name
+}
+
+message GetTypeResponse {
+    optional StatusCode status = 1;
+    optional ClassType classType = 2;
+}
+
+message ListTypesInFileRequest {
+    optional int64 fileId = 1;
+    optional int32 limit = 2;
+}
+
+message ListTypesInFileResponse {
+    optional StatusCode status = 1;
+    repeated ClassType classTypes = 2;
+}
+
+message ListTypeUsagesRequest {
+    optional int64 typeId = 1;
+}
+
+message ListTypeUsagesResponse {
+    optional StatusCode status = 1;
+    repeated Usage usages = 2;
+}
+
+message GetFieldRequest {
+    optional int64 fieldId = 1;
+}
+
+message GetFieldResponse {
+    optional StatusCode status = 1;
+    optional Field field = 2;
+}
+
+message GetMethodRequest {
+    optional int64 methodId = 1;
+}
+
+message GetMethodResponse {
+    optional StatusCode status = 1;
+    optional Method method = 2;
+}
+
+service CodeSearch {
+    rpc search(SearchRequest) returns (SearchResponse);
+    rpc source(SourceRequest) returns (SourceResponse);
+    rpc complete(CompleteRequest) returns (CompleteResponse);
+    rpc layout(LayoutRequest) returns (LayoutResponse);
+    rpc getType(GetTypeRequest) returns (GetTypeResponse);
+    rpc listTypesInFile(ListTypesInFileRequest) returns (ListTypesInFileResponse);
+    rpc listTypeUsages(ListTypeUsagesRequest) returns (ListTypeUsagesResponse);
+    rpc getField(GetFieldRequest) returns (GetFieldResponse);
+    rpc getMethod(GetMethodRequest) returns (GetMethodResponse);
+}

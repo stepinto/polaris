@@ -1,8 +1,11 @@
 package com.codingstory.polaris.usagedb;
 
 import com.codingstory.polaris.SnappyUtils;
-import com.codingstory.polaris.parser.TypeHandle;
-import com.codingstory.polaris.parser.TypeUsage;
+import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.Usage;
+import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
+import com.codingstory.polaris.usagedb.UsageDbProtos.UsageData;
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import org.apache.lucene.analysis.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
@@ -11,15 +14,11 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TBinaryProtocol;
 
 import java.io.File;
 import java.io.IOException;
 
 public class UsageDbWriterImpl implements UsageDbWriter {
-    private static final TSerializer SERIALIZER = new TSerializer(new TBinaryProtocol.Factory());
     private IndexWriter writer;
 
     public UsageDbWriterImpl(File path) throws IOException {
@@ -30,23 +29,21 @@ public class UsageDbWriterImpl implements UsageDbWriter {
     }
 
     @Override
-    public void write(TypeUsage usage) throws IOException {
+    public void write(Usage usage) throws IOException {
         Preconditions.checkNotNull(usage);
-        TypeHandle handle = usage.getType();
+        Preconditions.checkArgument(Objects.equal(usage.getKind(), Usage.Kind.TYPE)); // Only support TypeUsage for now.
+        TypeUsage typeUsage = usage.getType();
+        TypeHandle handle = typeUsage.getType();
         Preconditions.checkNotNull(handle);
-        Preconditions.checkArgument(handle.isResolved());
-        try {
-            Document document = new Document();
-            document.add(new Field(UsageDbIndexedField.TYPE_ID_RAW, String.valueOf(handle.getId()),
-                    Field.Store.YES, Field.Index.ANALYZED));
-            TUsageData usageData = new TUsageData();
-            usageData.setTypeUsage(usage.toThrift());
-            byte[] usageDataBinary = SERIALIZER.serialize(usageData);
-            document.add(new Field(UsageDbIndexedField.USAGE_DATA, SnappyUtils.compress(usageDataBinary)));
-            writer.addDocument(document);
-        } catch (TException e) {
-            throw new AssertionError(e);
-        }
+        Preconditions.checkArgument(handle.getClazz().getResolved());
+        Document document = new Document();
+        document.add(new Field(UsageDbIndexedField.TYPE_ID_RAW, String.valueOf(handle.getClazz().getId()),
+                Field.Store.YES, Field.Index.ANALYZED));
+        UsageData usageData = UsageData.newBuilder()
+                .setUsage(usage)
+                .build();
+        document.add(new Field(UsageDbIndexedField.USAGE_DATA, SnappyUtils.compress(usageData.toByteArray())));
+        writer.addDocument(document);
     }
 
     @Override

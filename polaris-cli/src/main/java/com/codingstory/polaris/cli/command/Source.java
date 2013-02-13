@@ -1,15 +1,16 @@
 package com.codingstory.polaris.cli.command;
 
+import com.codingstory.polaris.NoOpController;
 import com.codingstory.polaris.cli.Command;
-import com.codingstory.polaris.cli.CommandUtils;
 import com.codingstory.polaris.cli.Help;
 import com.codingstory.polaris.cli.Option;
 import com.codingstory.polaris.cli.Run;
-import com.codingstory.polaris.search.TCodeSearchService;
-import com.codingstory.polaris.search.TSourceRequest;
-import com.codingstory.polaris.search.TSourceResponse;
-import org.apache.thrift.TException;
+import com.codingstory.polaris.search.CodeSearchImpl;
+import com.codingstory.polaris.search.SearchProtos.SourceRequest;
+import com.codingstory.polaris.search.SearchProtos.SourceResponse;
+import org.apache.commons.io.IOUtils;
 
+import java.io.File;
 import java.io.IOException;
 
 import static com.codingstory.polaris.cli.CommandUtils.checkStatus;
@@ -27,25 +28,26 @@ public class Source {
     public boolean annotated;
 
     @Run
-    public void run(String[] args) throws TException, IOException {
+    public void run(String[] args) throws IOException {
         if (args.length != 1) {
             die("Require exactly one file-id");
         }
         final long fileId = Long.parseLong(args[0]);
-        CommandUtils.openIndexOrConnectToServerAndRun(index, server, new CommandUtils.RpcRunner() {
-            @Override
-            public void run(TCodeSearchService.Iface rpc) throws TException {
-                TSourceRequest req = new TSourceRequest();
-                req.setFileId(fileId);
-                TSourceResponse resp = rpc.source(req);
-                checkStatus(resp.getStatus());
-                if (annotated) {
-                    System.out.println(resp.getSource().getAnnotatedSource());
-                } else {
-                    System.out.println(resp.getSource().getSource());
-                }
+        CodeSearchImpl searcher = new CodeSearchImpl(new File(index));
+        try {
+            SourceRequest req = SourceRequest.newBuilder()
+                    .setFileId(fileId)
+                    .build();
+            SourceResponse resp = searcher.source(NoOpController.getInstance(), req);
+            checkStatus(resp.getStatus());
+            if (annotated) {
+                System.out.println(resp.getSource().getAnnotatedSource());
+            } else {
+                System.out.println(resp.getSource().getSource());
             }
-        });
+        } finally {
+            IOUtils.closeQuietly(searcher);
+        }
     }
 
     @Help
@@ -55,7 +57,6 @@ public class Source {
                 "\n" +
                 "Options:\n" +
                 HelpMessages.INDEX +
-                HelpMessages.SERVER +
                 "  -a, --annotated      display annotated source, default: false\n" +
                 "\n");
     }

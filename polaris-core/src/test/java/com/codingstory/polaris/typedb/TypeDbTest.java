@@ -1,20 +1,17 @@
 package com.codingstory.polaris.typedb;
 
 import com.codingstory.polaris.IdGenerator;
-import com.codingstory.polaris.JumpTarget;
 import com.codingstory.polaris.SimpleIdGenerator;
-import com.codingstory.polaris.parser.ClassType;
-import com.codingstory.polaris.parser.Field;
-import com.codingstory.polaris.parser.FieldHandle;
-import com.codingstory.polaris.parser.FileHandle;
-import com.codingstory.polaris.parser.FullMemberName;
-import com.codingstory.polaris.parser.FullTypeName;
-import com.codingstory.polaris.parser.Method;
-import com.codingstory.polaris.parser.MethodHandle;
-import com.codingstory.polaris.parser.Modifier;
-import com.codingstory.polaris.parser.PrimitiveType;
-import com.codingstory.polaris.parser.Span;
-import com.codingstory.polaris.parser.TypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.ClassType;
+import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.Field;
+import com.codingstory.polaris.parser.ParserProtos.FieldHandle;
+import com.codingstory.polaris.parser.ParserProtos.FileHandle;
+import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
+import com.codingstory.polaris.parser.ParserProtos.Method;
+import com.codingstory.polaris.parser.ParserProtos.MethodHandle;
+import com.codingstory.polaris.parser.PrimitiveTypes;
+import com.codingstory.polaris.parser.TypeUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -26,17 +23,25 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.EnumSet;
 import java.util.List;
 
+import static com.codingstory.polaris.parser.TypeUtils.handleOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class TypeDbTest {
     private static final IdGenerator ID_GENERATOR = new SimpleIdGenerator();
-    private static final FileHandle FAKE_FILE = new FileHandle(100L, "project", "/somefile");
-    private static final FileHandle FAKE_FILE2 = new FileHandle(101L, "project", "/anotherfile");
+    private static final FileHandle FAKE_FILE = FileHandle.newBuilder()
+            .setId(100L)
+            .setProject("project")
+            .setPath("/somefile")
+            .build();
+    private static final FileHandle FAKE_FILE2 = FileHandle.newBuilder()
+            .setId(101L)
+            .setProject("project")
+            .setPath("/anotherfile")
+            .build();
     private File tempDir;
 
     @Before
@@ -50,7 +55,7 @@ public class TypeDbTest {
         List<ClassType> types = Lists.newArrayList();
         int n = 10;
         for (int i = 0; i < n; i++) {
-            types.add(createEmptyClass(FullTypeName.of("MyClass" + i)));
+            types.add(createEmptyClass("MyClass" + i));
         }
         TypeDbWriter w = new TypeDbWriterImpl(tempDir);
         for (ClassType t : types) {
@@ -79,7 +84,7 @@ public class TypeDbTest {
         List<ClassType> types = Lists.newArrayList();
         int n = 10;
         for (int i = 0; i < n; i++) {
-            types.add(createEmptyClass(FullTypeName.of("MyClass")));
+            types.add(createEmptyClass("MyClass"));
         }
         TypeDbWriter w = new TypeDbWriterImpl(tempDir);
         for (ClassType t : types) {
@@ -87,8 +92,7 @@ public class TypeDbTest {
         }
         w.close();
         TypeDb r = new TypeDbImpl(tempDir);
-        List<ClassType> result = Lists.newArrayList(r.getTypeByName(
-                FullTypeName.of("MyClass"), null, 10));
+        List<ClassType> result = Lists.newArrayList(r.getTypeByName("MyClass", null, 10));
         assertEquals(n, result.size());
         r.close();
     }
@@ -120,13 +124,13 @@ public class TypeDbTest {
     @Test
     public void testQueryInFile() throws IOException {
         TypeDbWriter w = new TypeDbWriterImpl(tempDir);
-        w.write(createClassInFile(FullTypeName.of("A"), FAKE_FILE));
-        w.write(createClassInFile(FullTypeName.of("B"), FAKE_FILE));
-        w.write(createClassInFile(FullTypeName.of("C"), FAKE_FILE2));
+        w.write(createClassInFile("A", FAKE_FILE));
+        w.write(createClassInFile("B", FAKE_FILE));
+        w.write(createClassInFile("C", FAKE_FILE2));
         w.close();
         TypeDb r = new TypeDbImpl(tempDir);
         List<ClassType> types = r.getTypesInFile(FAKE_FILE.getId(), Integer.MAX_VALUE);
-        assertEquals(ImmutableSet.of(FullTypeName.of("A"), FullTypeName.of("B")),
+        assertEquals(ImmutableSet.of("A", "B"),
                 ImmutableSet.copyOf(getFullTypeNames(types)));
     }
 
@@ -135,14 +139,14 @@ public class TypeDbTest {
         FileUtils.cleanDirectory(tempDir);
         TypeDbWriter w = new TypeDbWriterImpl(tempDir);
         for (String type : corpus) {
-            w.write(createEmptyClass(FullTypeName.of(type)));
+            w.write(createEmptyClass(type));
         }
         w.close();
         TypeDb r = new TypeDbImpl(tempDir);
         List<ClassType> result = r.completeQuery(query, Integer.MAX_VALUE);
-        List<FullTypeName> expectedTypes = Lists.newArrayList();
+        List<String> expectedTypes = Lists.newArrayList();
         for (String s : expected) {
-            expectedTypes.add(FullTypeName.of(s));
+            expectedTypes.add(s);
         }
         assertEquals(ImmutableSet.copyOf(expectedTypes), ImmutableSet.copyOf(getFullTypeNames(result)));
     }
@@ -150,19 +154,19 @@ public class TypeDbTest {
     @Test
     public void testGetFieldById() throws IOException {
         TypeDbWriter w = new TypeDbWriterImpl(tempDir);
-        int n = 0;
+        int n = 2;
         List<ClassType> types = Lists.newArrayList();
         for (int i = 0; i < n; i++) {
-            ClassType type = createClassWithOneField(FullTypeName.of("MyClass" + i), "myField");
+            ClassType type = createClassWithOneField("MyClass" + i, "myField");
             types.add(type);
             w.write(type);
         }
         w.close();
         TypeDb r = new TypeDbImpl(tempDir);
         for (ClassType type : types) {
-            Field f = r.getFieldById(Iterables.getOnlyElement(type.getFields()).getHandle().getId());
+            Field f = r.getFieldById(Iterables.getOnlyElement(type.getFieldsList()).getHandle().getId());
             assertNotNull(f);
-            assertEquals(FullMemberName.of(type.getName(), "myField"), f.getName());
+            assertEquals(type.getHandle().getName() + ".myField", f.getHandle().getName());
         }
         assertNull(r.getFieldById(Long.MAX_VALUE));
         r.close();
@@ -174,75 +178,87 @@ public class TypeDbTest {
         int n = 0;
         List<ClassType> types = Lists.newArrayList();
         for (int i = 0; i < n; i++) {
-            ClassType type = createClassWithOneMethod(FullTypeName.of("MyClass" + i), "myMethod");
+            ClassType type = createClassWithOneMethod("MyClass" + i, "myMethod");
             types.add(type);
             w.write(type);
         }
         w.close();
         TypeDb r = new TypeDbImpl(tempDir);
         for (ClassType type : types) {
-            Method m = r.getMethodById(Iterables.getOnlyElement(type.getMethods()).getHandle().getId());
+            Method m = r.getMethodById(Iterables.getOnlyElement(type.getMethodsList()).getHandle().getId());
             assertNotNull(m);
-            assertEquals(FullMemberName.of(type.getName(), "myMethod"), m.getName());
+            assertEquals(type.getHandle().getName() + ".myMethod", m.getHandle().getName());
         }
         assertNull(r.getFieldById(Long.MAX_VALUE));
         r.close();
     }
 
-    private static List<FullTypeName> getFullTypeNames(List<ClassType> classTypes) {
-        List<FullTypeName> result = Lists.newArrayList();
+    private static List<String> getFullTypeNames(List<ClassType> classTypes) {
+        List<String> result = Lists.newArrayList();
         for (ClassType classType : classTypes) {
-            result.add(classType.getName());
+            result.add(classType.getHandle().getName());
         }
         return result;
     }
 
-    private static ClassType createEmptyClass(FullTypeName type) throws IOException {
-        return new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
-                ClassType.Kind.CLASS,
-                EnumSet.noneOf(Modifier.class),
-                null,
-                new JumpTarget(FAKE_FILE, Span.ZERO));
+    private static ClassType createEmptyClass(String name) throws IOException {
+        return createClassInFile(name, FAKE_FILE);
     }
 
-    private static ClassType createClassInFile(FullTypeName type, FileHandle file) throws IOException {
-        return new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
-                ClassType.Kind.CLASS,
-                EnumSet.noneOf(Modifier.class),
-                null,
-                new JumpTarget(file, Span.ZERO));
+    private static ClassType createClassInFile(String name, FileHandle file) throws IOException {
+        ClassTypeHandle clazzHandle = ClassTypeHandle.newBuilder()
+                .setId(ID_GENERATOR.next())
+                .setName(name)
+                .setResolved(true)
+                .build();
+        JumpTarget jumpTarget = JumpTarget.newBuilder()
+                .setFile(file)
+                .setSpan(TypeUtils.ZERO_SPAN)
+                .build();
+        return ClassType.newBuilder()
+                .setHandle(clazzHandle)
+                .setKind(ClassType.Kind.CLASS)
+                .setJumpTarget(jumpTarget)
+                .build();
     }
 
-    private ClassType createClassWithOneField(FullTypeName type, String fieldName) throws IOException {
-        Field field = new Field(
-                new FieldHandle(ID_GENERATOR.next(), FullMemberName.of(type, fieldName)),
-                PrimitiveType.INTEGER.getHandle(),
-                EnumSet.noneOf(Modifier.class),
-                new JumpTarget(FAKE_FILE, Span.ZERO));
-        ClassType clazz = new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
-                ClassType.Kind.CLASS,
-                EnumSet.noneOf(Modifier.class),
-                null,
-                new JumpTarget(FAKE_FILE, Span.ZERO));
-        clazz.addField(field);
-        return clazz;
+    private ClassType createClassWithOneField(String className, String fieldName) throws IOException {
+        FieldHandle fieldHandle = FieldHandle.newBuilder()
+                .setId(ID_GENERATOR.next())
+                .setName(className + "." + fieldName)
+                .build();
+        JumpTarget jumpTarget = JumpTarget.newBuilder()
+                .setFile(FAKE_FILE)
+                .setSpan(TypeUtils.ZERO_SPAN)
+                .build();
+        Field field = Field.newBuilder()
+                .setType(handleOf(PrimitiveTypes.INTEGER))
+                .setHandle(fieldHandle)
+                .setJumpTarget(jumpTarget)
+                .build();
+        return createEmptyClass(className)
+                .toBuilder()
+                .addFields(field)
+                .build();
     }
 
-    private ClassType createClassWithOneMethod(FullTypeName type, String methodName) throws IOException {
-        Method method= new Method(
-                new MethodHandle(
-                        ID_GENERATOR.next(), FullMemberName.of(type, methodName), ImmutableList.<TypeHandle>of()),
-                PrimitiveType.INTEGER.getHandle(),
-                ImmutableList.<Method.Parameter>of(),
-                ImmutableList.<TypeHandle>of(),
-                EnumSet.noneOf(Modifier.class),
-                new JumpTarget(FAKE_FILE, Span.ZERO));
-        ClassType clazz = new ClassType(new TypeHandle(ID_GENERATOR.next(), type),
-                ClassType.Kind.CLASS,
-                EnumSet.noneOf(Modifier.class),
-                null,
-                new JumpTarget(FAKE_FILE, Span.ZERO));
-        clazz.addMethod(method);
-        return clazz;
+    private ClassType createClassWithOneMethod(String className, String methodName) throws IOException {
+        MethodHandle methodHandle = MethodHandle.newBuilder()
+                .setId(ID_GENERATOR.next())
+                .setName(className + "." + methodName)
+                .build();
+        JumpTarget jumpTarget = JumpTarget.newBuilder()
+                .setFile(FAKE_FILE)
+                .setSpan(TypeUtils.ZERO_SPAN)
+                .build();
+        Method method = Method.newBuilder()
+                .setHandle(methodHandle)
+                .setReturnType(handleOf(PrimitiveTypes.INTEGER))
+                .setJumpTarget(jumpTarget)
+                .build();
+        return createEmptyClass(className)
+                .toBuilder()
+                .addMethods(method)
+                .build();
     }
 }

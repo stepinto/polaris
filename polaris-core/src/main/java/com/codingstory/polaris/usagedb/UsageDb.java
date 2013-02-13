@@ -1,11 +1,11 @@
 package com.codingstory.polaris.usagedb;
 
-import com.codingstory.polaris.parser.TypeUsage;
+import com.codingstory.polaris.parser.ParserProtos.Usage;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 
 public interface UsageDb extends Closeable {
-    List<TypeUsage> query(long typeId) throws IOException;
+    List<Usage> query(long typeId) throws IOException;
 }

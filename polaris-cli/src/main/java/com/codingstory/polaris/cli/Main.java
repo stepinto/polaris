@@ -1,13 +1,13 @@
 package com.codingstory.polaris.cli;
 
 import com.codingstory.polaris.cli.command.CrawlGitHub;
+import com.codingstory.polaris.cli.command.DevServer;
 import com.codingstory.polaris.cli.command.DumpSequenceFile;
 import com.codingstory.polaris.cli.command.FindUsages;
 import com.codingstory.polaris.cli.command.Index;
 import com.codingstory.polaris.cli.command.IndexRepoBase;
 import com.codingstory.polaris.cli.command.Plan;
 import com.codingstory.polaris.cli.command.Search;
-import com.codingstory.polaris.cli.command.SearchServer;
 import com.codingstory.polaris.cli.command.Source;
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
@@ -29,8 +29,8 @@ import static com.codingstory.polaris.cli.CommandUtils.die;
 public class Main {
 
     private static final List<Class<?>> COMMANDS = ImmutableList.<Class<?>>of(
-            CrawlGitHub.class, DumpSequenceFile.class, FindUsages.class, Index.class, IndexRepoBase.class,
-            Plan.class, Search.class, SearchServer.class, Source.class);
+            CrawlGitHub.class, DevServer.class, DumpSequenceFile.class, FindUsages.class, Index.class,
+            IndexRepoBase.class, Plan.class, Search.class, Source.class);
 
     public static void main(String[] args) {
         if (args.length == 0) {

@@ -1,9 +1,10 @@
 package com.codingstory.polaris.search;
 
-import com.codingstory.polaris.JumpTarget;
-import com.codingstory.polaris.parser.ClassType;
-import com.codingstory.polaris.parser.SourceFile;
-import com.codingstory.polaris.parser.Span;
+import com.codingstory.polaris.parser.ParserProtos.ClassType;
+import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
+import com.codingstory.polaris.parser.ParserProtos.SourceFile;
+import com.codingstory.polaris.parser.ParserProtos.Span;
+import com.codingstory.polaris.search.SearchProtos.Hit;
 import com.codingstory.polaris.sourcedb.SourceDb;
 import com.codingstory.polaris.typedb.TypeDb;
 import com.google.common.base.Preconditions;
@@ -28,12 +29,12 @@ public class SearchMixer {
         this.sourceDb = Preconditions.checkNotNull(sourceDb);
     }
 
-    public List<THit> search(String query, int n) throws IOException {
+    public List<Hit> search(String query, int n) throws IOException {
         Preconditions.checkNotNull(query);
         Preconditions.checkArgument(n >= 0);
         LOG.info("Query: " + query);
         // TODO: Need to understand query
-        List<THit> result = Lists.newArrayList();
+        List<Hit> result = Lists.newArrayList();
         List<ClassType> classTypes = typeDb.completeQuery(query, n); // TODO: Use dedicated approach
         for (ClassType classType : classTypes) {
             result.add(classTypeToHit(classType));
@@ -41,22 +42,22 @@ public class SearchMixer {
         return result;
     }
 
-    public List<THit> searchBySource(String query, int n) throws IOException {
+    public List<Hit> searchBySource(String query, int n) throws IOException {
         // TODO: Need to merge the result to search().
         Preconditions.checkNotNull(query);
         Preconditions.checkArgument(n >= 0);
         LOG.info("Query in typeDb: " + query);
-        List<THit> results = Lists.newArrayList();
+        List<Hit> results = Lists.newArrayList();
         sourceDb.querySourcesByTerm(query);
 
         return results;
     }
 
-    public List<THit> complete(String query, int n) throws IOException {
+    public List<Hit> complete(String query, int n) throws IOException {
         Preconditions.checkNotNull(query);
         Preconditions.checkArgument(n >= 0);
         LOG.info("Complete query: " + query);
-        List<THit> result = Lists.newArrayList();
+        List<Hit> result = Lists.newArrayList();
         List<ClassType> classTypes = typeDb.completeQuery(query, n);
         for (ClassType classType : classTypes) {
             result.add(classTypeToHit(classType));
@@ -64,17 +65,18 @@ public class SearchMixer {
         return result;
     }
 
-    private THit classTypeToHit(ClassType type) throws IOException {
-        THit hit = new THit();
-        JumpTarget jumpTarget = type.getJumpTarget();
+    private Hit classTypeToHit(ClassType clazz) throws IOException {
+        JumpTarget jumpTarget = clazz.getJumpTarget();
         SourceFile source = sourceDb.querySourceById(jumpTarget.getFile().getId());
-        hit.setProject(source.getProject());
-        hit.setPath(source.getPath());
-        hit.setJumpTarget(jumpTarget.toThrift());
-        hit.setSummary(getSummary(source.getSource(), jumpTarget.getSpan()));
-        hit.setScore(1); // TODO: set a reasonable score
-        hit.setClassType(type.toThrift());
-        hit.setQueryHint(type.getName().toString());
+        Hit hit = Hit.newBuilder()
+                .setProject(source.getHandle().getProject())
+                .setPath(source.getHandle().getPath())
+                .setJumpTarget(jumpTarget)
+                .setSummary(getSummary(source.getSource(), jumpTarget.getSpan()))
+                .setScore(1) // TODO: set a reasonable score
+                .setClassType(clazz)
+                .setQueryHint(clazz.getHandle().getName())
+                .build();
         return hit;
     }
 
