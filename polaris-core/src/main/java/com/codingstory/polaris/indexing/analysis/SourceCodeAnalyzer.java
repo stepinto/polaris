@@ -1,13 +1,15 @@
 package com.codingstory.polaris.indexing.analysis;
 
 import com.codingstory.polaris.sourcedb.SourceDbIndexedField;
-import com.google.common.base.Objects;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.lucene.analysis.*;
+import com.google.common.collect.ImmutableSet;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.KeywordTokenizer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.util.Version;
 
 import java.io.Reader;
+import java.util.Set;
 
 /**
  * Created with IntelliJ IDEA.
@@ -18,17 +20,22 @@ import java.io.Reader;
  */
 public final class SourceCodeAnalyzer extends Analyzer {
 
-    Log LOG = LogFactory.getLog(SourceCodeAnalyzer.class);
+    private static final SourceCodeAnalyzer INSTANCE = new SourceCodeAnalyzer();
+    private static final Set<String> ANALYZED_FIELDS = ImmutableSet.of(
+            SourceDbIndexedField.PROJECT_RAW,
+            SourceDbIndexedField.PATH,
+            SourceDbIndexedField.SOURCE_TEXT);
 
-    private final Version version;
-    public SourceCodeAnalyzer(Version version) {
-      this.version = version;
+    private SourceCodeAnalyzer() {}
+
+    public static SourceCodeAnalyzer getInstance() {
+        return INSTANCE;
     }
 
     @Override
     public TokenStream tokenStream(String fieldName, Reader reader) {
-      if (Objects.equal(fieldName, SourceDbIndexedField.SOURCE_TERM)) {
-        return new LowerCaseTokenizer(version, reader);
+      if (ANALYZED_FIELDS.contains(fieldName)) {
+        return new StandardTokenizer(Version.LUCENE_36, reader);
       } else {
         return new KeywordTokenizer(reader);
       }

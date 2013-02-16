@@ -11,6 +11,7 @@ import com.codingstory.polaris.search.CodeSearchImpl;
 import com.codingstory.polaris.search.SearchProtos.CodeSearch;
 import com.codingstory.polaris.search.SearchProtos.GetTypeRequest;
 import com.codingstory.polaris.search.SearchProtos.GetTypeResponse;
+import com.codingstory.polaris.search.SearchProtos.Hit;
 import com.codingstory.polaris.search.SearchProtos.LayoutRequest;
 import com.codingstory.polaris.search.SearchProtos.LayoutResponse;
 import com.codingstory.polaris.search.SearchProtos.ListTypeUsagesRequest;
@@ -108,7 +109,10 @@ public class CodeSearchEndToEndTest {
         SearchResponse resp = searcher.search(NoOpController.getInstance(), req);
         assertEquals(StatusCode.OK, resp.getStatus());
         assertEquals(1, resp.getCount());
-        assertEquals("/src/com/company/A.java", resp.getHits(0).getPath());
+        Hit hit = Iterables.getOnlyElement(resp.getHitsList());
+        assertEquals(Hit.Kind.TYPE, hit.getKind());
+        assertEquals("project", hit.getJumpTarget().getFile().getProject());
+        assertEquals("/src/com/company/A.java", hit.getJumpTarget().getFile().getPath());
     }
 
     @Test
@@ -169,6 +173,22 @@ public class CodeSearchEndToEndTest {
         Field field2 = Iterables.getOnlyElement(class2.getFieldsList());
         assertEquals(class2.getHandle(), field1.getType().getClazz());
         assertEquals(class1.getHandle(), field2.getType().getClazz());
+    }
+
+    @Test
+    public void testFullTextSearch() throws IOException, ServiceException {
+        writeFile("project1/src/com/company/A.java", "/* search it */");
+        buildIndex(ImmutableList.of("project1"));
+        CodeSearch.BlockingInterface searcher = createSearcher();
+        SearchRequest req = SearchRequest.newBuilder()
+                .setQuery("search it")
+                .build();
+        SearchResponse resp = searcher.search(NoOpController.getInstance(), req);
+        assertEquals(StatusCode.OK, resp.getStatus());
+        assertEquals(1, resp.getHitsCount());
+        Hit hit = Iterables.getOnlyElement(resp.getHitsList());
+        assertEquals(Hit.Kind.FILE, hit.getKind());
+        assertEquals("/src/com/company/A.java", hit.getJumpTarget().getFile().getPath());
     }
 
     private CodeSearch.BlockingInterface createSearcher() throws IOException {

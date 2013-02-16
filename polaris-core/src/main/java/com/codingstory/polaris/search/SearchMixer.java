@@ -1,7 +1,6 @@
 package com.codingstory.polaris.search;
 
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
-import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
 import com.codingstory.polaris.parser.ParserProtos.SourceFile;
 import com.codingstory.polaris.parser.ParserProtos.Span;
 import com.codingstory.polaris.search.SearchProtos.Hit;
@@ -9,10 +8,13 @@ import com.codingstory.polaris.sourcedb.SourceDb;
 import com.codingstory.polaris.typedb.TypeDb;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Doubles;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -29,55 +31,49 @@ public class SearchMixer {
         this.sourceDb = Preconditions.checkNotNull(sourceDb);
     }
 
-    public List<Hit> search(String query, int n) throws IOException {
+    public List<Hit> search(String query, int n, boolean search) throws IOException {
         Preconditions.checkNotNull(query);
         Preconditions.checkArgument(n >= 0);
-        LOG.info("Query: " + query);
+        if (search) {
+            LOG.info("Query: " + query);
+        } else {
+            LOG.info("Complete query: " + query);
+        }
         // TODO: Need to understand query
-        List<Hit> result = Lists.newArrayList();
-        List<ClassType> classTypes = typeDb.completeQuery(query, n); // TODO: Use dedicated approach
-        for (ClassType classType : classTypes) {
-            result.add(classTypeToHit(classType));
+        List<Hit> hits = Lists.newArrayList();
+        hits.addAll(fillSummary(typeDb.query(query, n)));
+        hits.addAll(sourceDb.query(query, n));
+        sortHits(hits);
+        if (hits.size() > n) {
+            return hits.subList(0, n);
+        } else {
+            return hits;
         }
-        return result;
     }
 
-    public List<Hit> searchBySource(String query, int n) throws IOException {
-        // TODO: Need to merge the result to search().
-        Preconditions.checkNotNull(query);
-        Preconditions.checkArgument(n >= 0);
-        LOG.info("Query in typeDb: " + query);
+    private void sortHits(List<Hit> hits) {
+        Collections.sort(hits, new Comparator<Hit>() {
+            @Override
+            public int compare(Hit left, Hit right) {
+                return Doubles.compare(left.getScore(), right.getScore());
+            }
+        });
+    }
+
+    private List<Hit> fillSummary(List<Hit> hits) throws IOException {
         List<Hit> results = Lists.newArrayList();
-        sourceDb.querySourcesByTerm(query);
-
-        return results;
-    }
-
-    public List<Hit> complete(String query, int n) throws IOException {
-        Preconditions.checkNotNull(query);
-        Preconditions.checkArgument(n >= 0);
-        LOG.info("Complete query: " + query);
-        List<Hit> result = Lists.newArrayList();
-        List<ClassType> classTypes = typeDb.completeQuery(query, n);
-        for (ClassType classType : classTypes) {
-            result.add(classTypeToHit(classType));
+        for (Hit hit : hits) {
+            ClassType clazz = hit.getClassType();
+            long fileId = clazz.getJumpTarget().getFile().getId();
+            SourceFile source = sourceDb.querySourceById(fileId);
+            if (source == null) {
+                throw new AssertionError("File #" + fileId + " does not exist in SourceDb");
+            }
+            results.add(hit.toBuilder()
+                    .setSummary(getSummary(source.getSource(), clazz.getJumpTarget().getSpan()))
+                    .build());
         }
-        return result;
-    }
-
-    private Hit classTypeToHit(ClassType clazz) throws IOException {
-        JumpTarget jumpTarget = clazz.getJumpTarget();
-        SourceFile source = sourceDb.querySourceById(jumpTarget.getFile().getId());
-        Hit hit = Hit.newBuilder()
-                .setProject(source.getHandle().getProject())
-                .setPath(source.getHandle().getPath())
-                .setJumpTarget(jumpTarget)
-                .setSummary(getSummary(source.getSource(), jumpTarget.getSpan()))
-                .setScore(1) // TODO: set a reasonable score
-                .setClassType(clazz)
-                .setQueryHint(clazz.getHandle().getName())
-                .build();
-        return hit;
+        return results;
     }
 
     public static String getSummary(String content, Span span) {

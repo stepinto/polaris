@@ -2,6 +2,7 @@ package com.codingstory.polaris.sourcedb;
 
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.SourceFile;
+import com.codingstory.polaris.search.SearchProtos.Hit;
 import com.google.common.base.Objects;
 
 import java.io.Closeable;
@@ -49,5 +50,7 @@ public interface SourceDb extends Closeable {
     DirectoryContent listDirectory(String project, String path) throws IOException;
     SourceFile querySourceById(long fileId) throws IOException;
     SourceFile querySourceByPath(String project, String path) throws IOException;
-    List<SourceFile> querySourcesByTerm(String term) throws IOException;
+
+    /** Matches {@code query} against file names or contents. */
+    List<Hit> query(String query, int n) throws IOException;
 }

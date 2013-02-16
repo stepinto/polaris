@@ -3,7 +3,7 @@ angular.module('polarisDirectives', ['polarisServices'])
   //
   // Usage:
   //   <search-box placeholder="..." />
-  .directive('searchBox', function ($location, CodeSearch) {
+  .directive('searchBox', function ($location, CodeSearch, LinkBuilder) {
     return {
       restrict: 'E',
       replace: true,
@@ -22,23 +22,19 @@ angular.module('polarisDirectives', ['polarisServices'])
           if (scope.loading) {
             return; // Allow at most one outstanding query.
           }
-          if (scope.query == "") {
+          if (!scope.query || scope.query == "") {
             return;
           }
           scope.loading = true;
           CodeSearch.complete(scope.query, 8, function (resp) {
-            scope.choices = []
-            if (resp.hits) {
-              for (var i = 0; i < resp.hits.length; i++) {
-                var hit  = resp.hits[i];
-                scope.choices.push({
-                  "index": i,
-                  "display": hit.queryHint,
-                  "path": hit.project + hit.path,
-                  "url": "source/?file=" + hit.jumpTarget.file.id + "&line=" + hit.jumpTarget.span.from.line
-                });
+              if (resp.hits) {
+                $.each(resp.hits, function(index, hit) {
+                  hit["index"] = index;
+                  hit["url"] = LinkBuilder.source(hit.jumpTarget);
+                  }
+                  );
               }
-            }
+            scope.choices = resp.hits;
             if (scope.selected >= scope.choices.length) {
               scope.selected = 0;
             }
@@ -177,7 +173,7 @@ angular.module('polarisDirectives', ['polarisServices'])
             if (resp.files) {
               for (var i = 0; i < resp.files.length; i++) {
                 var file = resp.files[i];
-                ul.append("<li class='java-file'><a href=" + LinkBuilder.source(file.id) + ">" +
+                ul.append("<li class='java-file'><a href=#" + LinkBuilder.sourceFromFileId(file.id) + ">" +
                     Utils.getBaseName(resp.files[i].path) + "</a></li>");
               }
             }
@@ -320,7 +316,7 @@ angular.module('polarisDirectives', ['polarisServices'])
                 scope.usages.misc.push(u);
                 break;
               }
-              u.url = LinkBuilder.source(u.jumpTarget.file.id, u.jumpTarget.span.from.line);
+              u.url = LinkBuilder.source(u.jumpTarget);
               u.text = u.jumpTarget.file.path;
             });
             scope.loading = false;

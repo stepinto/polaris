@@ -69,7 +69,9 @@ public class DevServer {
             } else if (path.endsWith(".js")) {
                 handleStatic(req, resp, new File(webDir, "public"), "application/javascript");
             } else if (path.endsWith(".png")) {
-                handleStatic(req, resp, new File(webDir, "public"), "image/x-png");
+                handleStatic(req, resp, new File(webDir, "public"), "image/png");
+            } else if (path.endsWith(".gif")) {
+                handleStatic(req, resp, new File(webDir, "public"), "image/gif");
             } else if (path.endsWith(".xml")) {
                 handleStatic(req, resp, new File(webDir, "public"), "text/xml");
             } else if (path.startsWith("/api")) {

@@ -5,6 +5,7 @@ import com.codingstory.polaris.SnappyUtils;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.Field;
 import com.codingstory.polaris.parser.ParserProtos.Method;
+import com.codingstory.polaris.search.SearchProtos.Hit;
 import com.codingstory.polaris.typedb.TypeDbProtos.TypeData;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -77,12 +78,7 @@ public class TypeDbImpl implements TypeDb {
     }
 
     @Override
-    public List<ClassType> queryFuzzy(String project, String type, int n) throws IOException {
-        return null;
-    }
-
-    @Override
-    public List<ClassType> completeQuery(String query, int n) throws IOException {
+    public List<Hit> query(String query, int n) throws IOException {
         Preconditions.checkNotNull(query);
         Preconditions.checkArgument(n >= 0);
         BooleanQuery booleanQuery = new BooleanQuery();
@@ -92,9 +88,16 @@ public class TypeDbImpl implements TypeDb {
                     BooleanClause.Occur.SHOULD);
         }
         TopDocs hits = searcher.search(booleanQuery, n);
-        List<ClassType> result = Lists.newArrayList();
+        List<Hit> result = Lists.newArrayList();
         for (ScoreDoc scoreDoc: hits.scoreDocs) {
-            result.add(retrieveDocument(scoreDoc.doc));
+            ClassType clazz = retrieveDocument(scoreDoc.doc);
+            result.add(Hit.newBuilder()
+                    .setKind(Hit.Kind.TYPE)
+                    .setJumpTarget(clazz.getJumpTarget())
+                    .setScore(scoreDoc.score)
+                    .setClassType(clazz)
+                    .setQueryHint(clazz.getHandle().getName())
+                    .build());
         }
         return result;
     }
@@ -165,4 +168,5 @@ public class TypeDbImpl implements TypeDb {
                 SnappyUtils.uncompress(document.getBinaryValue(TypeDbIndexedField.TYPE_DATA)));
         return typeData.getClassType();
     }
+
 }

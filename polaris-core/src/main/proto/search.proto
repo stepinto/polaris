@@ -14,13 +14,19 @@ enum StatusCode {
 }
 
 message Hit {
-    optional string project = 1;
-    optional string path = 2;
+    enum Kind {
+        TYPE = 1;
+        FILE = 2;
+    }
+    optional Kind kind = 8; 
     optional JumpTarget jumpTarget = 3;
     optional string summary = 4;
     optional double score = 5;
-    optional ClassType classType = 6; // if this match is a type
+    optional ClassType classType = 6; // if kind == TYPE
     optional string queryHint = 7; // for query completion
+
+    // OBSOLETED optional string project = 1;
+    // OBSOLETED optional string path = 2;
 }
 
 message SearchRequest {

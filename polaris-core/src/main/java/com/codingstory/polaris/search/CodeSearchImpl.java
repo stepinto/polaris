@@ -76,7 +76,7 @@ public class CodeSearchImpl implements CodeSearch.BlockingInterface, Closeable {
             }
             int from = req.hasRankFrom() ? req.getRankFrom() : 0;
             int to = req.hasRankTo() ? req.getRankTo() : 20;
-            List<Hit> hits = mixer.search(req.getQuery(), to);
+            List<Hit> hits = mixer.search(req.getQuery(), to, true);
             resp.addAllHits(hits.subList(from, Math.min(hits.size(), to)));
             resp.setCount(hits.size());
             resp.setLatency(stopWatch.getTime());
@@ -122,7 +122,7 @@ public class CodeSearchImpl implements CodeSearch.BlockingInterface, Closeable {
                 return resp.build();
             }
             int n = req.hasLimit() ? req.getLimit() : 20;
-            List<Hit> hits = mixer.complete(req.getQuery(), n);
+            List<Hit> hits = mixer.search(req.getQuery(), n, false);
             resp.setStatus(StatusCode.OK);
             resp.addAllHits(hits);
         } catch (Exception e) {

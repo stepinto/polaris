@@ -12,6 +12,7 @@ import com.codingstory.polaris.parser.ParserProtos.Method;
 import com.codingstory.polaris.parser.ParserProtos.MethodHandle;
 import com.codingstory.polaris.parser.PrimitiveTypes;
 import com.codingstory.polaris.parser.TypeUtils;
+import com.codingstory.polaris.search.SearchProtos.Hit;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -25,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import static com.codingstory.polaris.TestUtils.assertEqualsIgnoreOrder;
 import static com.codingstory.polaris.parser.TypeUtils.handleOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -143,12 +145,18 @@ public class TypeDbTest {
         }
         w.close();
         TypeDb r = new TypeDbImpl(tempDir);
-        List<ClassType> result = r.completeQuery(query, Integer.MAX_VALUE);
+        List<Hit> hits = r.query(query, Integer.MAX_VALUE);
         List<String> expectedTypes = Lists.newArrayList();
         for (String s : expected) {
             expectedTypes.add(s);
         }
-        assertEquals(ImmutableSet.copyOf(expectedTypes), ImmutableSet.copyOf(getFullTypeNames(result)));
+        List<String> actualTypes = Lists.newArrayList();
+        for (Hit hit : hits) {
+            if (hit.getKind() == Hit.Kind.TYPE) {
+                actualTypes.add(hit.getClassType().getHandle().getName());
+            }
+        }
+        assertEqualsIgnoreOrder(expectedTypes, actualTypes);
     }
 
     @Test

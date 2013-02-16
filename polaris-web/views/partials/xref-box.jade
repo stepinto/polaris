@@ -4,5 +4,5 @@
     li(ng-repeat = "cat in ['declarations', 'fields', 'methods', 'imports', 'misc']", ng-show = 'usages[cat].length > 0') {{cat}}
       ul(ng-repeat = 'u in usages[cat]')
         li
-          a.usage(ng-href="{{u.url}}") {{u.text}}
+          a.usage(ng-href="{{'#' + u.url}}") {{u.text}}
 

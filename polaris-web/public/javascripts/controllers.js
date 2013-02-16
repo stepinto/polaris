@@ -57,7 +57,7 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
 function GoToTypeCtrl($routeParams, CodeSearch, LinkBuilder, Utils, $location) {
     CodeSearch.getTypeById($routeParams.typeId, function(resp) {
         var target = resp.classType.jumpTarget;
-        var url = LinkBuilder.source(target.file.id, target.span.from.line);
+        var url = LinkBuilder.source(target);
         $location.url(Utils.removeStart(url, '#'));
         $location.replace();
     });

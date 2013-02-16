@@ -93,14 +93,18 @@ angular.module('polarisServices', [])
   })
   .factory('LinkBuilder', function() {
     return {
-      'source': function(id, line) {
-        if (!line) {
-          line = 0;
+      'source': function(jumpTarget) {
+        if (jumpTarget.span) {
+          return '/source?file=' + jumpTarget.file.id + '&line=' + jumpTarget.span.from.line;
+        } else {
+          return '/source?file=' + jumpTarget.file.id;
         }
-        return '#/source?file=' + id + '&line=' + line;
+      },
+      'sourceFromFileId': function(fileId) {
+        return '/source?file=' + fileId;
       },
       'type': function(id) {
-        return '#/goto/type/' + id;
+        return '/goto/type/' + id;
       }
     };
   });

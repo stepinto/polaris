@@ -22,8 +22,7 @@ public class SourceDbWriterImpl implements SourceDbWriter {
 
     public SourceDbWriterImpl(File path) throws IOException {
         Preconditions.checkNotNull(path);
-        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_36,
-                new SourceCodeAnalyzer(Version.LUCENE_36));
+        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_36, SourceCodeAnalyzer.getInstance());
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
         this.writer = new IndexWriter(FSDirectory.open(path), config);
     }
@@ -33,8 +32,12 @@ public class SourceDbWriterImpl implements SourceDbWriter {
         Document document = new Document();
         document.add(new Field(SourceDbIndexedField.FILE_ID_RAW, String.valueOf(sourceFile.getHandle().getId()),
                 Field.Store.YES, Field.Index.ANALYZED));
+        document.add(new Field(SourceDbIndexedField.PROJECT, sourceFile.getHandle().getProject(),
+                Field.Store.YES,  Field.Index.ANALYZED));
         document.add(new Field(SourceDbIndexedField.PROJECT_RAW, sourceFile.getHandle().getProject(),
                 Field.Store.YES,  Field.Index.ANALYZED));
+        document.add(new Field(SourceDbIndexedField.PATH, sourceFile.getHandle().getPath(),
+                Field.Store.YES, Field.Index.ANALYZED));
         document.add(new Field(SourceDbIndexedField.PATH_RAW, sourceFile.getHandle().getPath(),
                 Field.Store.YES, Field.Index.ANALYZED));
         document.add(new Field(SourceDbIndexedField.PARENT_PATH_RAW,
@@ -44,7 +47,7 @@ public class SourceDbWriterImpl implements SourceDbWriter {
                 .build();
         byte[] sourceDataBinary = SnappyUtils.compress(sourceData.toByteArray());
         document.add(new Field(SourceDbIndexedField.SOURCE_DATA, sourceDataBinary));
-        document.add(new Field(SourceDbIndexedField.SOURCE_TERM,
+        document.add(new Field(SourceDbIndexedField.SOURCE_TEXT,
                 sourceData.getSourceFile().getSource(), Field.Store.YES,
                 Field.Index.ANALYZED, Field.TermVector.WITH_POSITIONS_OFFSETS));
         writer.addDocument(document);

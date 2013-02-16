@@ -2,5 +2,5 @@
   input.query(type="text", ng-model="query", ng-placeholder="placeholder")
   ul.choice-box(ng-show="choices.length > 0 && visible")
     li.row(ng-repeat="choice in choices", ng-class="{active: choice.index == selected}")
-      div {{choice.display}}
-      a(ng-href="{{'#/' + choice.url}}"){{choice.path}}
+      div(ng-class="{file: choice.kind == 'FILE', clazz: choice.classType.kind == 'CLASS', interface: choice.classType.kind == 'INTERFACE', enum: choice.classType.kind == 'ENUM', annotation: choice.classType.kind == 'ANNOTATION'}") {{choice.queryHint}}
+      a(ng-href="{{'#/' + choice.url}}"){{choice.jumpTarget.file.project + choice.jumpTarget.file.path}}

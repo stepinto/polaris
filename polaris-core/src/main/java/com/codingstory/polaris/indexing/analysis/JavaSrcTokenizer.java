@@ -34,7 +34,7 @@ public final class JavaSrcTokenizer extends Tokenizer {
 
     private int index = 0;
 
-    public JavaSrcTokenizer(Reader in) throws Exception {
+    public JavaSrcTokenizer(Reader in) throws IOException {
         super(in);
         BufferedReader reader = new BufferedReader(in);
         String content = reader.readLine();

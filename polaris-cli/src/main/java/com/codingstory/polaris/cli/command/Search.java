@@ -6,6 +6,7 @@ import com.codingstory.polaris.cli.Help;
 import com.codingstory.polaris.cli.Option;
 import com.codingstory.polaris.cli.Run;
 import com.codingstory.polaris.search.CodeSearchImpl;
+import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.search.SearchProtos.Hit;
 import com.codingstory.polaris.search.SearchProtos.SearchRequest;
 import com.codingstory.polaris.search.SearchProtos.SearchResponse;
@@ -38,11 +39,12 @@ public class Search {
             SearchResponse resp = searcher.search(NoOpController.getInstance(), req);
             int i = 0;
             for (Hit hit : resp.getHitsList()) {
+                FileHandle file = hit.getJumpTarget().getFile();
                 System.out.printf("%d: %d %s/%s (%.2f)\n",
                         i++,
-                        hit.getJumpTarget().getFile().getId(),
-                        hit.getProject(),
-                        hit.getPath(),
+                        file.getId(),
+                        file.getProject(),
+                        file.getPath(),
                         hit.getScore());
                 for (String line : Splitter.on("\n").split(hit.getSummary())) {
                     System.out.println("  " + line);
