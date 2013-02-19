@@ -30,6 +30,7 @@ html, body {
 
     .form-search {
         width: 500px;
+        height: 30px;
         margin: 0 auto 10px;
 
         .search-input {
@@ -49,8 +50,23 @@ html, body {
 }
 
 .search-box {
+    position: relative;
+    width: 100%;
+    height: 100%;
+
     .query {
-        width: 100%;
+        position: absolute;
+        left: 0;
+        width: 486px; // Don't know why have to minus 14px here.
+    }
+
+    .loading-indicator {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        width: 16px;
+        height: 16px;
+        background: url(/img/icons/auto-completion-loading.gif) no-repeat;
     }
 
     .choice-box {
@@ -61,6 +77,8 @@ html, body {
         text-align: left;
         overflow: hidden;
         margin: 0 0 0 0;
+        top: 30px;
+        width: 498px;
 
         .row {
             position: relative;
@@ -93,7 +111,6 @@ html, body {
         }
 
         .annotation {
-
             background: url(/img/eclipse-icons/class_obj.gif) no-repeat 0% 100%;
             padding-left: 18px;
         }

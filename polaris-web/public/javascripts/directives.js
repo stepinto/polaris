@@ -81,7 +81,7 @@ angular.module('polarisDirectives', ['polarisServices'])
         input.blur(function (e) { scope.blur(); scope.$apply(); });
         input.focus(function (e) { scope.focus(); scope.$apply(); });
         var choiceBox = angular.element(iElement.children()[1]);
-        choiceBox.width(input.width());
+        // choiceBox.width(input.width());
         scope.$watch('query', scope.update);
       }
     };
