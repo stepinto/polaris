@@ -70,7 +70,7 @@ public class FirstPassProcessor {
 
         @Override
         public void visit(AnnotationDeclaration ast, Void arg) {
-            processTypeAndPushStack(ast.getName(), ClassType.Kind.ANNOTATION, nodeSpan(ast));
+            processTypeAndPushStack(ast.getName(), ClassType.Kind.ANNOTATION, nodeSpan(ast.getNameExpr()));
             super.visit(ast, arg);
             typeStack.removeLast();
         }
@@ -80,14 +80,14 @@ public class FirstPassProcessor {
             processTypeAndPushStack(
                     ast.getName(),
                     ast.isInterface() ? ClassType.Kind.INTERFACE : ClassType.Kind.CLASS,
-                    nodeSpan(ast));
+                    nodeSpan(ast.getNameExpr()));
             super.visit(ast, arg);
             typeStack.removeLast();
         }
 
         @Override
         public void visit(EnumDeclaration ast, Void arg) {
-            processTypeAndPushStack(ast.getName(), ClassType.Kind.ENUM, nodeSpan(ast));
+            processTypeAndPushStack(ast.getName(), ClassType.Kind.ENUM, nodeSpan(ast.getNameExpr()));
             super.visit(ast, arg);
             typeStack.removeLast();
         }

@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import japa.parser.ast.ImportDeclaration;
+import japa.parser.ast.TypeParameter;
 import japa.parser.ast.body.AnnotationDeclaration;
 import japa.parser.ast.body.ClassOrInterfaceDeclaration;
 import japa.parser.ast.body.ConstructorDeclaration;
@@ -40,6 +41,8 @@ import java.util.List;
 import static com.codingstory.polaris.parser.ParserUtils.makeTypeName;
 import static com.codingstory.polaris.parser.ParserUtils.nodeJumpTarget;
 import static com.codingstory.polaris.parser.TypeUtils.getSimpleName;
+import static com.codingstory.polaris.parser.TypeUtils.handleOf;
+import static com.codingstory.polaris.parser.TypeUtils.usageOf;
 
 public final class SecondPassProcessor {
 
@@ -116,6 +119,12 @@ public final class SecondPassProcessor {
             Preconditions.checkNotNull(node);
             List<ClassOrInterfaceType> superTypeAsts = ImmutableList.copyOf(Iterables.concat(
                     nullToEmptyList(node.getExtends()), nullToEmptyList(node.getImplements())));
+            for (TypeParameter genericType : nullToEmptyList(node.getTypeParameters())) {
+                usages.add(usageOf(TypeUsage.newBuilder()
+                        .setKind(TypeUsage.Kind.GENERIC_TYPE_PARAMETER)
+                        .setType(handleOf(symbolTable.resolveClassHandle(genericType.getName())))
+                        .build(), nodeJumpTarget(file, genericType)));
+            }
             processTypeDeclaration(node.getName(),
                     node.isInterface() ? ClassType.Kind.INTERFACE : ClassType.Kind.CLASS,
                     nodeJumpTarget(file, node.getNameExpr()),
@@ -302,7 +311,8 @@ public final class SecondPassProcessor {
         @Override
         public void visit(japa.parser.ast.body.FieldDeclaration node, Object arg) {
             Preconditions.checkNotNull(node);
-            TypeHandle type = symbolTable.resolveTypeHandle(node.getType().toString());
+            TypeHandle type = symbolTable.resolveTypeHandle(
+                    dropGenericTypes(node.getType().toString()));
             usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
                     .setType(type)
                     .setKind(TypeUsage.Kind.FIELD)
@@ -326,6 +336,15 @@ public final class SecondPassProcessor {
                         .build(), fieldTarget));
             }
             super.visit(node, arg);
+        }
+
+        /** Drops any generic types from a type name. For example, it returns "List" if passing "List<Integer>". */
+        private String dropGenericTypes(String typeName) {
+            int p = typeName.indexOf('<');
+            if (p == -1) {
+                return typeName;
+            }
+            return typeName.substring(0, p);
         }
 
         public void addFieldToCurrentType(Field field) {

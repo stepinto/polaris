@@ -58,7 +58,7 @@ public class TwoPassProcessorsTest {
         ClassType clazz = Iterables.getOnlyElement(result.getClassTypes());
         assertEquals("pkg.MyClass", clazz.getHandle().getName());
         assertEquals(ClassType.Kind.CLASS, clazz.getKind());
-        assertEquals(positionOf(1, 0), clazz.getJumpTarget().getSpan().getFrom());
+        assertEquals(spanOf(positionOf(1, 13), positionOf(1, 20)), clazz.getJumpTarget().getSpan());
         Usage clazzDeclaration = findUniqueTypeUsageByKind(
                 result.getUsages(), TypeUsage.Kind.TYPE_DECLARATION);
         assertEquals(clazz.getHandle(), clazzDeclaration.getType().getType().getClazz());
@@ -104,6 +104,19 @@ public class TwoPassProcessorsTest {
         assertEquals("C", usages.get(1).getType().getType().getClazz().getName());
         assertEquals(spanOf(positionOf(0, 32), positionOf(0, 33)), usages.get(2).getJumpTarget().getSpan());
         assertEquals("D", usages.get(2).getType().getType().getClazz().getName());
+    }
+
+    @Test
+    public void testClass_generic() throws IOException {
+        String code = "class A<T> {}";
+        SecondPassProcessor.Result result = extractFromCode(code);
+        ClassType clazz = Iterables.getOnlyElement(result.getClassTypes());
+        assertEquals("A", clazz.getHandle().getName());
+        assertEquals(spanOf(positionOf(0, 6), positionOf(0, 7)), clazz.getJumpTarget().getSpan());
+        Usage usage = findUniqueTypeUsageByKind(result.getUsages(), TypeUsage.Kind.GENERIC_TYPE_PARAMETER);
+        assertEquals(Usage.Kind.TYPE, usage.getKind());
+        assertEquals("T", usage.getType().getType().getClazz().getName());
+        assertEquals(spanOf(positionOf(0, 8), positionOf(0, 9)), usage.getJumpTarget().getSpan());
     }
 
     @Test
@@ -215,6 +228,8 @@ public class TwoPassProcessorsTest {
         assertEquals("F", usages.get(4).getType().getType().getClazz().getName());
     }
 
+    // TODO: testMethod_generic
+
     @Test
     public void testConstructor() throws IOException {
         String code = "class A { A() {} }";
@@ -274,6 +289,22 @@ public class TwoPassProcessorsTest {
         ClassTypeHandle clazz = type.getClazz();
         assertFalse(clazz.getResolved());
         assertEquals("java.util.List", clazz.getName());
+    }
+
+    @Test
+    public void testField_genericType() throws IOException {
+        String code = "class A { List<Integer> m; }";
+        SecondPassProcessor.Result result = extractFromCode(code);
+        Field field = Iterables.getOnlyElement(
+                Iterables.getOnlyElement(result.getClassTypes()).getFieldsList());
+        assertEquals("A.m", field.getHandle().getName());
+        Usage usage = findUniqueTypeUsageByKind(result.getUsages(), TypeUsage.Kind.FIELD);
+        assertEquals("List", usage.getType().getType().getClazz().getName());
+        // TODO: Check span
+        // assertEquals(spanOf(positionOf(0, 10), positionOf(0, 14)), usage.getJumpTarget().getSpan());
+        // TODO: Extract generic types from field declarations.
+        // Usage usage = findUniqueTypeUsageByKind(result.getUsages(), TypeUsage.Kind.GENERIC_TYPE_PARAMETER);
+        // assertEquals("Integer", usage.getType().getType().getClazz().getName());
     }
 
     @Test
