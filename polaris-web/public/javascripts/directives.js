@@ -33,11 +33,14 @@ angular.module('polarisDirectives', ['polarisServices'])
                   hit["url"] = LinkBuilder.source(hit.jumpTarget);
                   }
                   );
+                scope.choices = resp.hits;
+                if (scope.selected >= scope.choices.length) {
+                  scope.selected = 0;
+                }
+              } else {
+                scope.choices = [];
+                scope.selected = 0;
               }
-            scope.choices = resp.hits;
-            if (scope.selected >= scope.choices.length) {
-              scope.selected = 0;
-            }
             scope.loading = false;
           });
         }
