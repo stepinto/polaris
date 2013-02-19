@@ -28,7 +28,6 @@ import japa.parser.ast.body.InitializerDeclaration;
 import japa.parser.ast.body.Parameter;
 import japa.parser.ast.body.VariableDeclarator;
 import japa.parser.ast.expr.NameExpr;
-import japa.parser.ast.expr.VariableDeclarationExpr;
 import japa.parser.ast.type.ClassOrInterfaceType;
 import japa.parser.ast.visitor.VoidVisitorAdapter;
 
@@ -38,12 +37,15 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import static com.codingstory.polaris.CollectionUtils.nullToEmptyList;
+import static com.codingstory.polaris.parser.ParserUtils.dropGenericTypes;
 import static com.codingstory.polaris.parser.ParserUtils.makeTypeName;
 import static com.codingstory.polaris.parser.ParserUtils.nodeJumpTarget;
 import static com.codingstory.polaris.parser.TypeUtils.getSimpleName;
 import static com.codingstory.polaris.parser.TypeUtils.handleOf;
 import static com.codingstory.polaris.parser.TypeUtils.usageOf;
 
+/** Extracts class members and generate cross references for field types and method signatures. */
 public final class SecondPassProcessor {
 
     public static class Result {
@@ -92,12 +94,6 @@ public final class SecondPassProcessor {
         }
 
         @Override
-        public void visit(japa.parser.ast.PackageDeclaration node, Object arg) {
-            Preconditions.checkNotNull(node);
-            super.visit(node, arg);
-        }
-
-        @Override
         public void visit(ImportDeclaration node, Object arg) {
             Preconditions.checkNotNull(node);
             if (node.isAsterisk()) {
@@ -141,7 +137,7 @@ public final class SecondPassProcessor {
         private void processTypeDeclaration(String name, ClassType.Kind kind, JumpTarget jumpTarget,
                 List<ClassOrInterfaceType> superTypeAsts, String javaDoc, Runnable visitChildren) {
             String fullName = makeTypeName(pkg, getOuterClassNames(), name);
-            ClassType clazz = symbolTable.resolveClass(fullName);
+            ClassType clazz = symbolTable.getClassTypeByLocation(file, jumpTarget.getSpan());
             if (clazz == null) {
                 throw new AssertionError(fullName + " should have been identified in 1st pass");
             }
@@ -205,7 +201,7 @@ public final class SecondPassProcessor {
         @Override
         public void visit(final japa.parser.ast.body.MethodDeclaration node, final Object arg) {
             Preconditions.checkNotNull(node);
-            processMethodDeclaration(node.getType(), node.getName(), nodeJumpTarget(file, node),
+            processMethodDeclaration(node.getType(), node.getName(), nodeJumpTarget(file, node.getNameExpr()),
                     node.getParameters(), node.getThrows(), new Runnable() {
                 @Override
                 public void run() {
@@ -338,31 +334,11 @@ public final class SecondPassProcessor {
             super.visit(node, arg);
         }
 
-        /** Drops any generic types from a type name. For example, it returns "List" if passing "List<Integer>". */
-        private String dropGenericTypes(String typeName) {
-            int p = typeName.indexOf('<');
-            if (p == -1) {
-                return typeName;
-            }
-            return typeName.substring(0, p);
-        }
-
         public void addFieldToCurrentType(Field field) {
             ClassType top = typeStack.pop();
             typeStack.push(top.toBuilder()
                     .addFields(field)
                     .build());
-        }
-
-        @Override
-        public void visit(VariableDeclarationExpr node, Object arg) {
-            Preconditions.checkNotNull(node);
-            TypeHandle type = symbolTable.resolveTypeHandle(node.getType().toString());
-            usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
-                    .setType(type)
-                    .setKind(TypeUsage.Kind.LOCAL_VARIABLE)
-                    .build(), nodeJumpTarget(file, node.getType())));
-            super.visit(node, arg);
         }
 
         private ClassType currentType() {
@@ -389,10 +365,6 @@ public final class SecondPassProcessor {
         public List<Usage> getUsages() { return usages; }
 
         public List<ClassType> getClassTypes() { return discoveredClasses; }
-
-        private <T> List<T> nullToEmptyList(List<T> list) {
-            return list == null ? ImmutableList.<T>of() : list;
-        }
 
         private long generateId() {
             try {

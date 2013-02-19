@@ -1,11 +1,12 @@
 package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.FieldUsage;
+import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
 import com.codingstory.polaris.parser.ParserProtos.Position;
 import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -19,6 +20,7 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.PushbackInputStream;
 import java.io.StringWriter;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -34,7 +36,7 @@ public class SourceAnnotator {
         }
     };
 
-    public static String annotate(InputStream in, List<Usage> usages) throws IOException {
+    public static String annotate(InputStream in, Collection<Usage> usages) throws IOException {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         List<Usage> sortedUsages = Lists.newArrayList(usages);
@@ -80,14 +82,15 @@ public class SourceAnnotator {
     }
 
     private static boolean accepts(Usage usage) {
-        return Objects.equal(usage.getKind(), Usage.Kind.TYPE);
+        return true;
     }
 
     private static void emit(PrintWriter out, String text, Usage usage) {
-        if (Objects.equal(usage.getKind(), Usage.Kind.TYPE)) {
+        Usage.Kind usageKind = usage.getKind();
+        if (usageKind == Usage.Kind.TYPE) {
             TypeUsage typeUsage = usage.getType();
             TypeHandle type = typeUsage.getType();
-            if (Objects.equal(type.getKind(), ParserProtos.TypeKind.CLASS)) {
+            if (type.getKind() == ParserProtos.TypeKind.CLASS) {
                 ClassTypeHandle clazz = type.getClazz();
                 out.printf("<type-usage type=\"%s\" type-id=\"%d\" resolved=\"%s\" kind=\"%s\">%s</type-usage>",
                         escape(clazz.getName()), type.getClazz().getId(), Boolean.toString(clazz.getResolved()),
@@ -97,6 +100,20 @@ public class SourceAnnotator {
             }
             // Don't show links for primitive or unresolved types.
             out.print(escape(text));
+        } else if (usageKind == Usage.Kind.FIELD) {
+            FieldUsage fieldUsage = usage.getField();
+            out.printf("<field-usage field-id=\"%d\" kind=\"%s\">%s</field-usage>",
+                    fieldUsage.getField().getId(),
+                    fieldUsage.getKind().name(),
+                    escape(text));
+        } else if (usageKind == Usage.Kind.METHOD) {
+            MethodUsage methodUsage = usage.getMethod();
+            out.printf("<method-usage method-id=\"%d\" kind=\"%s\">%s</method-usage>",
+                    methodUsage.getMethod().getId(),
+                    methodUsage.getKind().name(),
+                    escape(text));
+        } else {
+            throw new AssertionError("Unknown UsageKind: " + usageKind);
         }
     }
 

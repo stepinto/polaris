@@ -8,10 +8,12 @@ message FileContent {
 }
 
 message ParsedFile {
-    optional string package_ = 3;
+    optional FileHandle file = 7;
+    optional string package = 3;
     repeated ClassType classes = 2; // valid after 1st pass
-    optional SourceFile source = 6; // valid after 2nd pass
     repeated Usage usages = 4; // valid after 2nd pass
+
+    // OBSOLETED optional SourceFile source = 6;
 }
 
 message FileImports {

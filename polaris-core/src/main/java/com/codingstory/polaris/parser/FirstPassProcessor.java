@@ -53,13 +53,11 @@ public class FirstPassProcessor {
         private final FileHandle file;
         private final IdGenerator idGenerator;
         private final LinkedList<String> typeStack = Lists.newLinkedList();
-        private final SymbolTable symbolTable;
         private final List<ClassType> discoveredClasses = Lists.newArrayList();
 
-        private FirstPassVisitor(FileHandle file, IdGenerator idGenerator, SymbolTable symbolTable) {
+        private FirstPassVisitor(FileHandle file, IdGenerator idGenerator) {
             this.file = Preconditions.checkNotNull(file);
             this.idGenerator = Preconditions.checkNotNull(idGenerator);
-            this.symbolTable = Preconditions.checkNotNull(symbolTable);
         }
 
         @Override
@@ -111,7 +109,6 @@ public class FirstPassProcessor {
                         .setJumpTarget(jumpTarget)
                         .build();
                 typeStack.add(simpleName);
-                symbolTable.registerClassType(clazz);
                 discoveredClasses.add(clazz);
             } catch (IOException e) {
                 throw new SkipCheckingExceptionWrapper(e);
@@ -123,11 +120,13 @@ public class FirstPassProcessor {
         }
     }
 
-    public static Result process(FileHandle file, InputStream in, IdGenerator idGenerator, SymbolTable symbolTable) throws IOException {
+    public static Result process(
+            FileHandle file,
+            InputStream in,
+            IdGenerator idGenerator) throws IOException {
         FirstPassVisitor visitor = new FirstPassVisitor(
                 Preconditions.checkNotNull(file),
-                Preconditions.checkNotNull(idGenerator),
-                Preconditions.checkNotNull(symbolTable));
+                Preconditions.checkNotNull(idGenerator));
         ParserUtils.safeVisit(in, visitor);
         return visitor.getResult();
     }

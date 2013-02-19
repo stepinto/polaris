@@ -183,7 +183,7 @@ public class TwoPassProcessorsTest {
         Usage methodDeclaration = findUniqueMethodUsageByKind(
                 result.getUsages(), MethodUsage.Kind.METHOD_DECLARATION);
         assertEquals(method.getHandle(), methodDeclaration.getMethod().getMethod());
-        assertEquals(spanOf(positionOf(0, 23), positionOf(0, 37)), methodDeclaration.getJumpTarget().getSpan());
+        assertEquals(spanOf(positionOf(0, 28), positionOf(0, 32)), methodDeclaration.getJumpTarget().getSpan());
     }
 
     @Test
@@ -327,6 +327,57 @@ public class TwoPassProcessorsTest {
     // TODO: testLocalVariable_multiple
     // TODO: testLocalVariable_array
 
+    @Test
+    public void testMethodCall_implicitThis() throws IOException {
+        String code = "class A { void f() { f(); } }";
+        Usage usage = findUniqueMethodUsageByKind(
+                extractFromCode(code).getUsages(),
+                MethodUsage.Kind.METHOD_CALL);
+        assertEquals("A.f", usage.getMethod().getMethod().getName());
+        assertEquals(spanOf(positionOf(0, 21), positionOf(0, 24)), usage.getJumpTarget().getSpan());
+    }
+
+    @Test
+    public void testMethodCall_explicitThis() throws IOException {
+        String code = "class A { void f() { this.f(); } }";
+        Usage usage = findUniqueMethodUsageByKind(
+                extractFromCode(code).getUsages(),
+                MethodUsage.Kind.METHOD_CALL);
+        assertEquals("A.f", usage.getMethod().getMethod().getName());
+    }
+
+    @Test
+    public void testMethodCall_methodOfField() throws IOException {
+        String code = "class A { void f() {} }\n" +
+                "class B { A a; void g() { a.f(); } }\n";
+        Usage usage = findUniqueMethodUsageByKind(
+                extractFromCode(code).getUsages(),
+                MethodUsage.Kind.METHOD_CALL);
+        assertEquals("A.f", usage.getMethod().getMethod().getName());
+    }
+
+    @Test
+    public void testMethodCall_methodOfParameter() throws IOException {
+        String code = "class A { void f() {} }\n" +
+                "class B { void g(A a) { a.f(); } }\n";
+        Usage usage = findUniqueMethodUsageByKind(
+                extractFromCode(code).getUsages(),
+                MethodUsage.Kind.METHOD_CALL);
+        assertEquals("A.f", usage.getMethod().getMethod().getName());
+    }
+
+    @Test
+    public void testMethodCall_methodOfLocalVariable() throws IOException {
+        String code = "class A { void f() {} }\n" +
+                "class B { void g() { A a; a.f(); } }\n";
+        Usage usage = findUniqueMethodUsageByKind(
+                extractFromCode(code).getUsages(),
+                MethodUsage.Kind.METHOD_CALL);
+        assertEquals("A.f", usage.getMethod().getMethod().getName());
+    }
+
+    // TODO: testMethodCall_staticBlock()
+
     public static SecondPassProcessor.Result extractFromCode(String code) throws IOException {
         FileHandle fakeFile = FileHandle.newBuilder()
                 .setId(100L)
@@ -334,18 +385,32 @@ public class TwoPassProcessorsTest {
                 .setPath("/file")
                 .build();
         SymbolTable symbolTable = new SymbolTable();
-        FirstPassProcessor.Result result = FirstPassProcessor.process(
+        FirstPassProcessor.Result result1 = FirstPassProcessor.process(
                 fakeFile,
                 new ByteArrayInputStream(code.getBytes()),
-                ID_GENERATOR,
-                symbolTable);
-        return SecondPassProcessor.extract(
+                ID_GENERATOR);
+        SecondPassProcessor.Result result2 = SecondPassProcessor.extract(
                 TEST_PROJECT,
                 fakeFile,
                 new ByteArrayInputStream(code.getBytes()),
-                symbolTable,
+                createSymbolTableAndRegisterClasses(result1.getDiscoveredClasses()),
                 ID_GENERATOR,
-                result.getPackage());
+                result1.getPackage());
+        List<Usage> result3 = ThirdPassProcessor.extract(
+                fakeFile,
+                new ByteArrayInputStream(code.getBytes()),
+                createSymbolTableAndRegisterClasses(result2.getClassTypes()),
+                result1.getPackage());
+        result2.getUsages().addAll(result3); // temp hack
+        return result2;
+    }
+
+    private static SymbolTable createSymbolTableAndRegisterClasses(List<ClassType> classes) {
+        SymbolTable symbolTable = new SymbolTable();
+        for (ClassType clazz : classes) {
+            symbolTable.registerClassType(clazz);
+        }
+        return symbolTable;
     }
 
     public static ClassType extractUniqueTypeFromCode(String code) throws IOException {

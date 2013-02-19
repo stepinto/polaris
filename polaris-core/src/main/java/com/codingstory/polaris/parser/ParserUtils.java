@@ -74,4 +74,14 @@ public final class ParserUtils {
         parts.add(innerClass);
         return Joiner.on(".").join(parts);
     }
+
+    /** Drops any generic types from a type name. For example, it returns "List" if passing "List<Integer>". */
+    public static String dropGenericTypes(String typeName) {
+        int p = typeName.indexOf('<');
+        if (p == -1) {
+            return typeName;
+        }
+        return typeName.substring(0, p);
+    }
+
 }

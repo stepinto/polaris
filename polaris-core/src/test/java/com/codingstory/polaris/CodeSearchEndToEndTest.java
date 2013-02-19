@@ -147,7 +147,6 @@ public class CodeSearchEndToEndTest {
         ListTypeUsagesResponse resp = searcher.listTypeUsages(NoOpController.getInstance(), req);
         assertEquals(StatusCode.OK, resp.getStatus());
         boolean found = false;
-        System.out.println("resp.getUsagesList() = " + resp.getUsagesList());
         for (Usage usage : resp.getUsagesList()) {
             if (usage.getKind() == Usage.Kind.TYPE) {
                 TypeUsage tu = usage.getType();

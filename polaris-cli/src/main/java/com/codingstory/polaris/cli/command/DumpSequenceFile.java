@@ -1,6 +1,5 @@
 package com.codingstory.polaris.cli.command;
 
-import com.codingstory.polaris.SnappyUtils;
 import com.codingstory.polaris.cli.Command;
 import com.codingstory.polaris.cli.Help;
 import com.codingstory.polaris.cli.Option;
@@ -17,6 +16,7 @@ import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Writable;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import static com.codingstory.polaris.cli.CommandUtils.die;
 
@@ -91,7 +91,7 @@ public class DumpSequenceFile {
         if (value instanceof BytesWritable) {
             // We only used compressed BytesWritable.
             BytesWritable bw = (BytesWritable) value;
-            byte[] b = SnappyUtils.uncompress(bw.getBytes(), 0, bw.getLength());
+            byte[] b = Arrays.copyOf(bw.getBytes(), bw.getLength());
             // TODO: decode it!
             return "protobuf message of " + b.length + "B";
         } else {
