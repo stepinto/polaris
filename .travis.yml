@@ -1,0 +1,4 @@
+language: java
+script: 
+  - sudo apt-get install protobuf-compiler
+  - mvn clean install -DTRAVIS=true
