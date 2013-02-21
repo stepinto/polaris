@@ -272,6 +272,22 @@ angular.module('polarisDirectives', ['polarisServices'])
     };
   })
 
+  // Renders a method usage with context menu.
+  .directive('methodUsage', function(Utils, LinkBuilder) {
+    return {
+      restrict: 'E',
+      templateUrl: 'partials/method-usage',
+      scope: {
+      },
+      replace: false,
+      transclude: true,
+      link: function(scope, element, attrs) {
+        var methodId = parseInt(attrs.methodId);
+        scope.methodUrl = LinkBuilder.method(methodId);
+      }
+    }
+  })
+
   // Shows type usages
   // 
   // Usage:

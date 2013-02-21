@@ -20,5 +20,9 @@ angular.module('polaris', ['polarisServices', 'polarisDirectives']).
       .when('/goto/type/:typeId', {
         controller: GoToTypeCtrl,
         templateUrl: 'partials/null'
-      });
+      })
+      .when('/goto/method/:methodId', {
+        controller: GoToMethodCtrl,
+        templateUrl: 'partials/null'
+      })
   });

@@ -29,9 +29,17 @@ angular.module('polarisServices', [])
         var req = {'typeId': Number(typeId)};
         $http.post('/api/getType', req).success(callback);
       },
+      getMethodById: function(methodId, callback) {
+        var req = {'methodId': Number(methodId)};
+        $http.post('/api/getMethod', req).success(callback);
+      },
       listTypeUsages: function(typeId, callback) {
         var req = {'typeId': Number(typeId)};
         $http.post('/api/listTypeUsages', req).success(callback);
+      },
+      listMethodUsages: function(methodId, callback) {
+        var req = {'methodId': Number(methodId)};
+        $http.post('/api/listMethodUsages', req).success(callback);
       }
     };
   })
@@ -105,6 +113,9 @@ angular.module('polarisServices', [])
       },
       'type': function(id) {
         return '/goto/type/' + id;
+      },
+      'method': function(id) {
+        return '/goto/method/' + id;
       }
     };
   });

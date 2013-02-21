@@ -63,3 +63,12 @@ function GoToTypeCtrl($routeParams, CodeSearch, LinkBuilder, Utils, $location) {
     });
 }
 
+function GoToMethodCtrl($routeParams, CodeSearch, LinkBuilder, Utils, $location) {
+    CodeSearch.getMethodById($routeParams.methodId, function(resp) {
+        var target = resp.method.jumpTarget;
+        var url = LinkBuilder.source(target);
+        $location.url(Utils.removeStart(url, '#'));
+        $location.replace();
+    });
+}
+

@@ -1,0 +1,10 @@
+span.method-usage
+  a(ng-href="{{'#' + methodUrl}}", ng-transclude)
+  span.dropdown
+    a.dropdown-toggle(data-toggle="dropdown", href="#")
+      b.caret
+    ul.dropdown-menu(role="menu")
+      li
+        a(href="javascript:void(0)", ng-click="goToDefinitionInternal()") Definition
+      li
+        a(href="javascript:void(0)", ng-click="findUsagesInternal()") Callers
