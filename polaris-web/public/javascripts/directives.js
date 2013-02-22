@@ -198,8 +198,10 @@ angular.module('polarisDirectives', ['polarisServices'])
       restrict: 'E',
       templateUrl: 'partials/code-view',
       scope: {
-        findUsages: '&',
-        goToDefinition: '&',
+        findTypeUsages: '&',
+        goToTypeDefinition: '&',
+        findMethodUsages: '&',
+        goToMethodDefinition: '&',
         code: '=',
         highlightedLine: '=',
       },
@@ -212,8 +214,12 @@ angular.module('polarisDirectives', ['polarisServices'])
             value = value
               .replace(
                 /<type-usage /g,
-                '<type-usage find-usages="findUsagesInternal(typeId)" ' +
-                'go-to-definition="goToDefinitionInternal(typeId)" ')
+                '<type-usage find-usages="findTypeUsagesInternal(typeId)" ' +
+                'go-to-definition="goToTypeDefinitionInternal(typeId)" ')
+              .replace(
+                /<method-usage /g,
+                '<method-usage find-usages="findMethodUsagesInternal(methodId)" ' +
+                'go-to-definition="goToMethodDefinitionInternal(methodId)" ')
               .replace("<source>", "")
               .replace("</source>", "");
             value = prettyPrintOne(value);
@@ -236,11 +242,17 @@ angular.module('polarisDirectives', ['polarisServices'])
             });
           }
         });
-        scope.findUsagesInternal = function(typeId) {
-          scope.findUsages({'typeId': typeId});
+        scope.findTypeUsagesInternal = function(typeId) {
+          scope.findTypeUsages({'typeId': typeId});
         }
-        scope.goToDefinitionInternal = function(typeId) {
-          scope.goToDefinitionInternal({'typeId': typeId});
+        scope.goToTypeDefinitionInternal = function(typeId) {
+          scope.goToTypeDefinition({'typeId': typeId});
+        }
+        scope.findMethodUsagesInternal = function(typeId) {
+          scope.findMethodUsages({'methodId': typeId});
+        }
+        scope.goToMethodDefinitionInternal = function(methodId) {
+          scope.goToMethodDefinition({'methodId': methodId});
         }
       }
     };
@@ -262,12 +274,11 @@ angular.module('polarisDirectives', ['polarisServices'])
         scope.resolved = Utils.str2bool(attrs.resolved);
         scope.classUrl = LinkBuilder.type(typeId);
         scope.findUsagesInternal = function() {
-          console.log("type-usage.findUsagesInternal");
           scope.findUsages({'typeId': typeId});
-        }
+        };
         scope.goToDefinitionInternal = function() {
           scope.goToDefinition({'typeId': typeId});
-        }
+        };
       }
     };
   })
@@ -278,12 +289,20 @@ angular.module('polarisDirectives', ['polarisServices'])
       restrict: 'E',
       templateUrl: 'partials/method-usage',
       scope: {
+        findUsages: '&',
+        goToDefinition: '&',
       },
       replace: false,
       transclude: true,
       link: function(scope, element, attrs) {
         var methodId = parseInt(attrs.methodId);
         scope.methodUrl = LinkBuilder.method(methodId);
+        scope.findUsagesInternal = function() {
+          scope.findUsages({'methodId': methodId});
+        };
+        scope.goToDefinitionInternal = function() {
+          scope.goToDefinition({'methodId': methodId});
+        };
       }
     }
   })
@@ -291,55 +310,24 @@ angular.module('polarisDirectives', ['polarisServices'])
   // Shows type usages
   // 
   // Usage:
-  //   <xref-box type-id="..." />
+  //   <xref-box xrefs="..." />
   .directive('xrefBox', function(CodeSearch, LinkBuilder) {
     return {
       restrict: 'E',
       templateUrl: 'partials/xref-box',
       scope: {
-        typeId: '='
+        xrefs: '='
       },
       replace: true,
       link: function(scope) {
-        scope.$watch('typeId', function(value) {
-          if (!value) {
-            scope.loading = false;
-            scope.usages = [];
-            return;
-          }
-          var typeId = value;
-          scope.loading = true;
-          CodeSearch.listTypeUsages(typeId, function(resp) {
-            scope.usages = {
-              declarations: [],
-              fields: [],
-              methods: [],
-              imports: [],
-              misc: []
-            };
-            $.each(resp.usages, function(i, u) {
-              switch (u.kind) {
-              case 1:
-                scope.usages.imports.push(u);
-                break;
-              case 3:
-                scope.usages.methods.push(u);
-                break;
-              case 4:
-                scope.usages.fields.push(u);
-                break;
-              case 7:
-                scope.usages.declarations.push(u);
-                break;
-              default:
-                scope.usages.misc.push(u);
-                break;
-              }
+        scope.$watch('xrefs', function(value) {
+          if (value) {
+            scope.usages = value;
+            $.each(scope.usages, function(i, u) {
               u.url = LinkBuilder.source(u.jumpTarget);
-              u.text = u.jumpTarget.file.path;
+              u.text = u.jumpTarget.file.project + u.jumpTarget.file.path;
             });
-            scope.loading = false;
-          });
+          }
         });
       }
     };

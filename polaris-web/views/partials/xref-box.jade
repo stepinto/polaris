@@ -1,8 +1,5 @@
 .xref-box
-  span(ng-show = "loading") Loading...
-  ul(ng-hide = "loading")
-    li(ng-repeat = "cat in ['declarations', 'fields', 'methods', 'imports', 'misc']", ng-show = 'usages[cat].length > 0') {{cat}}
-      ul(ng-repeat = 'u in usages[cat]')
-        li
-          a.usage(ng-href="{{'#' + u.url}}") {{u.text}}
+  ul
+    li(ng-repeat='u in usages')
+      a.usage(ng-href="{{'#' + u.url}}") {{u.text}}
 

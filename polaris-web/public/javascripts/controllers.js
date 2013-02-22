@@ -44,13 +44,28 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
     } else if ($routeParams.file) {
         CodeSearch.readSourceById($routeParams.file, callback);
     }
-    
-    $scope.findUsages = function(typeId) {
-      console.log('Find usages:', typeId);
-      $scope.xrefTypeId = typeId;
+
+    var loadXrefs = function(kind, id) {
+      $scope.loadingXrefs = true;
+      $scope.xrefs = undefined;
+      CodeSearch.listUsages(kind, id, function(resp) {
+        $scope.loadingXrefs = false;
+        $scope.xrefs = resp.usages;
+      });
     }
-    $scope.goToDefinition = function(typeId) {
+
+    $scope.findTypeUsages = function(typeId) {
+      console.log('Find type usages:', typeId);
+      loadXrefs('TYPE', typeId);
+    }
+
+    $scope.goToTypeDefinition = function(typeId) {
       console.log("Go to def:", typeId);
+    }
+
+    $scope.findMethodUsages = function(methodId) {
+      console.log('Find method usages:', methodId);
+      loadXrefs('METHOD', methodId);
     }
 }
 

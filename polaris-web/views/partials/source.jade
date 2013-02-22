@@ -7,9 +7,17 @@
     p right
   .main
     .main-top
-      code-view(ng-hide='loading', code='sourceCodeAnnotation', find-usages="findUsages(typeId)", goToDefinition="goToDefinition(typeId)", highlighted-line='highlightedLine')
+      code-view(
+          ng-hide='loading',
+          code='sourceCodeAnnotation',
+          find-type-usages="findTypeUsages(typeId)",
+          go-to-type-definition="goToTypeDefinition(typeId)",
+          find-method-usages="findMethodUsages(methodId)",
+          go-to-method-definication="goToMethodDefinition(methodId)",
+          highlighted-line='highlightedLine')
     .panel.main-bottom
       .header
         span xref
       .body
-        xref-box(type-id="xrefTypeId")
+        span(ng-show='loadingXrefs') Loading
+        xref-box(xrefs="xrefs", ng-hide='loadingXrefs')

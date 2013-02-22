@@ -33,13 +33,9 @@ angular.module('polarisServices', [])
         var req = {'methodId': Number(methodId)};
         $http.post('/api/getMethod', req).success(callback);
       },
-      listTypeUsages: function(typeId, callback) {
-        var req = {'typeId': Number(typeId)};
-        $http.post('/api/listTypeUsages', req).success(callback);
-      },
-      listMethodUsages: function(methodId, callback) {
-        var req = {'methodId': Number(methodId)};
-        $http.post('/api/listMethodUsages', req).success(callback);
+      listUsages: function(kind, id, callback) {
+        var req = {'kind': kind, 'id': Number(id)};
+        $http.post('/api/listUsages', req).success(callback);
       }
     };
   })
