@@ -155,7 +155,7 @@ public class IndexPipeline implements Serializable {
 
         buildIndexFromPipelineOutput();
 
-        long secs = stopWatch.getTime();
+        long secs = stopWatch.getTime() / 1000;
         LOG.info(String.format("Elapsed time: %d min %d s", secs / 60, secs % 60));
     }
 
