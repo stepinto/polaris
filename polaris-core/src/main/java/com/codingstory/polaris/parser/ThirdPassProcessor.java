@@ -176,7 +176,7 @@ public class ThirdPassProcessor {
                         usages.add(usageOf(MethodUsage.newBuilder()
                                 .setKind(MethodUsage.Kind.METHOD_CALL)
                                 .setMethod(method.getHandle())
-                                .build(), nodeJumpTarget(file, node))); // TODO: node.getNameExpr
+                                .build(), nodeJumpTarget(file, node.getNameExpr())));
                     }
                 }
             }

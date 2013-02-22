@@ -33,7 +33,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class TwoPassProcessorsTest {
+public class MultiPassProcessorsTest {
 
     private static final String TEST_PROJECT = "TestProject";
     private static final IdGenerator ID_GENERATOR = new SimpleIdGenerator();
@@ -334,7 +334,7 @@ public class TwoPassProcessorsTest {
                 extractFromCode(code).getUsages(),
                 MethodUsage.Kind.METHOD_CALL);
         assertEquals("A.f", usage.getMethod().getMethod().getName());
-        assertEquals(spanOf(positionOf(0, 21), positionOf(0, 24)), usage.getJumpTarget().getSpan());
+        assertEquals(spanOf(positionOf(0, 21), positionOf(0, 22)), usage.getJumpTarget().getSpan());
     }
 
     @Test
@@ -344,6 +344,7 @@ public class TwoPassProcessorsTest {
                 extractFromCode(code).getUsages(),
                 MethodUsage.Kind.METHOD_CALL);
         assertEquals("A.f", usage.getMethod().getMethod().getName());
+        assertEquals(spanOf(positionOf(0, 26), positionOf(0, 27)), usage.getJumpTarget().getSpan());
     }
 
     @Test
@@ -354,6 +355,7 @@ public class TwoPassProcessorsTest {
                 extractFromCode(code).getUsages(),
                 MethodUsage.Kind.METHOD_CALL);
         assertEquals("A.f", usage.getMethod().getMethod().getName());
+        assertEquals(spanOf(positionOf(1, 28), positionOf(1, 29)), usage.getJumpTarget().getSpan());
     }
 
     @Test
