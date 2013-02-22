@@ -98,11 +98,12 @@ message ListTypesInFileResponse {
     repeated ClassType classTypes = 2;
 }
 
-message ListTypeUsagesRequest {
-    optional int64 typeId = 1;
+message ListUsagesRequest {
+    optional Usage.Kind kind = 2;
+    optional int64 id = 1; // type-id, method-id or field-id
 }
 
-message ListTypeUsagesResponse {
+message ListUsagesResponse {
     optional StatusCode status = 1;
     repeated Usage usages = 2;
 }
@@ -132,7 +133,7 @@ service CodeSearch {
     rpc layout(LayoutRequest) returns (LayoutResponse);
     rpc getType(GetTypeRequest) returns (GetTypeResponse);
     rpc listTypesInFile(ListTypesInFileRequest) returns (ListTypesInFileResponse);
-    rpc listTypeUsages(ListTypeUsagesRequest) returns (ListTypeUsagesResponse);
+    rpc listUsages(ListUsagesRequest) returns (ListUsagesResponse);
     rpc getField(GetFieldRequest) returns (GetFieldResponse);
     rpc getMethod(GetMethodRequest) returns (GetMethodResponse);
 }

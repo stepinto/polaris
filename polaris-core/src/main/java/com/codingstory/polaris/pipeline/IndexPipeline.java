@@ -617,7 +617,7 @@ public class IndexPipeline implements Serializable {
                 SequenceFile.Reader r = openLocalSequenceFile(file);
                 while (r.next(NullWritable.get(), value)) {
                     Usage usage = Usage.parseFrom(Arrays.copyOf(value.getBytes(), value.getLength()));
-                    if (usage.getKind() == Usage.Kind.TYPE &&
+                    if (usage.getKind() != Usage.Kind.TYPE ||
                             usage.getType().getType().getClazz().getResolved()) {
                         usageDb.write(usage);
                     }

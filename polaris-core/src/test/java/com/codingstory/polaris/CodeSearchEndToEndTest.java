@@ -4,6 +4,8 @@ import com.codingstory.polaris.indexing.IndexPathUtils;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.Field;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
+import com.codingstory.polaris.parser.ParserProtos.Method;
+import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
 import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
 import com.codingstory.polaris.pipeline.IndexPipeline;
@@ -14,8 +16,8 @@ import com.codingstory.polaris.search.SearchProtos.GetTypeResponse;
 import com.codingstory.polaris.search.SearchProtos.Hit;
 import com.codingstory.polaris.search.SearchProtos.LayoutRequest;
 import com.codingstory.polaris.search.SearchProtos.LayoutResponse;
-import com.codingstory.polaris.search.SearchProtos.ListTypeUsagesRequest;
-import com.codingstory.polaris.search.SearchProtos.ListTypeUsagesResponse;
+import com.codingstory.polaris.search.SearchProtos.ListUsagesRequest;
+import com.codingstory.polaris.search.SearchProtos.ListUsagesResponse;
 import com.codingstory.polaris.search.SearchProtos.SearchRequest;
 import com.codingstory.polaris.search.SearchProtos.SearchResponse;
 import com.codingstory.polaris.search.SearchProtos.SourceRequest;
@@ -132,7 +134,7 @@ public class CodeSearchEndToEndTest {
     }
 
     @Test
-    public void testListTypeUsages() throws IOException, ServiceException {
+    public void testListUsages_type() throws IOException, ServiceException {
         writeFile("project/src/com/company/A.java", "package com.company; class A {}");
         writeFile("project/src/com/company/B.java", "package com.company; class B { A a; }");
         buildIndex(ImmutableList.of("project"));
@@ -141,10 +143,11 @@ public class CodeSearchEndToEndTest {
         ClassType type = Iterables.getOnlyElement(typeDb.getTypeByName("com.company.A", null, 2));
         long typeId = type.getHandle().getId();
         CodeSearch.BlockingInterface searcher = createSearcher();
-        ListTypeUsagesRequest req = ListTypeUsagesRequest.newBuilder()
-                .setTypeId(typeId)
+        ListUsagesRequest req = ListUsagesRequest.newBuilder()
+                .setKind(Usage.Kind.TYPE)
+                .setId(typeId)
                 .build();
-        ListTypeUsagesResponse resp = searcher.listTypeUsages(NoOpController.getInstance(), req);
+        ListUsagesResponse resp = searcher.listUsages(NoOpController.getInstance(), req);
         assertEquals(StatusCode.OK, resp.getStatus());
         boolean found = false;
         for (Usage usage : resp.getUsagesList()) {
@@ -153,6 +156,34 @@ public class CodeSearchEndToEndTest {
                 if (tu.getKind() == TypeUsage.Kind.FIELD) {
                     found = true;
                     break;
+                }
+            }
+        }
+        assertTrue(found);
+    }
+
+    @Test
+    public void testListUsages_method() throws IOException, ServiceException {
+        writeFile("project/src/com/company/A.java", "package com.company; class A { void f() {} }");
+        writeFile("project/src/com/company/B.java", "package com.company; class B { void g() { A a; a.f(); } }");
+        buildIndex(ImmutableList.of("project"));
+
+        TypeDb typeDb = new TypeDbImpl(IndexPathUtils.getTypeDbPath(indexDir));
+        ClassType classA = Iterables.getOnlyElement(typeDb.getTypeByName("com.company.A", null, 2));
+        Method methodF = Iterables.getOnlyElement(classA.getMethodsList());
+        ListUsagesRequest req = ListUsagesRequest.newBuilder()
+                .setKind(Usage.Kind.METHOD)
+                .setId(methodF.getHandle().getId())
+                .build();
+        ListUsagesResponse resp = createSearcher().listUsages(NoOpController.getInstance(), req);
+        assertEquals(StatusCode.OK, resp.getStatus());
+        boolean found = false;
+        for (Usage usage : resp.getUsagesList()) {
+            if (usage.getKind() == Usage.Kind.METHOD) {
+                MethodUsage methodUsage = usage.getMethod();
+                if (methodUsage.getKind() == MethodUsage.Kind.METHOD_CALL) {
+                    found = true;
+                    assertEquals(methodF.getHandle(), methodUsage.getMethod());
                 }
             }
         }

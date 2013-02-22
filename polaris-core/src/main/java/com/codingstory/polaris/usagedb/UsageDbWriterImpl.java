@@ -1,11 +1,8 @@
 package com.codingstory.polaris.usagedb;
 
 import com.codingstory.polaris.SnappyUtils;
-import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
-import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
 import com.codingstory.polaris.usagedb.UsageDbProtos.UsageData;
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import org.apache.lucene.analysis.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
@@ -31,13 +28,23 @@ public class UsageDbWriterImpl implements UsageDbWriter {
     @Override
     public void write(Usage usage) throws IOException {
         Preconditions.checkNotNull(usage);
-        Preconditions.checkArgument(Objects.equal(usage.getKind(), Usage.Kind.TYPE)); // Only support TypeUsage for now.
-        TypeUsage typeUsage = usage.getType();
-        TypeHandle handle = typeUsage.getType();
-        Preconditions.checkNotNull(handle);
-        Preconditions.checkArgument(handle.getClazz().getResolved());
         Document document = new Document();
-        document.add(new Field(UsageDbIndexedField.TYPE_ID_RAW, String.valueOf(handle.getClazz().getId()),
+        long id;
+        switch (usage.getKind()) {
+            case TYPE:
+                id = usage.getType().getType().getClazz().getId();
+                break;
+            case METHOD:
+                id = usage.getMethod().getMethod().getId();
+                break;
+            case FIELD:
+                id = usage.getField().getField().getId();
+                break;
+            default:
+                throw new AssertionError("Unknown kind: " + usage.getKind());
+        }
+        document.add(new Field(UsageDbIndexedField.ID, String.valueOf(id), Field.Store.YES, Field.Index.ANALYZED));
+        document.add(new Field(UsageDbIndexedField.KIND, String.valueOf(usage.getKind().getNumber()),
                 Field.Store.YES, Field.Index.ANALYZED));
         UsageData usageData = UsageData.newBuilder()
                 .setUsage(usage)

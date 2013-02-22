@@ -17,10 +17,10 @@ import com.codingstory.polaris.search.SearchProtos.GetTypeResponse;
 import com.codingstory.polaris.search.SearchProtos.Hit;
 import com.codingstory.polaris.search.SearchProtos.LayoutRequest;
 import com.codingstory.polaris.search.SearchProtos.LayoutResponse;
-import com.codingstory.polaris.search.SearchProtos.ListTypeUsagesRequest;
-import com.codingstory.polaris.search.SearchProtos.ListTypeUsagesResponse;
 import com.codingstory.polaris.search.SearchProtos.ListTypesInFileRequest;
 import com.codingstory.polaris.search.SearchProtos.ListTypesInFileResponse;
+import com.codingstory.polaris.search.SearchProtos.ListUsagesRequest;
+import com.codingstory.polaris.search.SearchProtos.ListUsagesResponse;
 import com.codingstory.polaris.search.SearchProtos.SearchRequest;
 import com.codingstory.polaris.search.SearchProtos.SearchResponse;
 import com.codingstory.polaris.search.SearchProtos.SourceRequest;
@@ -210,15 +210,15 @@ public class CodeSearchImpl implements CodeSearch.BlockingInterface, Closeable {
     }
 
     @Override
-    public ListTypeUsagesResponse listTypeUsages(RpcController controller, ListTypeUsagesRequest req) {
-        ListTypeUsagesResponse.Builder resp = ListTypeUsagesResponse.newBuilder();
+    public ListUsagesResponse listUsages(RpcController controller, ListUsagesRequest req) {
+        ListUsagesResponse.Builder resp = ListUsagesResponse.newBuilder();
         try {
-            if (!req.hasTypeId()) {
+            if (!req.hasKind() || !req.hasId()) {
                 resp.setStatus(StatusCode.MISSING_FIELDS);
                 return resp.build();
             }
             resp.setStatus(StatusCode.OK);
-            resp.addAllUsages(usageDb.query(req.getTypeId()));
+            resp.addAllUsages(usageDb.query(req.getKind(), req.getId()));
             return resp.build();
         } catch (Exception e) {
             LOG.error("Caught exception", e);

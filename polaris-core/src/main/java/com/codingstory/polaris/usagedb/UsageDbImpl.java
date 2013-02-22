@@ -8,6 +8,8 @@ import com.google.common.collect.Lists;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
@@ -29,8 +31,11 @@ public class UsageDbImpl implements UsageDb {
     }
 
     @Override
-    public List<Usage> query(long typeId) throws IOException {
-        TermQuery query = new TermQuery(new Term(UsageDbIndexedField.TYPE_ID_RAW, String.valueOf(typeId)));
+    public List<Usage> query(Usage.Kind kind, long id) throws IOException {
+        BooleanQuery query = new BooleanQuery();
+        query.add(new TermQuery(new Term(UsageDbIndexedField.KIND, String.valueOf(kind.getNumber()))),
+                BooleanClause.Occur.MUST);
+        query.add(new TermQuery(new Term(UsageDbIndexedField.ID, String.valueOf(id))), BooleanClause.Occur.MUST);
         TopDocs result = searcher.search(query, Integer.MAX_VALUE);
         List<Usage> typeUsageResult = Lists.newArrayList();
         for (ScoreDoc scoreDoc : result.scoreDocs) {

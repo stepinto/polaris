@@ -68,7 +68,7 @@ public class UsageDbTest {
         w.write(usage2);
         w.close();
         UsageDb r = new UsageDbImpl(tempDir);
-        List<Usage> usages = Lists.newArrayList(r.query(typeId));
+        List<Usage> usages = Lists.newArrayList(r.query(Usage.Kind.TYPE, typeId));
         assertEquals(2, usages.size());
         Collections.sort(usages, new Comparator<Usage>() {
             @Override

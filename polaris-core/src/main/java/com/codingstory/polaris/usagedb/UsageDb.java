@@ -7,5 +7,5 @@ import java.io.IOException;
 import java.util.List;
 
 public interface UsageDb extends Closeable {
-    List<Usage> query(long typeId) throws IOException;
+    List<Usage> query(Usage.Kind kind, long id) throws IOException;
 }
