@@ -14,6 +14,7 @@ import com.codingstory.polaris.parser.ParserProtos.Position;
 import com.codingstory.polaris.parser.ParserProtos.Span;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
+import org.apache.commons.lang.StringUtils;
 
 import java.util.Comparator;
 
@@ -96,30 +97,33 @@ public final class TypeUtils {
                 .build();
     }
 
-    public static Usage usageOf(TypeUsage typeUsage, JumpTarget jumpTarget) {
+    public static Usage usageOf(TypeUsage typeUsage, JumpTarget jumpTarget, String snippet) {
         Preconditions.checkNotNull(typeUsage);
         return Usage.newBuilder()
                 .setKind(Usage.Kind.TYPE)
                 .setType(typeUsage)
                 .setJumpTarget(jumpTarget)
+                .setSnippet(snippet)
                 .build();
     }
 
-    public static Usage usageOf(MethodUsage methodUsage, JumpTarget jumpTarget) {
+    public static Usage usageOf(MethodUsage methodUsage, JumpTarget jumpTarget, String snippet) {
         Preconditions.checkNotNull(methodUsage);
         return Usage.newBuilder()
                 .setKind(Usage.Kind.METHOD)
                 .setMethod(methodUsage)
                 .setJumpTarget(jumpTarget)
+                .setSnippet(snippet)
                 .build();
     }
 
-    public static Usage usageOf(FieldUsage fieldUsage, JumpTarget jumpTarget) {
+    public static Usage usageOf(FieldUsage fieldUsage, JumpTarget jumpTarget, String snippet) {
         Preconditions.checkNotNull(fieldUsage);
         return Usage.newBuilder()
                 .setKind(Usage.Kind.FIELD)
                 .setField(fieldUsage)
                 .setJumpTarget(jumpTarget)
+                .setSnippet(snippet)
                 .build();
     }
 
@@ -133,7 +137,12 @@ public final class TypeUtils {
     public static Span spanOf(Position from, Position to) {
         return Span.newBuilder()
                 .setFrom(from)
-                .setTo(to)
-                .build();
+                .setTo(to) .build();
+    }
+
+    public static String snippetLine(String[] lines, JumpTarget jumpTarget) {
+        int row = jumpTarget.getSpan().getFrom().getLine();
+        String rawSnippet = lines[row];
+        return StringUtils.strip(rawSnippet, "\n\t ");
     }
 }

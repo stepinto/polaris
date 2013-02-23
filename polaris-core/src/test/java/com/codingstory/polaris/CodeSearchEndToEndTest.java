@@ -135,8 +135,8 @@ public class CodeSearchEndToEndTest {
 
     @Test
     public void testListUsages_type() throws IOException, ServiceException {
-        writeFile("project/src/com/company/A.java", "package com.company; class A {}");
-        writeFile("project/src/com/company/B.java", "package com.company; class B { A a; }");
+        writeFile("project/src/com/company/A.java", "package com.company;\nclass A {}");
+        writeFile("project/src/com/company/B.java", "package com.company;\nclass B {\nA a;\n}");
         buildIndex(ImmutableList.of("project"));
 
         TypeDb typeDb = new TypeDbImpl(IndexPathUtils.getTypeDbPath(indexDir));
@@ -155,6 +155,7 @@ public class CodeSearchEndToEndTest {
                 TypeUsage tu = usage.getType();
                 if (tu.getKind() == TypeUsage.Kind.FIELD) {
                     found = true;
+                    assertEquals(usage.getSnippet(), "A a;");
                     break;
                 }
             }
@@ -164,8 +165,8 @@ public class CodeSearchEndToEndTest {
 
     @Test
     public void testListUsages_method() throws IOException, ServiceException {
-        writeFile("project/src/com/company/A.java", "package com.company; class A { void f() {} }");
-        writeFile("project/src/com/company/B.java", "package com.company; class B { void g() { A a; a.f(); } }");
+        writeFile("project/src/com/company/A.java", "package com.company;\nclass A {\nvoid f() {}\n}");
+        writeFile("project/src/com/company/B.java", "package com.company;\nclass B {\nvoid g() {\nA a;\na.f();\n}\n}");
         buildIndex(ImmutableList.of("project"));
 
         TypeDb typeDb = new TypeDbImpl(IndexPathUtils.getTypeDbPath(indexDir));
@@ -184,6 +185,7 @@ public class CodeSearchEndToEndTest {
                 if (methodUsage.getKind() == MethodUsage.Kind.METHOD_CALL) {
                     found = true;
                     assertEquals(methodF.getHandle(), methodUsage.getMethod());
+                    assertEquals("a.f();", usage.getSnippet());
                 }
             }
         }

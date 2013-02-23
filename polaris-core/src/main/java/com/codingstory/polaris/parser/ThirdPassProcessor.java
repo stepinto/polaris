@@ -37,6 +37,7 @@ import static com.codingstory.polaris.parser.ParserUtils.dropGenericTypes;
 import static com.codingstory.polaris.parser.ParserUtils.nodeJumpTarget;
 import static com.codingstory.polaris.parser.ParserUtils.nodeSpan;
 import static com.codingstory.polaris.parser.TypeUtils.handleOf;
+import static com.codingstory.polaris.parser.TypeUtils.snippetLine;
 import static com.codingstory.polaris.parser.TypeUtils.usageOf;
 
 /** Generates cross references for local variable declarationmethod calls. */
@@ -48,10 +49,12 @@ public class ThirdPassProcessor {
         private final FileHandle file;
         private final SymbolTable symbolTable;
         private final List<Usage> usages = Lists.newArrayList();
+        private final String[] lines;
 
-        private ThirdPassVisitor(FileHandle file, SymbolTable symbolTable) {
+        private ThirdPassVisitor(FileHandle file, String source, SymbolTable symbolTable) {
             this.file = Preconditions.checkNotNull(file);
             this.symbolTable = Preconditions.checkNotNull(symbolTable);
+            this.lines = source.split("\n");
         }
 
         @Override
@@ -139,10 +142,11 @@ public class ThirdPassProcessor {
             Preconditions.checkNotNull(node);
             TypeHandle type = symbolTable.resolveTypeHandle(
                     dropGenericTypes(node.getType().toString()));
+            ParserProtos.JumpTarget jumpTarget = nodeJumpTarget(file, node.getType());
             usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
                     .setType(type)
                     .setKind(TypeUsage.Kind.LOCAL_VARIABLE)
-                    .build(), nodeJumpTarget(file, node.getType())));
+                    .build(), jumpTarget, snippetLine(lines, jumpTarget)));
             for (VariableDeclarator decl : node.getVars()) {
                 String variableName = decl.getId().getName();
                 if (type.getKind() == TypeKind.CLASS && !type.getClazz().getResolved()) {
@@ -172,10 +176,12 @@ public class ThirdPassProcessor {
                 if (clazz != null) {
                     Method method = findMethodInClass(clazz, node.getName());
                     if (method != null) {
+                        ParserProtos.JumpTarget jumpTarget = nodeJumpTarget(file, node.getNameExpr());
+                        String snippet = snippetLine(lines, jumpTarget);
                         usages.add(usageOf(MethodUsage.newBuilder()
                                 .setKind(MethodUsage.Kind.METHOD_CALL)
                                 .setMethod(method.getHandle())
-                                .build(), nodeJumpTarget(file, node.getNameExpr())));
+                                .build(), jumpTarget, snippet));
                     }
                 }
             }
@@ -211,7 +217,7 @@ public class ThirdPassProcessor {
         Preconditions.checkNotNull(source);
         Preconditions.checkNotNull(pkg);
         symbolTable.enterCompilationUnit(pkg);
-        ThirdPassVisitor visitor = new ThirdPassVisitor(file, symbolTable);
+        ThirdPassVisitor visitor = new ThirdPassVisitor(file, source, symbolTable);
         ParserUtils.safeVisit(source, visitor);
         symbolTable.leaveCompilationUnit();
         return visitor.getUsages();
