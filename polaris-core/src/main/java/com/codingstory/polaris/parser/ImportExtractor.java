@@ -65,9 +65,9 @@ public class ImportExtractor {
         }
     }
 
-    public static Result findImports(InputStream in) throws IOException {
+    public static Result findImports(String source) throws IOException {
         ImportExtractVisitor visitor = new ImportExtractVisitor();
-        ParserUtils.safeVisit(in, visitor);
+        ParserUtils.safeVisit(source, visitor);
         return visitor.getResult();
     }
 }

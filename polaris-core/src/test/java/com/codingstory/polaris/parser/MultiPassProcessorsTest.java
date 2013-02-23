@@ -20,7 +20,6 @@ import com.google.common.collect.Lists;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
@@ -389,18 +388,18 @@ public class MultiPassProcessorsTest {
         SymbolTable symbolTable = new SymbolTable();
         FirstPassProcessor.Result result1 = FirstPassProcessor.process(
                 fakeFile,
-                new ByteArrayInputStream(code.getBytes()),
+                code,
                 ID_GENERATOR);
         SecondPassProcessor.Result result2 = SecondPassProcessor.extract(
                 TEST_PROJECT,
                 fakeFile,
-                new ByteArrayInputStream(code.getBytes()),
+                code,
                 createSymbolTableAndRegisterClasses(result1.getDiscoveredClasses()),
                 ID_GENERATOR,
                 result1.getPackage());
         List<Usage> result3 = ThirdPassProcessor.extract(
                 fakeFile,
-                new ByteArrayInputStream(code.getBytes()),
+                code,
                 createSymbolTableAndRegisterClasses(result2.getClassTypes()),
                 result1.getPackage());
         result2.getUsages().addAll(result3); // temp hack

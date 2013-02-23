@@ -1,13 +1,13 @@
 package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
-import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.Method;
+import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
+import com.codingstory.polaris.parser.ParserProtos.Span;
 import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.TypeKind;
-import com.codingstory.polaris.parser.ParserProtos.Span;
 import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
 import com.google.common.base.Objects;
@@ -31,7 +31,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 
 import static com.codingstory.polaris.parser.ParserUtils.dropGenericTypes;
@@ -161,7 +160,7 @@ public class ThirdPassProcessor {
             Preconditions.checkNotNull(node);
             Expression scope = node.getScope();
             TypeHandle type = null;
-            if (scope == null || scope instanceof ThisExpr ) { // Call member methods
+            if (scope == null || scope instanceof ThisExpr) { // Call member methods
                 type = handleOf(symbolTable.currentClass().getHandle());
             } else if (scope instanceof NameExpr) {
                 type = symbolTable.getVariableType(((NameExpr) scope).getName());
@@ -205,15 +204,15 @@ public class ThirdPassProcessor {
 
     public static List<Usage> extract(
             FileHandle file,
-            InputStream in,
+            String source,
             SymbolTable symbolTable,
             String pkg) throws IOException {
         Preconditions.checkNotNull(file);
-        Preconditions.checkNotNull(in);
+        Preconditions.checkNotNull(source);
         Preconditions.checkNotNull(pkg);
         symbolTable.enterCompilationUnit(pkg);
         ThirdPassVisitor visitor = new ThirdPassVisitor(file, symbolTable);
-        ParserUtils.safeVisit(in, visitor);
+        ParserUtils.safeVisit(source, visitor);
         symbolTable.leaveCompilationUnit();
         return visitor.getUsages();
     }

@@ -17,7 +17,7 @@ import japa.parser.ast.Node;
 import japa.parser.ast.visitor.VoidVisitor;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.StringReader;
 import java.util.List;
 
 import static com.codingstory.polaris.parser.TypeUtils.positionOf;
@@ -26,12 +26,12 @@ import static com.codingstory.polaris.parser.TypeUtils.spanOf;
 public final class ParserUtils {
     private ParserUtils() {}
 
-    public static void safeVisit(InputStream in, VoidVisitor<?> visitor) throws IOException {
+    public static void safeVisit(String s, VoidVisitor<?> visitor) throws IOException {
         try {
             CompilationUnit compilationUnit;
             synchronized (ParserUtils.class) {
                 // Walk around race condition bug in JavaParser. TODO: Fix it upstream.
-                compilationUnit = JavaParser.parse(in);
+                compilationUnit = JavaParser.parse(new StringReader(s));
             }
             visitor.visit(compilationUnit, null);
         } catch (ParseException e) {

@@ -388,18 +388,18 @@ public final class SecondPassProcessor {
 
     public static Result extract(String project,
             FileHandle file,
-            InputStream in,
+            String source,
             SymbolTable symbolTable,
             IdGenerator idGenerator,
             String pkg) throws IOException {
         Preconditions.checkNotNull(project);
         Preconditions.checkNotNull(file);
-        Preconditions.checkNotNull(in);
+        Preconditions.checkNotNull(source);
         Preconditions.checkNotNull(symbolTable);
         Preconditions.checkNotNull(idGenerator);
         symbolTable.enterCompilationUnit(pkg);
         ASTVisitor visitor = new ASTVisitor(project, file, symbolTable, idGenerator, pkg);
-        ParserUtils.safeVisit(in, visitor);
+        ParserUtils.safeVisit(source, visitor);
         symbolTable.leaveCompilationUnit();
         return new Result(visitor.getClassTypes(), visitor.getUsages());
     }

@@ -222,8 +222,7 @@ public class IndexPipeline implements Serializable {
             @Override
             public void process(FileContent in, Emitter<FileImports> emitter) {
                 try {
-                    ImportExtractor.Result result = ImportExtractor.findImports(
-                            new ByteArrayInputStream(in.getContent().getBytes()));
+                    ImportExtractor.Result result = ImportExtractor.findImports(in.getContent());
                     emitter.emit(FileImports.newBuilder()
                             .setFile(in.getFile())
                             .setPackage(result.getPackage())
@@ -246,7 +245,7 @@ public class IndexPipeline implements Serializable {
                         try {
                             FirstPassProcessor.Result result = FirstPassProcessor.process(
                                     in.getFile(),
-                                    new ByteArrayInputStream(in.getContent().getBytes()),
+                                    in.getContent(),
                                     ID_GENERATOR);
                             SourceFile sourceFile = SourceFile.newBuilder()
                                     .setHandle(in.getFile())
@@ -493,7 +492,7 @@ public class IndexPipeline implements Serializable {
                                     SecondPassProcessor.Result result = SecondPassProcessor.extract(
                                             fileHandle.getProject(),
                                             fileHandle,
-                                            new ByteArrayInputStream(fileContent.getContent().getBytes()),
+                                            fileContent.getContent(),
                                             symbolTable,
                                             ID_GENERATOR,
                                             currentFile.getPackage());
@@ -538,7 +537,7 @@ public class IndexPipeline implements Serializable {
                             Collection<ClassType> importedClasses = in.third();
                             List<Usage> result = ThirdPassProcessor.extract(
                                     fileHandle,
-                                    new ByteArrayInputStream(fileContent.getContent().getBytes()),
+                                    fileContent.getContent(),
                                     createSymbolTable(currentFile, importedClasses),
                                     currentFile.getPackage());
                             return currentFile.toBuilder()

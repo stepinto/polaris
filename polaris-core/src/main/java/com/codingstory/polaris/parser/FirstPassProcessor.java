@@ -122,12 +122,12 @@ public class FirstPassProcessor {
 
     public static Result process(
             FileHandle file,
-            InputStream in,
+            String source,
             IdGenerator idGenerator) throws IOException {
         FirstPassVisitor visitor = new FirstPassVisitor(
                 Preconditions.checkNotNull(file),
                 Preconditions.checkNotNull(idGenerator));
-        ParserUtils.safeVisit(in, visitor);
+        ParserUtils.safeVisit(source, visitor);
         return visitor.getResult();
     }
 }

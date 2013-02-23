@@ -159,6 +159,7 @@ message MethodUsage {
     }
     optional MethodHandle method = 1;
     optional Kind kind = 3;
+    optional string snippet = 5;
     // OBSOLETED optional TSpan span = 2;
     // OBSOLETED optional JumpTarget jumpTarget = 4;
 }
