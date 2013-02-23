@@ -325,7 +325,7 @@ angular.module('polarisDirectives', ['polarisServices'])
             scope.usages = value;
             $.each(scope.usages, function(i, u) {
               u.url = LinkBuilder.source(u.jumpTarget);
-              u.text = u.jumpTarget.file.project + u.jumpTarget.file.path;
+              u.title = u.jumpTarget.file.project + u.jumpTarget.file.path;
             });
           }
         });
