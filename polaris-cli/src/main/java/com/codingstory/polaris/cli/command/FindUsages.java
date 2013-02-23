@@ -12,8 +12,8 @@ import com.codingstory.polaris.parser.ParserProtos.Position;
 import com.codingstory.polaris.search.CodeSearchImpl;
 import com.codingstory.polaris.search.SearchProtos.GetTypeRequest;
 import com.codingstory.polaris.search.SearchProtos.GetTypeResponse;
-import com.codingstory.polaris.search.SearchProtos.ListTypeUsagesRequest;
-import com.codingstory.polaris.search.SearchProtos.ListTypeUsagesResponse;
+import com.codingstory.polaris.search.SearchProtos.ListUsagesRequest;
+import com.codingstory.polaris.search.SearchProtos.ListUsagesResponse;
 import org.apache.commons.io.IOUtils;
 
 import java.io.File;
@@ -41,10 +41,11 @@ public class FindUsages {
                     .build();
             GetTypeResponse getTypeResp = searcher.getType(NoOpController.getInstance(), getTypeReq);
             checkStatus(getTypeResp.getStatus());
-            ListTypeUsagesRequest listUsageReq = ListTypeUsagesRequest.newBuilder()
-                    .setTypeId(getTypeResp.getClassType().getHandle().getId())
+            ListUsagesRequest listUsageReq = ListUsagesRequest.newBuilder()
+                    .setKind(Usage.Kind.TYPE)
+                    .setId(getTypeResp.getClassType().getHandle().getId())
                     .build();
-            ListTypeUsagesResponse listUsageResp = searcher.listTypeUsages(NoOpController.getInstance(), listUsageReq);
+            ListUsagesResponse listUsageResp = searcher.listUsages(NoOpController.getInstance(), listUsageReq);
             checkStatus(listUsageResp.getStatus());
             for (Usage usage : listUsageResp.getUsagesList()) {
                 if (usage.getKind() == Usage.Kind.TYPE) {
