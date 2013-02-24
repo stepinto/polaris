@@ -9,6 +9,7 @@ import com.codingstory.polaris.parser.ImportExtractor;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.SourceFile;
+import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
 import com.codingstory.polaris.parser.SecondPassProcessor;
 import com.codingstory.polaris.parser.SourceAnnotator;
@@ -186,8 +187,9 @@ public class IndexPipeline implements Serializable {
         PCollection<ParsedFile> parsedFiles3rdPass = discoverMethodCalls(fileContents, parsedFiles2ndPass, importGraph);
         PCollection<Usage> usages3rdPass = extractUsages(parsedFiles3rdPass);
         PCollection<Usage> usages = usages2ndPass.union(usages3rdPass);
+        PCollection<ClassType> classes = fillUseCount(extractClasses(parsedFiles3rdPass), usages);
         pipeline.write(
-                extractClasses(parsedFiles3rdPass),
+                classes,
                 At.sequenceFile(new Path(classOutputDir.getPath()), PARSED_FILE_PTYPE));
         pipeline.write(
                 usages,
@@ -474,6 +476,14 @@ public class IndexPipeline implements Serializable {
         }, longs());
     }
 
+    private PTable<Long, ClassType> pivotClassById(PCollection<ClassType> classes) {
+        return classes.by(new MapFn<ClassType, Long>() {
+            @Override
+            public Long map(ClassType in) {
+                return in.getHandle().getId();
+            }
+        }, longs());
+    }
     private PCollection<ParsedFile> discoverMembers(
             PCollection<FileContent> fileContents,
             PCollection<ParsedFile> parsedFiles,
@@ -541,6 +551,7 @@ public class IndexPipeline implements Serializable {
                                     createSymbolTable(currentFile, importedClasses),
                                     currentFile.getPackage());
                             return currentFile.toBuilder()
+                                    .clearUsages()
                                     .addAllUsages(result)
                                     .build();
                         } catch (IOException e) {
@@ -705,6 +716,32 @@ public class IndexPipeline implements Serializable {
                 }
             }
         }, SOURCE_FILE_PTYPE);
+    }
+
+    private PCollection<ClassType> fillUseCount(PCollection<ClassType> classes, PCollection<Usage> usages) {
+        PCollection<Long> usedClasses = usages.parallelDo("FilterClassUsages", new DoFn<Usage, Long>() {
+            @Override
+            public void process(Usage usage, Emitter<Long> emitter) {
+                if (usage.getKind() == Usage.Kind.TYPE) {
+                    TypeUsage typeUsage = usage.getType();
+                    emitter.emit(typeUsage.getType().getClazz().getId());
+                }
+            }
+        }, longs());
+
+        PTable<Long, Long> useCounts = usedClasses.count();
+        PTable<Long, ClassType> classesById = pivotClassById(classes);
+        return Join.leftJoin(classesById, useCounts).values().parallelDo(
+                "FillClassesWithUseCounts", new MapFn<Pair<ClassType, Long>, ClassType>() {
+            @Override
+            public ClassType map(Pair<ClassType, Long> in) {
+                ClassType clazz = in.first();
+                long useCount = in.second() == null ? 0 : in.second();
+                return clazz.toBuilder()
+                        .setUseCount(useCount)
+                        .build();
+            }
+        }, CLASS_TYPE_PTYPE);
     }
 
     private PTable<Long, Usage> pivotUsagesByFileId(PCollection<Usage> usages) {

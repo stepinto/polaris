@@ -223,6 +223,19 @@ public class CodeSearchEndToEndTest {
         assertEquals("/src/com/company/A.java", hit.getJumpTarget().getFile().getPath());
     }
 
+    @Test
+    public void testClassUseCount() throws IOException {
+        writeFile("project/A.java", "class A {}");
+        writeFile("project/B.java", "class B { A a; }");
+        writeFile("project/C.java", "class C { A a; }");
+        buildIndex(ImmutableList.of("project"));
+
+        TypeDb typeDb = new TypeDbImpl(IndexPathUtils.getTypeDbPath(indexDir));
+        ClassType clazz = Iterables.getOnlyElement(typeDb.getTypeByName("A", "project", 2));
+        assertEquals("A", clazz.getHandle().getName());
+        assertEquals(3, clazz.getUseCount());
+    }
+
     private CodeSearch.BlockingInterface createSearcher() throws IOException {
         return new CodeSearchImpl(indexDir);
     }

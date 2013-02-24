@@ -107,6 +107,9 @@ message ClassType {
     repeated Method methods = 5;
     optional string javaDoc = 6;
     optional JumpTarget jumpTarget = 7;
+
+    // Infomation for ranking
+    optional int64 useCount = 8;
 }
 
 message TypeUsage {
