@@ -1,247 +1,247 @@
 @navHeight: 40px;
 
 html, body {
-    height: 100%;
+  height: 100%;
 }
 
 .page {
-    .header {
-        position: absolute;
-        top: 0;
-        bottom: @navHeight;
-        width: 100%;
-    }
-    .body {
-        position: absolute;
-        top: @navHeight;
-        bottom: 0;
-        width: 100%;
-    }
+  .header {
+    position: absolute;
+    top: 0;
+    bottom: @navHeight;
+    width: 100%;
+  }
+  .body {
+    position: absolute;
+    top: @navHeight;
+    bottom: 0;
+    width: 100%;
+  }
 }
 
 .bonjour {
-    margin-top: 150px;
+  margin-top: 150px;
+  text-align: center;
+
+  .logo {
+    display: block;
+    margin: 0 auto 10px;
+  }
+
+  .form-search {
+    width: 500px;
+    height: 30px;
+    margin: 0 auto 10px;
+
+    .search-input {
+      margin-top: 50px;
+    }
+    .search-button {
+    }
+  }
+
+  .footer {
+    position: absolute;
+    bottom: 0;
     text-align: center;
-
-    .logo {
-        display: block;
-        margin: 0 auto 10px;
-    }
-
-    .form-search {
-        width: 500px;
-        height: 30px;
-        margin: 0 auto 10px;
-
-        .search-input {
-            margin-top: 50px;
-        }
-        .search-button {
-        }
-    }
-
-    .footer {
-        position: absolute;
-        bottom: 0;
-        text-align: center;
-        width: 100%;
-        color: grey;
-    }
+    width: 100%;
+    color: grey;
+  }
 }
 
 .search-box {
-    position: relative;
-    width: 100%;
-    height: 100%;
+  position: relative;
+  width: 100%;
+  height: 100%;
 
-    .query {
-        position: absolute;
-        left: 0;
-        width: 486px; // Don't know why have to minus 14px here.
+  .query {
+    position: absolute;
+    left: 0;
+    width: 486px; // Don't know why have to minus 14px here.
+  }
+
+  .loading-indicator {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 16px;
+    height: 16px;
+    background: url(/img/icons/auto-completion-loading.gif) no-repeat;
+  }
+
+  .choice-box {
+    position: absolute;
+    border: 1px solid #666;
+    background: #fff;
+    list-style: none;
+    text-align: left;
+    overflow: hidden;
+    margin: 0 0 0 0;
+    top: 30px;
+    width: 498px;
+
+    .row {
+      position: relative;
+      margin: 0px 5px 0px 5px;
+      white-space: nowrap;
     }
 
-    .loading-indicator {
-        position: absolute;
-        top: 8px;
-        right: 10px;
-        width: 16px;
-        height: 16px;
-        background: url(/img/icons/auto-completion-loading.gif) no-repeat;
+    .active {
+      background-color: #EEE;
     }
 
-    .choice-box {
-        position: absolute;
-        border: 1px solid #666;
-        background: #fff;
-        list-style: none;
-        text-align: left;
-        overflow: hidden;
-        margin: 0 0 0 0;
-        top: 30px;
-        width: 498px;
-
-        .row {
-            position: relative;
-            margin: 0px 5px 0px 5px;
-            white-space: nowrap;
-        }
-
-        .active {
-            background-color: #EEE;
-        }
-
-        .file {
-            background: url(/img/icons/text.png) no-repeat 0% 100%;
-            padding-left: 18px;
-        }
-
-        .clazz {
-            background: url(/img/eclipse-icons/class_obj.gif) no-repeat 0% 100%;
-            padding-left: 18px;
-        }
-
-        .interface {
-            background: url(/img/eclipse-icons/int_obj.gif) no-repeat 0% 100%;
-            padding-left: 18px;
-        }
-
-        .enum {
-            background: url(/img/eclipse-icons/class_obj.gif) no-repeat 0% 100%;
-            padding-left: 18px;
-        }
-
-        .annotation {
-            background: url(/img/eclipse-icons/class_obj.gif) no-repeat 0% 100%;
-            padding-left: 18px;
-        }
-
-        .uses {
-            color: green;
-            font-size: small;
-            float: right;
-        }
+    .file {
+      background: url(/img/icons/text.png) no-repeat 0% 100%;
+      padding-left: 18px;
     }
+
+    .clazz {
+      background: url(/img/eclipse-icons/class_obj.gif) no-repeat 0% 100%;
+      padding-left: 18px;
+    }
+
+    .interface {
+      background: url(/img/eclipse-icons/int_obj.gif) no-repeat 0% 100%;
+      padding-left: 18px;
+    }
+
+    .enum {
+      background: url(/img/eclipse-icons/class_obj.gif) no-repeat 0% 100%;
+      padding-left: 18px;
+    }
+
+    .annotation {
+      background: url(/img/eclipse-icons/class_obj.gif) no-repeat 0% 100%;
+      padding-left: 18px;
+    }
+
+    .uses {
+      color: green;
+      font-size: small;
+      float: right;
+    }
+  }
 }
 
 .source {
-    @leftWidth: 250px;
-    @rightWidth: 250px;
+  @leftWidth: 250px;
+  @rightWidth: 250px;
+
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+
+  .left {
+    float: left;
+    width: @leftWidth;
+    height: 100%;
+    overflow: auto;
+  }
+  .right {
+    float: right;
+    width: @rightWidth;
+    height: 100%;
+    overflow: auto;
+  }
+  .main {
+    @bottomHeight: 150px;
 
     position: absolute;
+    left: @leftWidth;
+    right: @rightWidth;
     top: 0;
     bottom: 0;
-    left: 0;
-    right: 0;
+    overflow: auto;
 
-    .left {
-        float: left;
-        width: @leftWidth;
-        height: 100%;
-        overflow: auto;
+    .main-top {
+      position: absolute;
+      top: 0px;
+      bottom: @bottomHeight;
+      left: 0;
+      right: 0;
+      overflow: auto;
     }
-    .right {
-        float: right;
-        width: @rightWidth;
-        height: 100%;
-        overflow: auto;
+    .main-bottom {
+      position: absolute;
+      height: @bottomHeight;
+      bottom: 0px;
+      left: 0;
+      right: 0;
     }
-    .main {
-        @bottomHeight: 150px;
-
-        position: absolute;
-        left: @leftWidth;
-        right: @rightWidth;
-        top: 0;
-        bottom: 0;
-        overflow: auto;
-
-        .main-top {
-            position: absolute;
-            top: 0px;
-            bottom: @bottomHeight;
-            left: 0;
-            right: 0;
-            overflow: auto;
-        }
-        .main-bottom {
-            position: absolute;
-            height: @bottomHeight;
-            bottom: 0px;
-            left: 0;
-            right: 0;
-        }
-    }
+  }
 }
 
 .project-tree {
-    .inner {
-        // TODO
-    }
-    .java-file, .dir {
-      list-style: none;
-    }
+  .inner {
+  // TODO
+  }
+  .java-file, .dir {
+    list-style: none;
+  }
 }
 
 .panel {
-    @headerHeight: 20px;
-    border: 1px solid silver;
-    height: 100%;
-    position: relative;
-  
-    .header {
-        background-color: #f7f7f7;
-        border-bottom: 1px solid #ebebeb;
-        height: @headerHeight;
-    }
+  @headerHeight: 20px;
+  border: 1px solid silver;
+  height: 100%;
+  position: relative;
 
-    .body {
-        position: absolute;
-        top: @headerHeight;
-        bottom: 0px;
-        width: 100%;
-        overflow: auto;
-    }
+  .header {
+    background-color: #f7f7f7;
+    border-bottom: 1px solid #ebebeb;
+    height: @headerHeight;
+  }
+
+  .body {
+    position: absolute;
+    top: @headerHeight;
+    bottom: 0px;
+    width: 100%;
+    overflow: auto;
+  }
 }
 
 .xref-box {
-    .usage {
-        list-style-type: none;
-    }
+  .usage {
+    list-style-type: none;
+  }
 }
 
 .code-view {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    
-    .code-view-inner {
-        @lineNoColumnWidth: auto;
-        .line-no-column {
-            float: left;
-            width: @lineNoColumnWidth;
-            margin-left: 5px;
-            margin-right: 5px;
-            .line-no-row {
-                list-style-type: none;
-                text-align: right;
-                padding-left: 5px;
-                padding-right: 5px;
-            }
-            .highlighted-row {
-                font-weight: bold;
-                background-color: #0088cc;
-                color: white;
-                border-radius: 5px;
-            }
-        }
-        .code-column {
-            margin-top: 10px;
-            white-space: pre;
-            word-wrap: normal;
-            background: white;
-            border: none;
-            padding: 0;
-        }
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+
+  .code-view-inner {
+    @lineNoColumnWidth: auto;
+    .line-no-column {
+      float: left;
+      width: @lineNoColumnWidth;
+      margin-left: 5px;
+      margin-right: 5px;
+      .line-no-row {
+        list-style-type: none;
+        text-align: right;
+        padding-left: 5px;
+        padding-right: 5px;
+      }
+      .highlighted-row {
+        font-weight: bold;
+        background-color: #0088cc;
+        color: white;
+        border-radius: 5px;
+      }
     }
+    .code-column {
+      margin-top: 10px;
+      white-space: pre;
+      word-wrap: normal;
+      background: white;
+      border: none;
+      padding: 0;
+    }
+  }
 }
