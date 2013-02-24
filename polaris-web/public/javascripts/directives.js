@@ -27,20 +27,30 @@ angular.module('polarisDirectives', ['polarisServices'])
           }
           scope.loading = true;
           CodeSearch.complete(scope.query, 8, function (resp) {
-              if (resp.hits) {
-                $.each(resp.hits, function(index, hit) {
+            if (resp.hits) {
+              $.each(resp.hits, function(index, hit) {
                   hit["index"] = index;
                   hit["url"] = LinkBuilder.source(hit.jumpTarget);
+                  if (hit.kind == 'TYPE') {
+                    var n = hit.classType.useCount;
+                    if (n > 1) {
+                      hit.useCountText = n + " uses";
+                    } else if (n == 1) {
+                      hit.useCountText = n + " use";
+                    } else {
+                      hit.useCountText = "";
+                    }
                   }
-                  );
-                scope.choices = resp.hits;
-                if (scope.selected >= scope.choices.length) {
-                  scope.selected = 0;
                 }
-              } else {
-                scope.choices = [];
+              );
+              scope.choices = resp.hits;
+              if (scope.selected >= scope.choices.length) {
                 scope.selected = 0;
               }
+            } else {
+              scope.choices = [];
+              scope.selected = 0;
+            }
             scope.loading = false;
           });
         }
