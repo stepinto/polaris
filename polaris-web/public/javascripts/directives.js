@@ -8,7 +8,7 @@ angular.module('polarisDirectives', ['polarisServices'])
       restrict: 'E',
       replace: true,
       scope: {
-        placeholder: '@placeholder',
+        placeholder: '@placeholder'
       },
       templateUrl: 'partials/search-box',
       link: function(scope, iElement, iAttrs, controller) {
@@ -203,7 +203,7 @@ angular.module('polarisDirectives', ['polarisServices'])
         findMethodUsages: '&',
         goToMethodDefinition: '&',
         code: '=',
-        highlightedLine: '=',
+        highlightedLine: '='
       },
       replace: true,
       link: function(scope, element, attrs) {
@@ -265,7 +265,7 @@ angular.module('polarisDirectives', ['polarisServices'])
       templateUrl: 'partials/type-usage',
       scope: {
         findUsages: '&',
-        goToDefinition: '&',
+        goToDefinition: '&'
       },
       replace: false,
       transclude: true,
@@ -290,7 +290,7 @@ angular.module('polarisDirectives', ['polarisServices'])
       templateUrl: 'partials/method-usage',
       scope: {
         findUsages: '&',
-        goToDefinition: '&',
+        goToDefinition: '&'
       },
       replace: false,
       transclude: true,
