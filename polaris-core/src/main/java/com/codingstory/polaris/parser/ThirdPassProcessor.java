@@ -33,6 +33,7 @@ import org.apache.commons.logging.LogFactory;
 import java.io.IOException;
 import java.util.List;
 
+import static com.codingstory.polaris.CollectionUtils.nullToEmptyList;
 import static com.codingstory.polaris.parser.ParserUtils.dropGenericTypes;
 import static com.codingstory.polaris.parser.ParserUtils.nodeJumpTarget;
 import static com.codingstory.polaris.parser.ParserUtils.nodeSpan;
@@ -167,14 +168,21 @@ public class ThirdPassProcessor {
             if (scope == null || scope instanceof ThisExpr) { // Call member methods
                 type = handleOf(symbolTable.currentClass().getHandle());
             } else if (scope instanceof NameExpr) {
-                type = symbolTable.getVariableType(((NameExpr) scope).getName());
+                String name = ((NameExpr) scope).getName();
+                type = symbolTable.getVariableType(name);
+                if (type == null) {
+                    ClassType clazz = symbolTable.resolveClass(name);
+                    if (clazz != null) {
+                        type = handleOf(clazz.getHandle());
+                    }
+                }
             } else {
                 // TODO: Handle more complex expressions.
             }
             if (type != null && type.getKind() == TypeKind.CLASS) {
                 ClassType clazz = symbolTable.getClassByHandle(type.getClazz());
                 if (clazz != null) {
-                    Method method = findMethodInClass(clazz, node.getName());
+                    Method method = findMethodInClass(clazz, node.getName(), nullToEmptyList(node.getArgs()).size());
                     if (method != null) {
                         ParserProtos.JumpTarget jumpTarget = nodeJumpTarget(file, node.getNameExpr());
                         String snippet = snippetLine(lines, jumpTarget);
@@ -188,11 +196,12 @@ public class ThirdPassProcessor {
             super.visit(node, arg);
         }
 
-        private Method findMethodInClass(ClassType clazz, String methodName) {
+        private Method findMethodInClass(ClassType clazz, String methodName, int argumentCount) {
             List<Method> results = Lists.newArrayList();
             String prefix = clazz.getHandle().getName() + ".";
             for (Method method : clazz.getMethodsList()) {
-                if (Objects.equal(method.getHandle().getName(), prefix + methodName)) {
+                if (Objects.equal(method.getHandle().getName(), prefix + methodName) &&
+                        method.getParametersCount() == argumentCount) {
                     results.add(method);
                 }
             }

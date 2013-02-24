@@ -377,6 +377,27 @@ public class MultiPassProcessorsTest {
         assertEquals("A.f", usage.getMethod().getMethod().getName());
     }
 
+    @Test
+    public void testMethodCall_staticMethod() throws IOException {
+        String code = "class A { static void f(); }\n" +
+                "class B { void g() { A.f(); } }\n";
+        Usage usage = findUniqueMethodUsageByKind(
+                extractFromCode(code).getUsages(),
+                MethodUsage.Kind.METHOD_CALL);
+        assertEquals("A.f", usage.getMethod().getMethod().getName());
+    }
+
+    @Test
+    public void testMethodCall_overloadByArgumentCount() throws IOException {
+        String code = "class A { void f(); void f(int n); }\n" +
+                "class B { void g() { A a; a.f(1); } }\n";
+        Usage usage = findUniqueMethodUsageByKind(
+                extractFromCode(code).getUsages(),
+                MethodUsage.Kind.METHOD_CALL);
+        assertEquals("A.f", usage.getMethod().getMethod().getName());
+        assertEquals(1, usage.getMethod().getMethod().getParametersCount());
+    }
+
     // TODO: testMethodCall_staticBlock()
 
     public static SecondPassProcessor.Result extractFromCode(String code) throws IOException {
