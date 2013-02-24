@@ -157,6 +157,7 @@ message MethodUsage {
     enum Kind {
         METHOD_DECLARATION = 1;
         METHOD_CALL = 2;
+        INSTANCE_CREATION = 3;
     }
     optional MethodHandle method = 1;
     optional Kind kind = 3;

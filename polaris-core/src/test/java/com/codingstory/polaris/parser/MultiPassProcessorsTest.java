@@ -398,6 +398,16 @@ public class MultiPassProcessorsTest {
         assertEquals(1, usage.getMethod().getMethod().getParametersCount());
     }
 
+    @Test
+    public void testMethodCall_constructor() throws IOException {
+        String code = "class A { A() {} }\n" +
+                "class B { void g() { new A(); } }\n";
+        Usage usage = findUniqueMethodUsageByKind(
+                extractFromCode(code).getUsages(),
+                MethodUsage.Kind.INSTANCE_CREATION);
+        assertEquals("A.<init>", usage.getMethod().getMethod().getName());
+    }
+
     // TODO: testMethodCall_staticBlock()
 
     public static SecondPassProcessor.Result extractFromCode(String code) throws IOException {

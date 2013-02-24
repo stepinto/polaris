@@ -3,6 +3,7 @@ package com.codingstory.polaris.parser;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
+import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
 import com.codingstory.polaris.parser.ParserProtos.Method;
 import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
 import com.codingstory.polaris.parser.ParserProtos.Span;
@@ -24,6 +25,7 @@ import japa.parser.ast.body.VariableDeclarator;
 import japa.parser.ast.expr.Expression;
 import japa.parser.ast.expr.MethodCallExpr;
 import japa.parser.ast.expr.NameExpr;
+import japa.parser.ast.expr.ObjectCreationExpr;
 import japa.parser.ast.expr.ThisExpr;
 import japa.parser.ast.expr.VariableDeclarationExpr;
 import japa.parser.ast.visitor.VoidVisitorAdapter;
@@ -33,7 +35,7 @@ import org.apache.commons.logging.LogFactory;
 import java.io.IOException;
 import java.util.List;
 
-import static com.codingstory.polaris.CollectionUtils.nullToEmptyList;
+import static com.codingstory.polaris.CollectionUtils.nullToEmptyCollection;
 import static com.codingstory.polaris.parser.ParserUtils.dropGenericTypes;
 import static com.codingstory.polaris.parser.ParserUtils.nodeJumpTarget;
 import static com.codingstory.polaris.parser.ParserUtils.nodeSpan;
@@ -171,29 +173,47 @@ public class ThirdPassProcessor {
                 String name = ((NameExpr) scope).getName();
                 type = symbolTable.getVariableType(name);
                 if (type == null) {
-                    ClassType clazz = symbolTable.resolveClass(name);
-                    if (clazz != null) {
-                        type = handleOf(clazz.getHandle());
-                    }
+                    type = symbolTable.resolveTypeHandle(name);
                 }
             } else {
                 // TODO: Handle more complex expressions.
             }
-            if (type != null && type.getKind() == TypeKind.CLASS) {
+            processMethodCall(
+                    type,
+                    node.getName(),
+                    nullToEmptyCollection(node.getArgs()).size(),
+                    MethodUsage.Kind.METHOD_CALL,
+                    nodeJumpTarget(file, node.getNameExpr()));
+            super.visit(node, arg);
+        }
+
+        @Override
+        public void visit(ObjectCreationExpr node, Void arg) {
+            Preconditions.checkNotNull(node);
+            processMethodCall(
+                    symbolTable.resolveTypeHandle(node.getType().getName()),
+                    "<init>",
+                    nullToEmptyCollection(node.getArgs()).size(),
+                    MethodUsage.Kind.INSTANCE_CREATION,
+                    nodeJumpTarget(file, node)); // TODO: getNameExpr()
+            super.visit(node, arg);
+        }
+
+        private void processMethodCall(TypeHandle type, String methodName, int argc,
+                MethodUsage.Kind kind, JumpTarget jumpTarget) {
+            if (type != null && type.getKind() == TypeKind.CLASS && type.getClazz().getResolved()) {
                 ClassType clazz = symbolTable.getClassByHandle(type.getClazz());
                 if (clazz != null) {
-                    Method method = findMethodInClass(clazz, node.getName(), nullToEmptyList(node.getArgs()).size());
+                    Method method = findMethodInClass(clazz, methodName, argc);
                     if (method != null) {
-                        ParserProtos.JumpTarget jumpTarget = nodeJumpTarget(file, node.getNameExpr());
                         String snippet = snippetLine(lines, jumpTarget);
                         usages.add(usageOf(MethodUsage.newBuilder()
-                                .setKind(MethodUsage.Kind.METHOD_CALL)
+                                .setKind(kind)
                                 .setMethod(method.getHandle())
                                 .build(), jumpTarget, snippet));
                     }
                 }
             }
-            super.visit(node, arg);
         }
 
         private Method findMethodInClass(ClassType clazz, String methodName, int argumentCount) {
