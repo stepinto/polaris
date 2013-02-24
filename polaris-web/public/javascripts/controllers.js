@@ -31,18 +31,23 @@ function SearchCtrl($scope, $routeParams, CodeSearch, LinkBuilder) {
 
 function SourceCtrl($scope, $routeParams, CodeSearch) {
   $scope.loading = true;
-  var callback = function (resp) {
+  $scope.classes = [];
+
+  var readSourceCallback = function (resp) {
     $scope.loading = false;
     $scope.sourceCode = resp.source.source;
     $scope.sourceCodeAnnotation = resp.source.annotatedSource;
     $scope.project = resp.source.handle.project;
     $scope.path = resp.source.handle.path;
     $scope.highlightedLine = $routeParams.line;
+    CodeSearch.listTypesInFile(resp.source.handle.id, function(resp) {
+      $scope.classes = resp.classTypes;
+    });
   };
   if ($routeParams.project && $routeParams.path) {
-    CodeSearch.readSourceByPath($routeParams.project, $routeParams.path, callback);
+    CodeSearch.readSourceByPath($routeParams.project, $routeParams.path, readSourceCallback);
   } else if ($routeParams.file) {
-    CodeSearch.readSourceById($routeParams.file, callback);
+    CodeSearch.readSourceById($routeParams.file, readSourceCallback);
   }
 
   var loadXrefs = function(kind, id) {

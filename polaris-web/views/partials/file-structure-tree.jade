@@ -1,0 +1,17 @@
+.file-structure-tree
+  // TODO: use different icons for class/interface, public/private..
+  ul
+    li(ng-repeat="clazz in classes")
+      a.clazz(ng-href="{{'#' + clazz.url}}") {{clazz.simpleName}}
+      ul(ng-repeat="field in clazz.fields")
+        li
+          a.field(ng-href="{{'#' + field.url}}") {{field.simpleName}}:{{field.type.simpleName}}
+      ul(ng-repeat="method in clazz.methods")
+        li
+          span.method
+            a(ng-href="{{'#' + method.url}}") {{method.simpleName}}
+            span &#40
+            span(ng-repeat="parameter in method.parameters")
+              {{parameter.type.simpleName}}{{$last || ", "}}
+            span &#41
+

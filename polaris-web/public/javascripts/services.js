@@ -36,6 +36,10 @@ angular.module('polarisServices', [])
       listUsages: function(kind, id, callback) {
         var req = {'kind': kind, 'id': Number(id)};
         $http.post('/api/listUsages', req).success(callback);
+      },
+      listTypesInFile: function(fileId, callback) {
+        var req = {'fileId': Number(fileId), 'limit': 2147483647};
+        $http.post('/api/listTypesInFile', req).success(callback);
       }
     };
   })
@@ -92,6 +96,38 @@ angular.module('polarisServices', [])
           count++;
         }
         return count;
+      },
+      'getSimpleName': function(s) {
+        var pos = s.lastIndexOf('.');
+        if (pos == -1) {
+          return s;
+        }
+        return s.substring(pos + 1);
+      },
+      'getDisplayNameOfTypeHandle': function(type) {
+        if (type.kind == 'PRIMITIVE') {
+          var n = type.primitive.kind.toLowerCase();
+          if (n == 'integer') { return 'int'; }
+          return n;
+        } else if (type.kind == 'CLASS') {
+          return this.getSimpleName(type.clazz.name);
+        } else {
+          console.log("Unknown kind of type handle: " + type);
+          return null;
+        }
+      },
+      'getDisplayNameOfMethodHandle': function(method) {
+        var name = this.getSimpleName(method.name);
+        if (name == '<cinit>') {
+          return "static-block";
+        } else if (name == '<init>') {
+          return 'constructor';
+        } else {
+          return name;
+        }
+      },
+      'getDisplayNameOfFieldHandle': function(field) {
+        return this.getSimpleName(field.name);
       }
     };
   })

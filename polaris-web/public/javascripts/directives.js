@@ -341,5 +341,44 @@ angular.module('polarisDirectives', ['polarisServices'])
         });
       }
     };
+  })
+
+  .directive('fileStructureTree', function(LinkBuilder, Utils, LinkBuilder) {
+    return {
+      restrict: 'E',
+      templateUrl: 'partials/file-structure-tree',
+      scope: {
+        classes: '='
+      },
+      replace: true,
+      link: function(scope) {
+        scope.$watch('classes', function(value) {
+          scope.classes = value;
+          $.each(scope.classes, function(index, clazz) {
+            clazz.simpleName = Utils.getSimpleName(clazz.handle.name);
+            clazz.url = LinkBuilder.source(clazz.jumpTarget);
+            if (clazz.fields) {
+              $.each(clazz.fields, function(index, field) {
+                field.simpleName = Utils.getDisplayNameOfFieldHandle(field.handle);
+                field.url = LinkBuilder.source(field.jumpTarget);
+                field.type.simpleName = Utils.getDisplayNameOfTypeHandle(field.type);
+              });
+            }
+            if (clazz.methods) {
+              $.each(clazz.methods, function(index, method) {
+                method.simpleName = Utils.getDisplayNameOfMethodHandle(method.handle);
+                method.url = LinkBuilder.source(method.jumpTarget);
+                method.returnType.simpleName = Utils.getDisplayNameOfTypeHandle(method.returnType);
+                if (method.parameters) {
+                  $.each(method.parameters, function(index, parameter) {
+                    parameter.type.simpleName = Utils.getDisplayNameOfTypeHandle(parameter.type);
+                  });
+                }
+              });
+            }
+          });
+        });
+      }
+    }
   });
 
