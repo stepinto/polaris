@@ -119,7 +119,7 @@
     <dependency>
       <groupId>org.apache.crunch</groupId>
       <artifactId>crunch</artifactId>
-      <version>0.6.0-incubating-SNAPSHOT</version>
+      <version>0.6.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.googlecode.protobuf-java-format</groupId>
