@@ -13,7 +13,7 @@ Prestiques
 
 Build Apache Crunch
 -------------------
-		$ git clone https://git-wip-us.apache.org/repos/asf/incubator-crunch.git
+		$ git clone https://git-wip-us.apache.org/repos/asf/crunch.git
 		$ cd incubator-crunch
 		$ mvn install -Phadoop-2 -DskipTests
 
