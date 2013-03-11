@@ -195,7 +195,7 @@ public class ThirdPassProcessor {
                     "<init>",
                     nullToEmptyCollection(node.getArgs()).size(),
                     MethodUsage.Kind.INSTANCE_CREATION,
-                    nodeJumpTarget(file, node)); // TODO: getNameExpr()
+                    nodeJumpTarget(file, node.getType()));
             super.visit(node, arg);
         }
 

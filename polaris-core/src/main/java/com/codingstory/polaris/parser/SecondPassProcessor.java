@@ -219,7 +219,7 @@ public final class SecondPassProcessor {
         @Override
         public void visit(final ConstructorDeclaration node, final Object arg) {
             Preconditions.checkNotNull(node);
-            processMethodDeclaration(null, "<init>", nodeJumpTarget(file, node),
+            processMethodDeclaration(null, "<init>", nodeJumpTarget(file, node.getNameExpr()),
                     node.getParameters(), node.getThrows(), new Runnable() {
                 @Override
                 public void run() {

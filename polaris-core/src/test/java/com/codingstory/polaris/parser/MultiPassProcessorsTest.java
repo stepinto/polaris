@@ -234,6 +234,7 @@ public class MultiPassProcessorsTest {
         String code = "class A { A() {} }";
         Method method = extractUniqueMethodFromCode(code);
         assertEquals("A.<init>", method.getHandle().getName());
+        assertEquals(spanOf(positionOf(0, 10), positionOf(0, 11)), method.getJumpTarget().getSpan());
     }
 
     @Test
@@ -406,6 +407,7 @@ public class MultiPassProcessorsTest {
                 extractFromCode(code).getUsages(),
                 MethodUsage.Kind.INSTANCE_CREATION);
         assertEquals("A.<init>", usage.getMethod().getMethod().getName());
+        assertEquals(spanOf(positionOf(1, 25), positionOf(1, 26)), usage.getJumpTarget().getSpan());
     }
 
     // TODO: testMethodCall_staticBlock()
