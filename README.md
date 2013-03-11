@@ -11,16 +11,26 @@ Prestiques
 * GNU Toolchain (gcc, g++, make, automake, autoconf, libtool...)
 * Protocol Buffers 2.40+
 
+Build Java Parser
+-----------------
+		$ git clone https://github.com/matozoid/javaparser.git
+		$ cd javaparser
+		$ mvn install
+		$ cd ..
+
 Build Apache Crunch
 -------------------
 		$ git clone https://git-wip-us.apache.org/repos/asf/crunch.git
-		$ cd incubator-crunch
+		$ cd crunch
 		$ mvn install -Phadoop-2 -DskipTests
+		$ cd ..
 
 Build Polaris
 -------------
 Go to Polaris project root and run:
 
+		$ git clone https://github.com/stepinto/polaris.git
+		$ cd polaris
 		$ mvn package
 
 Run

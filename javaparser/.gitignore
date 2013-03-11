@@ -1,8 +1,0 @@
-bin
-.manager
-target
-.settings
-*~
-/target
-.project
-.classpath

@@ -9,7 +9,6 @@
   <packaging>pom</packaging>
 
   <modules>
-    <module>javaparser</module>
     <module>polaris-core</module>
     <module>polaris-cli</module>
   </modules>
