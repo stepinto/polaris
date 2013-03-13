@@ -1,7 +1,6 @@
 package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.IdGenerator;
-import com.codingstory.polaris.SkipCheckingExceptionWrapper;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
@@ -18,7 +17,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -91,28 +89,24 @@ public class FirstPassProcessor {
         }
 
         private void processTypeAndPushStack(String simpleName, ClassType.Kind kind, Span span) {
-            try {
-                String fullName = makeTypeName(pkg, typeStack, simpleName);
-                ClassTypeHandle handle = ClassTypeHandle.newBuilder()
-                        .setId(idGenerator.next())
-                        .setName(fullName)
-                        .setResolved(true)
-                        .build();
-                LOG.debug("Allocated type handle: " + handle);
-                JumpTarget jumpTarget = JumpTarget.newBuilder()
-                        .setFile(file)
-                        .setSpan(span)
-                        .build();
-                ClassType clazz = ClassType.newBuilder()
-                        .setHandle(handle)
-                        .setKind(kind)
-                        .setJumpTarget(jumpTarget)
-                        .build();
-                typeStack.add(simpleName);
-                discoveredClasses.add(clazz);
-            } catch (IOException e) {
-                throw new SkipCheckingExceptionWrapper(e);
-            }
+            String fullName = makeTypeName(pkg, typeStack, simpleName);
+            ClassTypeHandle handle = ClassTypeHandle.newBuilder()
+                    .setId(idGenerator.next())
+                    .setName(fullName)
+                    .setResolved(true)
+                    .build();
+            LOG.debug("Allocated type handle: " + handle);
+            JumpTarget jumpTarget = JumpTarget.newBuilder()
+                    .setFile(file)
+                    .setSpan(span)
+                    .build();
+            ClassType clazz = ClassType.newBuilder()
+                    .setHandle(handle)
+                    .setKind(kind)
+                    .setJumpTarget(jumpTarget)
+                    .build();
+            typeStack.add(simpleName);
+            discoveredClasses.add(clazz);
         }
 
         public Result getResult() {

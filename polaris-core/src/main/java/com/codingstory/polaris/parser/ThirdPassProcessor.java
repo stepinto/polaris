@@ -1,5 +1,6 @@
 package com.codingstory.polaris.parser;
 
+import com.codingstory.polaris.IdGenerator;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
@@ -10,7 +11,9 @@ import com.codingstory.polaris.parser.ParserProtos.Span;
 import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.TypeKind;
 import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
+import com.codingstory.polaris.parser.ParserProtos.VariableHandle;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
+import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -53,11 +56,13 @@ public class ThirdPassProcessor {
         private final SymbolTable symbolTable;
         private final List<Usage> usages = Lists.newArrayList();
         private final String[] lines;
+        private final IdGenerator idGenerator;
 
-        private ThirdPassVisitor(FileHandle file, String source, SymbolTable symbolTable) {
+        private ThirdPassVisitor(FileHandle file, String source, SymbolTable symbolTable, IdGenerator idGenerator) {
             this.file = Preconditions.checkNotNull(file);
             this.symbolTable = Preconditions.checkNotNull(symbolTable);
             this.lines = source.split("\n");
+            this.idGenerator = Preconditions.checkNotNull(idGenerator);
         }
 
         @Override
@@ -145,19 +150,24 @@ public class ThirdPassProcessor {
             Preconditions.checkNotNull(node);
             TypeHandle type = symbolTable.resolveTypeHandle(
                     dropGenericTypes(node.getType().toString()));
-            ParserProtos.JumpTarget jumpTarget = nodeJumpTarget(file, node.getType());
+            JumpTarget jumpTarget = nodeJumpTarget(file, node.getType());
             usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
                     .setType(type)
                     .setKind(TypeUsage.Kind.LOCAL_VARIABLE)
                     .build(), jumpTarget, snippetLine(lines, jumpTarget)));
             for (VariableDeclarator decl : node.getVars()) {
                 String variableName = decl.getId().getName();
-                if (type.getKind() == TypeKind.CLASS && !type.getClazz().getResolved()) {
-                    LOG.debug("Skip unresolved class " + type.getClazz().getName()
-                            + " when parsing " + file.getPath());
-                    continue;
-                }
                 symbolTable.registerVariable(type ,variableName);
+                VariableHandle variableHandle = VariableHandle.newBuilder()
+                        .setId(idGenerator.next())
+                        .setName(variableName)
+                        .setScope(VariableHandle.Scope.LOCAL_VARIABLE)
+                        .build();
+                JumpTarget variableJumpTarget = nodeJumpTarget(file, decl.getId());
+                usages.add(TypeUtils.usageOf(VariableUsage.newBuilder()
+                        .setVariable(variableHandle)
+                        .setKind(VariableUsage.Kind.DECLARATION)
+                        .build(), variableJumpTarget, snippetLine(lines, variableJumpTarget)));
             }
             super.visit(node, arg);
         }
@@ -241,12 +251,14 @@ public class ThirdPassProcessor {
             FileHandle file,
             String source,
             SymbolTable symbolTable,
-            String pkg) throws IOException {
+            String pkg,
+            IdGenerator idGenerator) throws IOException {
         Preconditions.checkNotNull(file);
         Preconditions.checkNotNull(source);
         Preconditions.checkNotNull(pkg);
+        Preconditions.checkNotNull(idGenerator);
         symbolTable.enterCompilationUnit(pkg);
-        ThirdPassVisitor visitor = new ThirdPassVisitor(file, source, symbolTable);
+        ThirdPassVisitor visitor = new ThirdPassVisitor(file, source, symbolTable, idGenerator);
         ParserUtils.safeVisit(source, visitor);
         symbolTable.leaveCompilationUnit();
         return visitor.getUsages();

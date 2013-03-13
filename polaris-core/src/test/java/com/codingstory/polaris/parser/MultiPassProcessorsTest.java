@@ -5,7 +5,6 @@ import com.codingstory.polaris.SimpleIdGenerator;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.Field;
-import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.Method;
 import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
@@ -13,6 +12,8 @@ import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.TypeKind;
 import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
+import com.codingstory.polaris.parser.ParserProtos.VariableHandle;
+import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -258,6 +259,7 @@ public class MultiPassProcessorsTest {
         ClassType clazz = Iterables.getOnlyElement(result.getClassTypes());
         Field field = Iterables.getOnlyElement(clazz.getFieldsList());
         assertEquals("pkg.A.n", field.getHandle().getName());
+        assertEquals(VariableHandle.Scope.FIELD, field.getHandle().getScope());
         assertEquals(handleOf(PrimitiveTypes.INTEGER), field.getType());
         Usage fieldDeclaration = findUniqueVariableUsageByKind(result.getUsages(), VariableUsage.Kind.DECLARATION);
         assertEquals(field.getHandle(), fieldDeclaration.getVariable().getVariable());
@@ -318,9 +320,13 @@ public class MultiPassProcessorsTest {
     @Test
     public void testLocalVariable() throws IOException {
         String code = "package pkg; class A { void f() { B n; } }";
-        Usage usage = findUniqueTypeUsageByKind(
-                extractFromCode(code).getUsages(), TypeUsage.Kind.LOCAL_VARIABLE);
-        assertEquals("B", usage.getType().getType().getClazz().getName());
+        List<Usage> usages = extractFromCode(code).getUsages();
+        TypeUsage typeUsage = findUniqueTypeUsageByKind(usages, TypeUsage.Kind.LOCAL_VARIABLE).getType();
+        VariableUsage variableUsage =
+                findUniqueVariableUsageByKind(usages, VariableUsage.Kind.DECLARATION).getVariable();
+        assertEquals("B", typeUsage.getType().getClazz().getName());
+        assertEquals("n", variableUsage.getVariable().getName());
+        assertEquals(VariableHandle.Scope.LOCAL_VARIABLE, variableUsage.getVariable().getScope());
         // TODO: Test local variable id.
     }
 
@@ -434,7 +440,8 @@ public class MultiPassProcessorsTest {
                 fakeFile,
                 code,
                 createSymbolTableAndRegisterClasses(result2.getClassTypes()),
-                result1.getPackage());
+                result1.getPackage(),
+                ID_GENERATOR);
         result2.getUsages().addAll(result3); // temp hack
         return result2;
     }
@@ -507,7 +514,7 @@ public class MultiPassProcessorsTest {
         return Iterables.getOnlyElement(filterMethodUsagesByKind(usages, kind));
     }
 
-    private List<Usage> filterFieldUsages(List<Usage> usages) {
+    private List<Usage> filterVariableUsages(List<Usage> usages) {
         List<Usage> result = Lists.newArrayList();
         for (Usage usage : usages) {
             if (usage.getKind() == Usage.Kind.VARIABLE) {
@@ -519,7 +526,7 @@ public class MultiPassProcessorsTest {
 
     private List<Usage> filterVariableUsagesByKind(List<Usage> usages, VariableUsage.Kind kind) {
         List<Usage> result = Lists.newArrayList();
-        for (Usage u : filterFieldUsages(usages)) {
+        for (Usage u : filterVariableUsages(usages)) {
             if (u.getKind() == Usage.Kind.VARIABLE) {
                 result.add(u);
             }

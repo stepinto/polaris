@@ -549,7 +549,8 @@ public class IndexPipeline implements Serializable {
                                     fileHandle,
                                     fileContent.getContent(),
                                     createSymbolTable(currentFile, importedClasses),
-                                    currentFile.getPackage());
+                                    currentFile.getPackage(),
+                                    ID_GENERATOR);
                             return currentFile.toBuilder()
                                     .clearUsages()
                                     .addAllUsages(result)

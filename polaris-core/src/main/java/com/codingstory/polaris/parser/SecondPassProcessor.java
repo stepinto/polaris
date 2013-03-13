@@ -1,7 +1,6 @@
 package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.IdGenerator;
-import com.codingstory.polaris.SkipCheckingExceptionWrapper;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.Field;
@@ -285,7 +284,7 @@ public final class SecondPassProcessor {
             }
             String fullMemberName = currentTypeName() + "." + methodName;
             MethodHandle methodHandle = MethodHandle.newBuilder()
-                    .setId(generateId())
+                    .setId(idGenerator.next())
                     .setName(fullMemberName)
                     .addAllParameters(parameterTypes)
                     .build();
@@ -327,7 +326,7 @@ public final class SecondPassProcessor {
                 JumpTarget fieldTarget = nodeJumpTarget(file, varDecl.getId());
                 String fullMemberName = currentTypeName() + "." + varDecl.getId().getName();
                 VariableHandle fieldHandle = VariableHandle.newBuilder()
-                        .setId(generateId())
+                        .setId(idGenerator.next())
                         .setName(fullMemberName)
                         .build();
                 Field field = Field.newBuilder()
@@ -375,14 +374,6 @@ public final class SecondPassProcessor {
         public List<Usage> getUsages() { return usages; }
 
         public List<ClassType> getClassTypes() { return discoveredClasses; }
-
-        private long generateId() {
-            try {
-                return idGenerator.next();
-            } catch (IOException e) {
-                throw new SkipCheckingExceptionWrapper(e);
-            }
-        }
 
         public List<String> getOuterClassNames() {
             List<String> results = Lists.newArrayListWithCapacity(typeStack.size());

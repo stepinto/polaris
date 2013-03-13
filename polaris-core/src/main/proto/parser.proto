@@ -43,6 +43,12 @@ message ClassTypeHandle {
 }
 
 message VariableHandle {
+    enum Scope {
+        FIELD = 1;
+        PARAMETER = 2;
+        LOCAL_VARIABLE = 3;
+    }
+    optional Scope scope = 3;
     optional int64 id = 1;
     optional string name = 2;
 }

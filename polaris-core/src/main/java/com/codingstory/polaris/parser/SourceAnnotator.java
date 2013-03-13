@@ -102,7 +102,7 @@ public class SourceAnnotator {
             out.print(escape(text));
         } else if (usageKind == Usage.Kind.VARIABLE) {
             VariableUsage variableUsage = usage.getVariable();
-            out.printf("<variable-usage field-id=\"%d\" kind=\"%s\">%s</field-usage>",
+            out.printf("<variable-usage variable-id=\"%d\" kind=\"%s\">%s</variable-usage>",
                     variableUsage.getVariable().getId(),
                     variableUsage.getKind().name(),
                     escape(text));
