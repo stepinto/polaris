@@ -42,7 +42,7 @@ message ClassTypeHandle {
     optional bool resolved = 3;
 }
 
-message FieldHandle {
+message VariableHandle {
     optional int64 id = 1;
     optional string name = 2;
 }
@@ -54,7 +54,7 @@ message MethodHandle {
 }
 
 message Field {
-    optional FieldHandle handle = 1;
+    optional VariableHandle handle = 1;
     optional TypeHandle type = 2;
     optional JumpTarget jumpTarget = 3;
     // TODO: modifiers
@@ -132,25 +132,26 @@ message Usage {
     enum Kind {
         TYPE = 1;
         METHOD = 2;
-        FIELD = 3;
+        VARIABLE = 3;
     }
     optional Kind kind = 1;
 
     // Exactly one of below appears.
     optional TypeUsage type = 2;
     optional MethodUsage method = 3;
-    optional FieldUsage field = 4;
+    optional VariableUsage variable = 4;
 
     optional JumpTarget jumpTarget = 5;
     optional string snippet = 6;
 }
 
-message FieldUsage {
+message VariableUsage {
     enum Kind {
-        FIELD_DECLARATION = 1;
-        FIELD_ACCESS = 2;
+        DECLARATION = 1;
+        READ = 2;
+        WRITE = 3;
     }
-    optional FieldHandle field = 1;
+    optional VariableHandle variable = 1;
     optional Kind kind = 3;
     // OBSOLETED optional Span span = 2;
     // OBSOLETED optional JumpTarget jumpTarget = 4;

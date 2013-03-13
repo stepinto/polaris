@@ -5,7 +5,7 @@ import com.codingstory.polaris.SimpleIdGenerator;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.Field;
-import com.codingstory.polaris.parser.ParserProtos.FieldUsage;
+import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.Method;
 import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
@@ -259,8 +259,8 @@ public class MultiPassProcessorsTest {
         Field field = Iterables.getOnlyElement(clazz.getFieldsList());
         assertEquals("pkg.A.n", field.getHandle().getName());
         assertEquals(handleOf(PrimitiveTypes.INTEGER), field.getType());
-        Usage fieldDeclaration = findUniqueFieldUsageByKind(result.getUsages(), FieldUsage.Kind.FIELD_DECLARATION);
-        assertEquals(field.getHandle(), fieldDeclaration.getField().getField());
+        Usage fieldDeclaration = findUniqueVariableUsageByKind(result.getUsages(), VariableUsage.Kind.DECLARATION);
+        assertEquals(field.getHandle(), fieldDeclaration.getVariable().getVariable());
         assertEquals(spanOf(positionOf(0, 27), positionOf(0, 28)), fieldDeclaration.getJumpTarget().getSpan());
         Usage usage = findUniqueTypeUsageByKind(result.getUsages(), TypeUsage.Kind.FIELD);
         assertEquals(spanOf(positionOf(0, 23), positionOf(0, 26)), usage.getJumpTarget().getSpan());
@@ -510,24 +510,24 @@ public class MultiPassProcessorsTest {
     private List<Usage> filterFieldUsages(List<Usage> usages) {
         List<Usage> result = Lists.newArrayList();
         for (Usage usage : usages) {
-            if (usage.getKind() == Usage.Kind.FIELD) {
+            if (usage.getKind() == Usage.Kind.VARIABLE) {
                 result.add(usage);
             }
         }
         return result;
     }
 
-    private List<Usage> filterFieldUsagesByKind(List<Usage> usages, FieldUsage.Kind kind) {
+    private List<Usage> filterVariableUsagesByKind(List<Usage> usages, VariableUsage.Kind kind) {
         List<Usage> result = Lists.newArrayList();
         for (Usage u : filterFieldUsages(usages)) {
-            if (u.getKind() == Usage.Kind.FIELD) {
+            if (u.getKind() == Usage.Kind.VARIABLE) {
                 result.add(u);
             }
         }
         return result;
     }
 
-    private Usage findUniqueFieldUsageByKind(List<Usage> usages, FieldUsage.Kind kind) {
-        return Iterables.getOnlyElement(filterFieldUsagesByKind(usages, kind));
+    private Usage findUniqueVariableUsageByKind(List<Usage> usages, VariableUsage.Kind kind) {
+        return Iterables.getOnlyElement(filterVariableUsagesByKind(usages, kind));
     }
 }

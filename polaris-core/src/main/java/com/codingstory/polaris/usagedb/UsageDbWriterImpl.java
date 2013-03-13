@@ -37,8 +37,8 @@ public class UsageDbWriterImpl implements UsageDbWriter {
             case METHOD:
                 id = usage.getMethod().getMethod().getId();
                 break;
-            case FIELD:
-                id = usage.getField().getField().getId();
+            case VARIABLE:
+                id = usage.getVariable().getVariable().getId();
                 break;
             default:
                 throw new AssertionError("Unknown kind: " + usage.getKind());

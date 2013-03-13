@@ -1,7 +1,7 @@
 package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
-import com.codingstory.polaris.parser.ParserProtos.FieldUsage;
+import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
 import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
 import com.codingstory.polaris.parser.ParserProtos.Position;
 import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
@@ -100,11 +100,11 @@ public class SourceAnnotator {
             }
             // Don't show links for primitive or unresolved types.
             out.print(escape(text));
-        } else if (usageKind == Usage.Kind.FIELD) {
-            FieldUsage fieldUsage = usage.getField();
-            out.printf("<field-usage field-id=\"%d\" kind=\"%s\">%s</field-usage>",
-                    fieldUsage.getField().getId(),
-                    fieldUsage.getKind().name(),
+        } else if (usageKind == Usage.Kind.VARIABLE) {
+            VariableUsage variableUsage = usage.getVariable();
+            out.printf("<variable-usage field-id=\"%d\" kind=\"%s\">%s</field-usage>",
+                    variableUsage.getVariable().getId(),
+                    variableUsage.getKind().name(),
                     escape(text));
         } else if (usageKind == Usage.Kind.METHOD) {
             MethodUsage methodUsage = usage.getMethod();

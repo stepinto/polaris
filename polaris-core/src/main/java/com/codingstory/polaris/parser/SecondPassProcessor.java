@@ -5,8 +5,8 @@ import com.codingstory.polaris.SkipCheckingExceptionWrapper;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.Field;
-import com.codingstory.polaris.parser.ParserProtos.FieldHandle;
-import com.codingstory.polaris.parser.ParserProtos.FieldUsage;
+import com.codingstory.polaris.parser.ParserProtos.VariableHandle;
+import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
 import com.codingstory.polaris.parser.ParserProtos.Method;
@@ -326,7 +326,7 @@ public final class SecondPassProcessor {
             for (VariableDeclarator varDecl : node.getVariables()) {
                 JumpTarget fieldTarget = nodeJumpTarget(file, varDecl.getId());
                 String fullMemberName = currentTypeName() + "." + varDecl.getId().getName();
-                FieldHandle fieldHandle = FieldHandle.newBuilder()
+                VariableHandle fieldHandle = VariableHandle.newBuilder()
                         .setId(generateId())
                         .setName(fullMemberName)
                         .build();
@@ -336,9 +336,9 @@ public final class SecondPassProcessor {
                         .setJumpTarget(fieldTarget)
                         .build();
                 addFieldToCurrentType(field);
-                usages.add(TypeUtils.usageOf(FieldUsage.newBuilder()
-                        .setField(field.getHandle())
-                        .setKind(FieldUsage.Kind.FIELD_DECLARATION)
+                usages.add(TypeUtils.usageOf(VariableUsage.newBuilder()
+                        .setVariable(field.getHandle())
+                        .setKind(VariableUsage.Kind.DECLARATION)
                         .build(), fieldTarget, snippetLine(lines, fieldTarget)));
             }
             super.visit(node, arg);

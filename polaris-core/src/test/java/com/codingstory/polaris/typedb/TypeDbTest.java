@@ -5,7 +5,7 @@ import com.codingstory.polaris.SimpleIdGenerator;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.Field;
-import com.codingstory.polaris.parser.ParserProtos.FieldHandle;
+import com.codingstory.polaris.parser.ParserProtos.VariableHandle;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
 import com.codingstory.polaris.parser.ParserProtos.Method;
@@ -231,7 +231,7 @@ public class TypeDbTest {
     }
 
     private ClassType createClassWithOneField(String className, String fieldName) throws IOException {
-        FieldHandle fieldHandle = FieldHandle.newBuilder()
+        VariableHandle fieldHandle = VariableHandle.newBuilder()
                 .setId(ID_GENERATOR.next())
                 .setName(className + "." + fieldName)
                 .build();

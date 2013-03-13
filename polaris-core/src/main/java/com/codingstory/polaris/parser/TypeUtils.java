@@ -1,7 +1,7 @@
 package com.codingstory.polaris.parser;
 
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
-import com.codingstory.polaris.parser.ParserProtos.FieldUsage;
+import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
 import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
 import com.codingstory.polaris.parser.ParserProtos.PrimitiveType;
 import com.codingstory.polaris.parser.ParserProtos.Type;
@@ -117,11 +117,11 @@ public final class TypeUtils {
                 .build();
     }
 
-    public static Usage usageOf(FieldUsage fieldUsage, JumpTarget jumpTarget, String snippet) {
-        Preconditions.checkNotNull(fieldUsage);
+    public static Usage usageOf(VariableUsage variableUsage, JumpTarget jumpTarget, String snippet) {
+        Preconditions.checkNotNull(variableUsage);
         return Usage.newBuilder()
-                .setKind(Usage.Kind.FIELD)
-                .setField(fieldUsage)
+                .setKind(Usage.Kind.VARIABLE)
+                .setVariable(variableUsage)
                 .setJumpTarget(jumpTarget)
                 .setSnippet(snippet)
                 .build();
