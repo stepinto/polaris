@@ -2,7 +2,7 @@ package com.codingstory.polaris;
 
 import com.codingstory.polaris.indexing.IndexPathUtils;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
-import com.codingstory.polaris.parser.ParserProtos.Field;
+import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.Method;
 import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
@@ -201,8 +201,8 @@ public class CodeSearchEndToEndTest {
         TypeDb typeDb = new TypeDbImpl(IndexPathUtils.getTypeDbPath(indexDir));
         ClassType class1 = Iterables.getOnlyElement(typeDb.getTypeByName("project1.A", "project1", 2));
         ClassType class2 = Iterables.getOnlyElement(typeDb.getTypeByName("project2.B", "project2", 2));
-        Field field1 = Iterables.getOnlyElement(class1.getFieldsList());
-        Field field2 = Iterables.getOnlyElement(class2.getFieldsList());
+        Variable field1 = Iterables.getOnlyElement(class1.getFieldsList());
+        Variable field2 = Iterables.getOnlyElement(class2.getFieldsList());
         assertEquals(class2.getHandle(), field1.getType().getClazz());
         assertEquals(class1.getHandle(), field2.getType().getClazz());
     }

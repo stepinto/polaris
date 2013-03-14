@@ -3,7 +3,7 @@ package com.codingstory.polaris.typedb;
 import com.codingstory.polaris.IdUtils;
 import com.codingstory.polaris.SnappyUtils;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
-import com.codingstory.polaris.parser.ParserProtos.Field;
+import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.parser.ParserProtos.Method;
 import com.codingstory.polaris.search.SearchProtos.Hit;
 import com.codingstory.polaris.typedb.TypeDbProtos.TypeData;
@@ -115,7 +115,7 @@ public class TypeDbImpl implements TypeDb {
     }
 
     @Override
-    public Field getFieldById(long id) throws IOException {
+    public Variable getFieldById(long id) throws IOException {
         IdUtils.checkValid(id);
         Query query = new TermQuery(new Term(TypeDbIndexedField.FIELD_ID, String.valueOf(id)));
         TopDocs hits = searcher.search(query, 2);
@@ -126,7 +126,7 @@ public class TypeDbImpl implements TypeDb {
             LOG.warn("Ambiguous field id: " + id);
         }
         ClassType classType = retrieveDocument(hits.scoreDocs[0].doc);
-        for (Field field : classType.getFieldsList()) {
+        for (Variable field : classType.getFieldsList()) {
             if (field.getHandle().getId() == id) {
                 return field;
             }

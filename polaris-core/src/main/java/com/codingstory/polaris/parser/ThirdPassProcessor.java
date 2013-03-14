@@ -3,6 +3,7 @@ package com.codingstory.polaris.parser;
 import com.codingstory.polaris.IdGenerator;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
+import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
 import com.codingstory.polaris.parser.ParserProtos.Method;
@@ -11,8 +12,8 @@ import com.codingstory.polaris.parser.ParserProtos.Span;
 import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.TypeKind;
 import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
-import com.codingstory.polaris.parser.ParserProtos.VariableHandle;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
+import com.codingstory.polaris.parser.ParserProtos.VariableHandle;
 import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -156,14 +157,19 @@ public class ThirdPassProcessor {
                     .setKind(TypeUsage.Kind.LOCAL_VARIABLE)
                     .build(), jumpTarget, snippetLine(lines, jumpTarget)));
             for (VariableDeclarator decl : node.getVars()) {
+                JumpTarget variableJumpTarget = nodeJumpTarget(file, decl.getId());
                 String variableName = decl.getId().getName();
-                symbolTable.registerVariable(type ,variableName);
                 VariableHandle variableHandle = VariableHandle.newBuilder()
                         .setId(idGenerator.next())
                         .setName(variableName)
-                        .setScope(VariableHandle.Scope.LOCAL_VARIABLE)
                         .build();
-                JumpTarget variableJumpTarget = nodeJumpTarget(file, decl.getId());
+                Variable variable = Variable.newBuilder()
+                        .setHandle(variableHandle)
+                        .setJumpTarget(jumpTarget)
+                        .setKind(Variable.Kind.LOCAL_VARIABLE)
+                        .setType(type)
+                        .build();
+                symbolTable.registerVariable(variable);
                 usages.add(TypeUtils.usageOf(VariableUsage.newBuilder()
                         .setVariable(variableHandle)
                         .setKind(VariableUsage.Kind.DECLARATION)
@@ -181,9 +187,11 @@ public class ThirdPassProcessor {
                 type = handleOf(symbolTable.currentClass().getHandle());
             } else if (scope instanceof NameExpr) {
                 String name = ((NameExpr) scope).getName();
-                type = symbolTable.getVariableType(name);
-                if (type == null) {
-                    type = symbolTable.resolveTypeHandle(name);
+                Variable variable = symbolTable.getVariable(name);
+                if (variable != null) {
+                    type = variable.getType();
+                } else {
+                    type = symbolTable.resolveTypeHandle(name); // calling static method
                 }
             } else {
                 // TODO: Handle more complex expressions.
@@ -240,6 +248,20 @@ public class ThirdPassProcessor {
             } else {
                 return null; // TODO: Support overload.
             }
+        }
+
+        @Override
+        public void visit(NameExpr node, Void arg) {
+            super.visit(node, arg);
+            Variable variable =  symbolTable.getVariable(node.getName());
+            if (variable == null) {
+                return;
+            }
+            JumpTarget jumpTarget = nodeJumpTarget(file, node);
+            usages.add(usageOf(VariableUsage.newBuilder()
+                    .setKind(VariableUsage.Kind.ACCESS)
+                    .setVariable(variable.getHandle())
+                    .build(), jumpTarget, snippetLine(lines, jumpTarget)));
         }
 
         public List<Usage> getUsages() {

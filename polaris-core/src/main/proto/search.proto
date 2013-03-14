@@ -114,7 +114,7 @@ message GetFieldRequest {
 
 message GetFieldResponse {
     optional StatusCode status = 1;
-    optional Field field = 2;
+    optional Variable field = 2;
 }
 
 message GetMethodRequest {

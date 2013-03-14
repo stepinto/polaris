@@ -4,7 +4,6 @@ import com.codingstory.polaris.IdGenerator;
 import com.codingstory.polaris.SimpleIdGenerator;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
-import com.codingstory.polaris.parser.ParserProtos.Field;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.Method;
 import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
@@ -12,7 +11,7 @@ import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.TypeKind;
 import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
-import com.codingstory.polaris.parser.ParserProtos.VariableHandle;
+import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
@@ -203,12 +202,14 @@ public class MultiPassProcessorsTest {
         assertEquals("A.f", method.getHandle().getName());
         assertEquals("B", method.getReturnType().getClazz().getName());
         assertEquals(2, method.getParametersCount());
-        Method.Parameter parameter0 = method.getParameters(0);
+        Variable parameter0 = method.getParameters(0);
         assertEquals("C", parameter0.getType().getClazz().getName());
-        assertEquals("c", parameter0.getName());
-        Method.Parameter parameter1 = method.getParameters(1);
+        assertEquals("c", parameter0.getHandle().getName());
+        assertEquals(Variable.Kind.PARAMETER, parameter0.getKind());
+        Variable parameter1 = method.getParameters(1);
         assertEquals("D", parameter1.getType().getClazz().getName());
-        assertEquals("d", parameter1.getName());
+        assertEquals("d", parameter1.getHandle().getName());
+        assertEquals(Variable.Kind.PARAMETER, parameter1.getKind());
         assertEquals(2, method.getExceptionsCount());
         TypeHandle exceptionType0 = method.getExceptions(0);
         assertEquals("E", exceptionType0.getClazz().getName());
@@ -257,9 +258,9 @@ public class MultiPassProcessorsTest {
         String code = "package pkg; class A { int n; }";
         SecondPassProcessor.Result result = extractFromCode(code);
         ClassType clazz = Iterables.getOnlyElement(result.getClassTypes());
-        Field field = Iterables.getOnlyElement(clazz.getFieldsList());
+        Variable field = Iterables.getOnlyElement(clazz.getFieldsList());
         assertEquals("pkg.A.n", field.getHandle().getName());
-        assertEquals(VariableHandle.Scope.FIELD, field.getHandle().getScope());
+        assertEquals(Variable.Kind.FIELD, field.getKind());
         assertEquals(handleOf(PrimitiveTypes.INTEGER), field.getType());
         Usage fieldDeclaration = findUniqueVariableUsageByKind(result.getUsages(), VariableUsage.Kind.DECLARATION);
         assertEquals(field.getHandle(), fieldDeclaration.getVariable().getVariable());
@@ -272,7 +273,7 @@ public class MultiPassProcessorsTest {
     @Test
     public void testField_fullyQualifiedType() throws IOException {
         String code = "class A { java.util.List l; }";
-        Field field = extractUniqueFieldFromCode(code);
+        Variable field = extractUniqueFieldFromCode(code);
         assertEquals("A.l", field.getHandle().getName());
         TypeHandle type = field.getType();
         assertEquals(TypeKind.CLASS, type.getKind());
@@ -284,7 +285,7 @@ public class MultiPassProcessorsTest {
     @Test
     public void testField_unqualifiedType() throws IOException {
         String code = "import java.util.List; class A { List l; }";
-        Field field = extractUniqueFieldFromCode(code);
+        Variable field = extractUniqueFieldFromCode(code);
         assertEquals("A.l", field.getHandle().getName());
         TypeHandle type = field.getType();
         assertEquals(TypeKind.CLASS, type.getKind());
@@ -297,7 +298,7 @@ public class MultiPassProcessorsTest {
     public void testField_genericType() throws IOException {
         String code = "class A { List<Integer> m; }";
         SecondPassProcessor.Result result = extractFromCode(code);
-        Field field = Iterables.getOnlyElement(
+        Variable field = Iterables.getOnlyElement(
                 Iterables.getOnlyElement(result.getClassTypes()).getFieldsList());
         assertEquals("A.m", field.getHandle().getName());
         Usage usage = findUniqueTypeUsageByKind(result.getUsages(), TypeUsage.Kind.FIELD);
@@ -312,7 +313,7 @@ public class MultiPassProcessorsTest {
     @Test
     public void testField_initialized() throws IOException {
         String code = "class A { int m = 1; }";
-        Field field = extractUniqueFieldFromCode(code);
+        Variable field = extractUniqueFieldFromCode(code);
         assertEquals("A.m", field.getHandle().getName());
     }
 
@@ -326,12 +327,29 @@ public class MultiPassProcessorsTest {
                 findUniqueVariableUsageByKind(usages, VariableUsage.Kind.DECLARATION).getVariable();
         assertEquals("B", typeUsage.getType().getClazz().getName());
         assertEquals("n", variableUsage.getVariable().getName());
-        assertEquals(VariableHandle.Scope.LOCAL_VARIABLE, variableUsage.getVariable().getScope());
+        // assertEquals(Variable.Kind.LOCAL_VARIABLE, variableUsage.getVariable().getScope());
         // TODO: Test local variable id.
     }
 
     // TODO: testLocalVariable_multiple
     // TODO: testLocalVariable_array
+
+    @Test
+    public void testLocalVariable_access() throws IOException {
+        String code = "class A { void f() { int n; n = 10; } }";
+        VariableUsage usage = findUniqueVariableUsageByKind(
+                extractFromCode(code).getUsages(), VariableUsage.Kind.ACCESS).getVariable();
+        assertEquals("n", usage.getVariable().getName());
+        // assertEquals(Variable.Kind.LOCAL_VARIABLE, usage.getVariable().getKind());
+    }
+
+    @Test
+    public void testParameter_access() throws IOException {
+        String code = "class A { void f(int n) { n = 10; } }";
+        VariableUsage usage = findUniqueVariableUsageByKind(
+                extractFromCode(code).getUsages(), VariableUsage.Kind.ACCESS).getVariable();
+        assertEquals("n", usage.getVariable().getName());
+    }
 
     @Test
     public void testMethodCall_implicitThis() throws IOException {
@@ -424,7 +442,6 @@ public class MultiPassProcessorsTest {
                 .setProject("project")
                 .setPath("/file")
                 .build();
-        SymbolTable symbolTable = new SymbolTable();
         FirstPassProcessor.Result result1 = FirstPassProcessor.process(
                 fakeFile,
                 code,
@@ -462,7 +479,7 @@ public class MultiPassProcessorsTest {
         return Iterables.getOnlyElement(extractUniqueTypeFromCode(code).getMethodsList());
     }
 
-    public static Field extractUniqueFieldFromCode(String code) throws IOException {
+    public static Variable extractUniqueFieldFromCode(String code) throws IOException {
         return Iterables.getOnlyElement(extractUniqueTypeFromCode(code).getFieldsList());
     }
 
@@ -527,7 +544,7 @@ public class MultiPassProcessorsTest {
     private List<Usage> filterVariableUsagesByKind(List<Usage> usages, VariableUsage.Kind kind) {
         List<Usage> result = Lists.newArrayList();
         for (Usage u : filterVariableUsages(usages)) {
-            if (u.getKind() == Usage.Kind.VARIABLE) {
+            if (u.getKind() == Usage.Kind.VARIABLE && u.getVariable().getKind() == kind) {
                 result.add(u);
             }
         }

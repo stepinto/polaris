@@ -3,7 +3,7 @@ package com.codingstory.polaris.parser;
 import com.codingstory.polaris.IdGenerator;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
-import com.codingstory.polaris.parser.ParserProtos.Field;
+import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.parser.ParserProtos.VariableHandle;
 import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
@@ -257,7 +257,7 @@ public final class SecondPassProcessor {
                         .setType(returnType)
                         .build(), returnJumpTarget, snippetLine(lines, returnJumpTarget)));
             }
-            List<Method.Parameter> parameters = Lists.newArrayList();
+            List<Variable> parameters = Lists.newArrayList();
             List<TypeHandle> parameterTypes = Lists.newArrayList();
             for (Parameter parameter : nullToEmptyList(methodParameters)) {
                 TypeHandle parameterType = symbolTable.resolveTypeHandle(parameter.getType().toString());
@@ -267,9 +267,14 @@ public final class SecondPassProcessor {
                         .setKind(TypeUsage.Kind.METHOD_SIGNATURE)
                         .build(), parameterJumpTarget, snippetLine(lines, parameterJumpTarget)));
                 parameterTypes.add(parameterType);
-                parameters.add(Method.Parameter.newBuilder()
-                        .setType(parameterType)
+                VariableHandle handle = VariableHandle.newBuilder()
+                        .setId(idGenerator.next())
                         .setName(parameter.getId().getName())
+                        .build();
+                parameters.add(Variable.newBuilder()
+                        .setType(parameterType)
+                        .setHandle(handle)
+                        .setKind(Variable.Kind.PARAMETER)
                         .build());
             }
             List<TypeHandle> exceptions = Lists.newArrayList();
@@ -329,9 +334,10 @@ public final class SecondPassProcessor {
                         .setId(idGenerator.next())
                         .setName(fullMemberName)
                         .build();
-                Field field = Field.newBuilder()
+                Variable field = Variable.newBuilder()
                         .setHandle(fieldHandle)
                         .setType(type)
+                        .setKind(Variable.Kind.FIELD)
                         .setJumpTarget(fieldTarget)
                         .build();
                 addFieldToCurrentType(field);
@@ -343,7 +349,7 @@ public final class SecondPassProcessor {
             super.visit(node, arg);
         }
 
-        public void addFieldToCurrentType(Field field) {
+        public void addFieldToCurrentType(Variable field) {
             ClassType top = typeStack.pop();
             typeStack.push(top.toBuilder()
                     .addFields(field)

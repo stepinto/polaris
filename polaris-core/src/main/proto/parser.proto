@@ -43,12 +43,6 @@ message ClassTypeHandle {
 }
 
 message VariableHandle {
-    enum Scope {
-        FIELD = 1;
-        PARAMETER = 2;
-        LOCAL_VARIABLE = 3;
-    }
-    optional Scope scope = 3;
     optional int64 id = 1;
     optional string name = 2;
 }
@@ -59,23 +53,26 @@ message MethodHandle {
     repeated TypeHandle parameters = 3;
 }
 
-message Field {
+message Variable {
+    enum Kind {
+        FIELD = 1;
+        PARAMETER = 2;
+        LOCAL_VARIABLE = 3;
+    }
     optional VariableHandle handle = 1;
+    optional Kind kind = 4;
     optional TypeHandle type = 2;
     optional JumpTarget jumpTarget = 3;
     // TODO: modifiers
 }
 
 message Method {
-    message Parameter {
-        optional string name = 1;
-        optional TypeHandle type = 2;
-    }
     optional MethodHandle handle = 1;
     optional TypeHandle returnType = 2;
-    repeated Parameter parameters = 3;
+    repeated Variable parameters = 6;
     repeated TypeHandle exceptions = 4;
     optional JumpTarget jumpTarget = 5;
+    // OBSOLETED: repeated Parameter parameters = 3;
 }
 
 message Type {
@@ -109,7 +106,7 @@ message ClassType {
     optional ClassTypeHandle handle = 1;
     optional Kind kind = 2;
     repeated TypeHandle superTypes = 3;
-    repeated Field fields = 4;
+    repeated Variable fields = 4;
     repeated Method methods = 5;
     optional string javaDoc = 6;
     optional JumpTarget jumpTarget = 7;
@@ -154,8 +151,8 @@ message Usage {
 message VariableUsage {
     enum Kind {
         DECLARATION = 1;
-        READ = 2;
-        WRITE = 3;
+        ACCESS = 2;
+        // TODO: READ, WRITE
     }
     optional VariableHandle variable = 1;
     optional Kind kind = 3;

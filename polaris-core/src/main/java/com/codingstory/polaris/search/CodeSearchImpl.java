@@ -2,7 +2,7 @@ package com.codingstory.polaris.search;
 
 import com.codingstory.polaris.indexing.IndexPathUtils;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
-import com.codingstory.polaris.parser.ParserProtos.Field;
+import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.parser.ParserProtos.Method;
 import com.codingstory.polaris.parser.ParserProtos.SourceFile;
 import com.codingstory.polaris.search.SearchProtos.CodeSearch;
@@ -235,7 +235,7 @@ public class CodeSearchImpl implements CodeSearch.BlockingInterface, Closeable {
                 resp.setStatus(StatusCode.MISSING_FIELDS);
                 return resp.build();
             }
-            Field field = typeDb.getFieldById(req.getFieldId());
+            Variable field = typeDb.getFieldById(req.getFieldId());
             if (field == null) {
                 resp.setStatus(StatusCode.FILE_NOT_FOUND);
                 return resp.build();

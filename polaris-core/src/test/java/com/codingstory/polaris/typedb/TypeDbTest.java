@@ -4,7 +4,7 @@ import com.codingstory.polaris.IdGenerator;
 import com.codingstory.polaris.SimpleIdGenerator;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
-import com.codingstory.polaris.parser.ParserProtos.Field;
+import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.parser.ParserProtos.VariableHandle;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
@@ -172,7 +172,7 @@ public class TypeDbTest {
         w.close();
         TypeDb r = new TypeDbImpl(tempDir);
         for (ClassType type : types) {
-            Field f = r.getFieldById(Iterables.getOnlyElement(type.getFieldsList()).getHandle().getId());
+            Variable f = r.getFieldById(Iterables.getOnlyElement(type.getFieldsList()).getHandle().getId());
             assertNotNull(f);
             assertEquals(type.getHandle().getName() + ".myField", f.getHandle().getName());
         }
@@ -239,7 +239,7 @@ public class TypeDbTest {
                 .setFile(FAKE_FILE)
                 .setSpan(TypeUtils.ZERO_SPAN)
                 .build();
-        Field field = Field.newBuilder()
+        Variable field = Variable.newBuilder()
                 .setType(handleOf(PrimitiveTypes.INTEGER))
                 .setHandle(fieldHandle)
                 .setJumpTarget(jumpTarget)

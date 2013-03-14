@@ -1,10 +1,10 @@
 package com.codingstory.polaris.typedb;
 
 import com.codingstory.polaris.SnappyUtils;
-import com.codingstory.polaris.parser.ParserProtos;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.Method;
+import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.parser.TypeUtils;
 import com.codingstory.polaris.typedb.TypeDbProtos.TypeData;
 import com.google.common.base.Preconditions;
@@ -47,7 +47,7 @@ public class TypeDbWriterImpl implements TypeDbWriter {
                 getAcronym(simpleTypeName).toLowerCase(), Field.Store.YES, Field.Index.ANALYZED));
         document.add(new Field(TypeDbIndexedField.FILE_ID, String.valueOf(type.getJumpTarget().getFile().getId()),
                 Field.Store.YES, org.apache.lucene.document.Field.Index.ANALYZED));
-        for (ParserProtos.Field field : type.getFieldsList()) {
+        for (Variable field : type.getFieldsList()) {
             document.add(new Field(TypeDbIndexedField.FIELD_ID, String.valueOf(field.getHandle().getId()),
                     Field.Store.YES, Field.Index.ANALYZED));
         }
