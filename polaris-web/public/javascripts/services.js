@@ -148,6 +148,9 @@ angular.module('polarisServices', [])
       },
       'method': function(id) {
         return '/goto/method/' + id;
+      },
+      'variable': function(id) {
+        return '/goto/variable/' + id;
       }
     };
   });

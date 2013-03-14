@@ -230,6 +230,11 @@ angular.module('polarisDirectives', ['polarisServices'])
                 /<method-usage /g,
                 '<method-usage find-usages="findMethodUsagesInternal(methodId)" ' +
                 'go-to-definition="goToMethodDefinitionInternal(methodId)" ')
+              .replace(
+                /<variable-usage /g,
+                '<variable-usage find-usages="findVariableUsagesInternal(variableId)" ' +
+                'go-to-definition="goToVariableDefinitionInternal(variableId)" ' +
+                'highlighted-variable-id="highlightedVariableId" ')
               .replace("<source>", "")
               .replace("</source>", "");
             value = prettyPrintOne(value);
@@ -313,6 +318,39 @@ angular.module('polarisDirectives', ['polarisServices'])
         scope.goToDefinitionInternal = function() {
           scope.goToDefinition({'methodId': methodId});
         };
+      }
+    }
+  })
+
+  // Renders a variable usage with context menu.
+  //
+  // Usage:
+  //   <variable-usage find-usages=... go-to-definition=... highlighted-variable-id=... />
+  .directive('variableUsage', function(Utils, LinkBuilder) {
+    return {
+      restrict: 'E',
+      templateUrl: 'partials/variable-usage',
+      scope: {
+        findUsages: '&',
+        goToDefinition: '&',
+        highlightedVariableId: '='
+      },
+      replace: false,
+      transclude: true,
+      link: function(scope, element, attrs) {
+        var variableId = parseInt(attrs.variableId);
+        scope.variableId = variableId;
+        scope.variableUrl = LinkBuilder.variable(variableId);
+        scope.findUsagesInternal = function() {
+          scope.findUsages({'variableId': variableId});
+        };
+        scope.goToDefinitionInternal = function() {
+          scope.goToDefinition({'variableId': variableId});
+        };
+        angular.element(element, 'variable-usage > a').hover(function() {
+          scope.highlightedVariableId = variableId;
+          scope.$apply();
+        });
       }
     }
   })
