@@ -1,3 +1,5 @@
+'use strict';
+
 angular.module('polarisDirectives', ['polarisServices'])
   // Search box with auto completion
   //
@@ -381,7 +383,7 @@ angular.module('polarisDirectives', ['polarisServices'])
     };
   })
 
-  .directive('fileStructureTree', function(LinkBuilder, Utils, LinkBuilder) {
+  .directive('fileStructureTree', function(Utils, LinkBuilder) {
     return {
       restrict: 'E',
       templateUrl: 'partials/file-structure-tree',
