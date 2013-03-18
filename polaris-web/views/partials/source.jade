@@ -9,11 +9,10 @@
     .main-top
       code-view(
           ng-hide='loading',
-          code='sourceCodeAnnotation',
-          find-type-usages="findTypeUsages(typeId)",
-          go-to-type-definition="goToTypeDefinition(typeId)",
-          find-method-usages="findMethodUsages(methodId)",
-          go-to-method-definication="goToMethodDefinition(methodId)",
+          code='sourceCode',
+          usages='usages',
+          on-find-usages="onFindUsages(kind, id)",
+          on-go-to-definition="onGoToDefinition(kind, id)",
           highlighted-line='highlightedLine')
     .panel.main-bottom
       .header

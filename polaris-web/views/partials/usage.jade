@@ -1,6 +1,8 @@
-span.type-usage
+span.usage
   span(ng-show='resolved')
-    a(ng-href="{{'#' + classUrl}}", ng-transclude)
+    a(ng-href="{{'#' + url}}",
+      ng-class="{'highlighted-word': id > 0 && highlightContext.kind == kind && highlightContext.id == id}")
+      {{text}}
     span.dropdown
       a.dropdown-toggle(data-toggle="dropdown", href="#")
         b.caret
@@ -9,4 +11,5 @@ span.type-usage
           a(href="javascript:void(0)", ng-click="goToDefinitionInternal()") Definition
         li
           a(href="javascript:void(0)", ng-click="findUsagesInternal()") Usages
-  span(ng-hide='resolved', ng-transclude)
+  span(ng-hide='resolved') {{text}}
+  // span(ng-transclude)

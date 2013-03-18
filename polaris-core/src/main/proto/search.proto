@@ -51,6 +51,7 @@ message SourceRequest {
 message SourceResponse {
     optional StatusCode status = 1;
     optional SourceFile source = 2;
+    repeated Usage usages = 3;
 }
 
 message CompleteRequest {

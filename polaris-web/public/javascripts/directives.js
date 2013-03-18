@@ -160,7 +160,6 @@ angular.module('polarisDirectives', ['polarisServices'])
           update();
         });
         var populate = function(start, element, callback) {
-          // console.log("populate", "start=", start, "path=", path);
           var slash = path.indexOf('/', start);
           if (slash == -1) {
             callback();
@@ -204,49 +203,91 @@ angular.module('polarisDirectives', ['polarisServices'])
   // Renders source code with cross-reference support.
   //
   // Usage:
-  //   <code-view code="..." find-usages="f(typeId)" go-to-definition="g(typeId)" />
+  //   <code-view code="..." on-find-usages="f(kind, id)" on-go-to-definition="g(kind, id)" />
   .directive('codeView', function($compile, Utils) {
     return {
       restrict: 'E',
       templateUrl: 'partials/code-view',
       scope: {
-        findTypeUsages: '&',
-        goToTypeDefinition: '&',
-        findMethodUsages: '&',
-        goToMethodDefinition: '&',
+        onFindUsages: '&',
+        onGoToDefinition: '&',
         code: '=',
+        usages: '=',
         highlightedLine: '='
       },
       replace: true,
       link: function(scope, element, attrs) {
         scope.lines = [];
-        scope.$watch('code', function(value) {
-          if (value) {
+        scope.highlightContext = {};
+
+        var comparePosition = function(left, right) {
+          if (left.line == right.line) {
+            return left.column - right.column;
+          } else {
+            return left.line - right.line;
+          }
+        }
+
+        var processMatch = function(text, k) {
+          return '<usage ' +
+            'on-find-usages="onFindUsagesInternal(kind, id)" ' +
+            'on-go-to-definition="onGoToDefinitionInternal(kind, id)" ' +
+            'highlight-context="highlightContext" ' +
+            'usage="usages[' + k + ']">' +
+            Utils.escapeHTML(text) +
+            '</usage>';
+        }
+
+        var processSource = function(code, usages) {
+          var i = 0;
+          var j = 0;
+          var current = {'line': 0, 'column': 0};
+          var matchFrom = -1;
+          var result = '';
+          while (i < code.length) {
+            if (matchFrom == -1) {
+              while (j < usages.length && comparePosition(usages[j].jumpTarget.span.from, current) < 0) {
+                j++;
+              }
+            }
+            if (j < usages.length && comparePosition(usages[j].jumpTarget.span.from, current) == 0) {
+              matchFrom = i;
+            }
+            if (matchFrom != -1 && comparePosition(usages[j].jumpTarget.span.to, current) <= 0) {
+              var matchText = code.substring(matchFrom, i);
+              result += processMatch(matchText, j);
+              usages[j].text = matchText;
+              matchFrom = -1;
+            }
+            if (matchFrom == -1) {
+              result += Utils.escapeHTML(code[i]);
+            }
+            if (code[i] == '\n') {
+              current.line++;
+              current.column = 0;
+            } else {
+              current.column++;
+            }
+            i++;
+          }
+          return result;
+        }
+
+        scope.$watch('code + usages', function() {
+          if (scope.code && scope.usages) {
             // Bind nested directievs.
-            value = value
-              .replace(
-                /<type-usage /g,
-                '<type-usage find-usages="findTypeUsagesInternal(typeId)" ' +
-                'go-to-definition="goToTypeDefinitionInternal(typeId)" ')
-              .replace(
-                /<method-usage /g,
-                '<method-usage find-usages="findMethodUsagesInternal(methodId)" ' +
-                'go-to-definition="goToMethodDefinitionInternal(methodId)" ')
-              .replace(
-                /<variable-usage /g,
-                '<variable-usage find-usages="findVariableUsagesInternal(variableId)" ' +
-                'go-to-definition="goToVariableDefinitionInternal(variableId)" ' +
-                'highlighted-variable-id="highlightedVariableId" ')
-              .replace("<source>", "")
-              .replace("</source>", "");
-            value = prettyPrintOne(value);
+            var s = processSource(scope.code, scope.usages);
+            // console.log('s', s);
+            s = prettyPrintOne(s);
             var pre = angular.element(Utils.getFirst(element.find(".code-column")));
-            pre.html(value);
+            pre.html(s);
+            // console.log("compile begins");
             $compile(pre.contents())(scope);
+            // console.log("compile ends");
 
             // Set up line numbers.
             scope.lines = [];
-            var lineCount = Utils.countLines(value);
+            var lineCount = Utils.countLines(scope.code);
             for (var i = 0; i < lineCount; i++) {
               scope.lines.push(i);
             }
@@ -259,98 +300,67 @@ angular.module('polarisDirectives', ['polarisServices'])
             });
           }
         });
-        scope.findTypeUsagesInternal = function(typeId) {
-          scope.findTypeUsages({'typeId': typeId});
+        scope.onFindUsagesInternal = function(kind, id) {
+          scope.onFindUsages({'kind': kind, 'id': id});
         }
-        scope.goToTypeDefinitionInternal = function(typeId) {
-          scope.goToTypeDefinition({'typeId': typeId});
-        }
-        scope.findMethodUsagesInternal = function(typeId) {
-          scope.findMethodUsages({'methodId': typeId});
-        }
-        scope.goToMethodDefinitionInternal = function(methodId) {
-          scope.goToMethodDefinition({'methodId': methodId});
+        scope.onGoToDefinitionInternal = function(kind, id) {
+          scope.onGoToDefinition({'kind': kind, 'id': id});
         }
       }
     };
   })
 
-  // Renders a type usage with context menu.
-  .directive('typeUsage', function(Utils, LinkBuilder) {
-    return {
-      restrict: 'E',
-      templateUrl: 'partials/type-usage',
-      scope: {
-        findUsages: '&',
-        goToDefinition: '&'
-      },
-      replace: false,
-      transclude: true,
-      link: function(scope, element, attrs) {
-        var typeId = parseInt(attrs.typeId);
-        scope.resolved = Utils.str2bool(attrs.resolved);
-        scope.classUrl = LinkBuilder.type(typeId);
-        scope.findUsagesInternal = function() {
-          scope.findUsages({'typeId': typeId});
-        };
-        scope.goToDefinitionInternal = function() {
-          scope.goToDefinition({'typeId': typeId});
-        };
-      }
-    };
-  })
-
-  // Renders a method usage with context menu.
-  .directive('methodUsage', function(Utils, LinkBuilder) {
-    return {
-      restrict: 'E',
-      templateUrl: 'partials/method-usage',
-      scope: {
-        findUsages: '&',
-        goToDefinition: '&'
-      },
-      replace: false,
-      transclude: true,
-      link: function(scope, element, attrs) {
-        var methodId = parseInt(attrs.methodId);
-        scope.methodUrl = LinkBuilder.method(methodId);
-        scope.findUsagesInternal = function() {
-          scope.findUsages({'methodId': methodId});
-        };
-        scope.goToDefinitionInternal = function() {
-          scope.goToDefinition({'methodId': methodId});
-        };
-      }
-    }
-  })
-
-  // Renders a variable usage with context menu.
+  // Renders a usage with context menu.
   //
   // Usage:
-  //   <variable-usage find-usages=... go-to-definition=... highlighted-variable-id=... />
-  .directive('variableUsage', function(Utils, LinkBuilder) {
+  //   <usage find-usages=... go-to-definition=... highlighted-context=... />
+  .directive('usage', function(Utils, LinkBuilder) {
     return {
       restrict: 'E',
-      templateUrl: 'partials/variable-usage',
+      templateUrl: 'partials/usage',
       scope: {
-        findUsages: '&',
-        goToDefinition: '&',
-        highlightedVariableId: '='
+        onFindUsages: '&',
+        onGoToDefinition: '&',
+        highlightContext: '=',
+        usage: '&'
       },
       replace: false,
       transclude: true,
       link: function(scope, element, attrs) {
-        var variableId = parseInt(attrs.variableId);
-        scope.variableId = variableId;
-        scope.variableUrl = LinkBuilder.variable(variableId);
+        var usage = scope.usage();
+        if (!usage) {
+          return;
+        }
+        scope.kind = usage.kind;
+        scope.resolved = false;
+        scope.id = -1;
+        scope.text = usage.text;
+        if (usage.kind ==='TYPE') {
+          if (usage.type.type.kind == 'CLASS'
+            && usage.type.type.clazz.resolved) {
+            scope.resolved = true;
+            scope.id = usage.type.type.clazz.id;
+            scope.url = LinkBuilder.type(scope.id);
+          }
+        } else if (usage.kind == 'METHOD') {
+          scope.resolved = true;
+          scope.id = usage.method.method.id;
+          scope.url = LinkBuilder.method(scope.id);
+        } else if (usage.kind == 'VARIABLE') {
+          scope.resolved = true;
+          scope.id = usage.variable.variable.id;
+          scope.url = LinkBuilder.type(scope.id);
+        } else {
+          console.log('Unknown kind: ', data.kind);
+        }
         scope.findUsagesInternal = function() {
-          scope.findUsages({'variableId': variableId});
+          scope.onFindUsages({'kind': scope.kind, 'id': scope.id});
         };
         scope.goToDefinitionInternal = function() {
-          scope.goToDefinition({'variableId': variableId});
+          scope.onGoToDefinition({'kind': scope.kind, 'id': scope.id});
         };
-        angular.element(element, 'variable-usage > a').hover(function() {
-          scope.highlightedVariableId = variableId;
+        angular.element(element, 'usage > a').hover(function() {
+          scope.highlightContext = {'kind': scope.kind, 'id': scope.id};
           scope.$apply();
         });
       }

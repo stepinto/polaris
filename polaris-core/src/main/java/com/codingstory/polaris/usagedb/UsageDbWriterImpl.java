@@ -46,6 +46,8 @@ public class UsageDbWriterImpl implements UsageDbWriter {
         document.add(new Field(UsageDbIndexedField.ID, String.valueOf(id), Field.Store.YES, Field.Index.ANALYZED));
         document.add(new Field(UsageDbIndexedField.KIND, String.valueOf(usage.getKind().getNumber()),
                 Field.Store.YES, Field.Index.ANALYZED));
+        document.add(new Field(UsageDbIndexedField.FILE_ID, String.valueOf(usage.getJumpTarget().getFile().getId()),
+                Field.Store.YES, Field.Index.ANALYZED));
         UsageData usageData = UsageData.newBuilder()
                 .setUsage(usage)
                 .build();

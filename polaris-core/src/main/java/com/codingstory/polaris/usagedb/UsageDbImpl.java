@@ -2,6 +2,7 @@ package com.codingstory.polaris.usagedb;
 
 import com.codingstory.polaris.SnappyUtils;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
+import com.codingstory.polaris.parser.TypeUtils;
 import com.codingstory.polaris.usagedb.UsageDbProtos.UsageData;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -18,6 +19,8 @@ import org.apache.lucene.store.FSDirectory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class UsageDbImpl implements UsageDb {
@@ -37,11 +40,33 @@ public class UsageDbImpl implements UsageDb {
                 BooleanClause.Occur.MUST);
         query.add(new TermQuery(new Term(UsageDbIndexedField.ID, String.valueOf(id))), BooleanClause.Occur.MUST);
         TopDocs result = searcher.search(query, Integer.MAX_VALUE);
-        List<Usage> typeUsageResult = Lists.newArrayList();
+        List<Usage> usages = Lists.newArrayList();
         for (ScoreDoc scoreDoc : result.scoreDocs) {
-            typeUsageResult.add(retrieveDocument(scoreDoc.doc));
+            usages.add(retrieveDocument(scoreDoc.doc));
         }
-        return typeUsageResult;
+        sortUsagesByJumpTarget(usages);
+        return usages;
+    }
+
+    @Override
+    public List<Usage> findUsagesInFile(long fileId) throws IOException {
+        TermQuery query = new TermQuery(new Term(UsageDbIndexedField.FILE_ID, String.valueOf(fileId)));
+        TopDocs result = searcher.search(query, Integer.MAX_VALUE);
+        List<Usage> usages = Lists.newArrayListWithCapacity(result.scoreDocs.length);
+        for (ScoreDoc scoreDoc : result.scoreDocs) {
+            usages.add(retrieveDocument(scoreDoc.doc));
+        }
+        sortUsagesByJumpTarget(usages);
+        return usages;
+    }
+
+    private void sortUsagesByJumpTarget(List<Usage> usages) {
+        Collections.sort(usages, new Comparator<Usage>() {
+            @Override
+            public int compare(Usage left, Usage right) {
+                return TypeUtils.JUMP_TARGET_COMPARATOR.compare(left.getJumpTarget(), right.getJumpTarget());
+            }
+        });
     }
 
     @Override

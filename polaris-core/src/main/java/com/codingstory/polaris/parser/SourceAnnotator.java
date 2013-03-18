@@ -1,16 +1,8 @@
 package com.codingstory.polaris.parser;
 
-import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
-import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
-import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
 import com.codingstory.polaris.parser.ParserProtos.Position;
-import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
-import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -42,12 +34,6 @@ public class SourceAnnotator {
         List<Usage> sortedUsages = Lists.newArrayList(usages);
         Collections.sort(sortedUsages, USAGE_COMPARATOR);
         pw.print("<source>");
-        sortedUsages= ImmutableList.copyOf(Iterables.filter(sortedUsages, new Predicate<Usage>() {
-            @Override
-            public boolean apply(Usage usage) {
-                return accepts(usage);
-            }
-        }));
 
         PositionAwareInputStream in2 = new PositionAwareInputStream(in);
         int j = 0;
@@ -81,40 +67,14 @@ public class SourceAnnotator {
         return result;
     }
 
-    private static boolean accepts(Usage usage) {
-        return true;
-    }
-
     private static void emit(PrintWriter out, String text, Usage usage) {
-        Usage.Kind usageKind = usage.getKind();
-        if (usageKind == Usage.Kind.TYPE) {
-            TypeUsage typeUsage = usage.getType();
-            TypeHandle type = typeUsage.getType();
-            if (type.getKind() == ParserProtos.TypeKind.CLASS) {
-                ClassTypeHandle clazz = type.getClazz();
-                out.printf("<type-usage type=\"%s\" type-id=\"%d\" resolved=\"%s\" kind=\"%s\">%s</type-usage>",
-                        escape(clazz.getName()), type.getClazz().getId(), Boolean.toString(clazz.getResolved()),
-                        typeUsage.getKind().name(), escape(text));
-                LOG.debug("Render annotation: " + typeUsage);
-                return;
-            }
-            // Don't show links for primitive or unresolved types.
-            out.print(escape(text));
-        } else if (usageKind == Usage.Kind.VARIABLE) {
-            VariableUsage variableUsage = usage.getVariable();
-            out.printf("<variable-usage variable-id=\"%d\" kind=\"%s\">%s</variable-usage>",
-                    variableUsage.getVariable().getId(),
-                    variableUsage.getKind().name(),
-                    escape(text));
-        } else if (usageKind == Usage.Kind.METHOD) {
-            MethodUsage methodUsage = usage.getMethod();
-            out.printf("<method-usage method-id=\"%d\" kind=\"%s\">%s</method-usage>",
-                    methodUsage.getMethod().getId(),
-                    methodUsage.getKind().name(),
-                    escape(text));
-        } else {
-            throw new AssertionError("Unknown UsageKind: " + usageKind);
-        }
+        /*Usage usageWithoutSnippet = usage.toBuilder()
+                .clearSnippet()
+                .build();
+        out.printf("<usage data=\"%s\">%s</usage>",
+                escape(JsonFormat.printToString(usageWithoutSnippet)),
+                text);*/
+        out.printf(escape(text));
     }
 
     private static String escape(String s) {

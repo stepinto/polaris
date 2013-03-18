@@ -36,7 +36,7 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
   var readSourceCallback = function (resp) {
     $scope.loading = false;
     $scope.sourceCode = resp.source.source;
-    $scope.sourceCodeAnnotation = resp.source.annotatedSource;
+    $scope.usages = resp.usages ? resp.usages : [];
     $scope.project = resp.source.handle.project;
     $scope.path = resp.source.handle.path;
     $scope.highlightedLine = $routeParams.line;
@@ -59,18 +59,13 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
     });
   }
 
-  $scope.findTypeUsages = function(typeId) {
-    console.log('Find type usages:', typeId);
-    loadXrefs('TYPE', typeId);
+  $scope.onFindUsages = function(kind, id) {
+    console.log('Find usages:', kind, id);
+    loadXrefs(kind, id);
   }
 
-  $scope.goToTypeDefinition = function(typeId) {
-    console.log("Go to def:", typeId);
-  }
-
-  $scope.findMethodUsages = function(methodId) {
-    console.log('Find method usages:', methodId);
-    loadXrefs('METHOD', methodId);
+  $scope.onGoToDefinition = function(kind, id) {
+    console.log("Go to def:", kind, id);
   }
 }
 

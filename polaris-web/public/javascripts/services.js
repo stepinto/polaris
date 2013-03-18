@@ -128,6 +128,24 @@ angular.module('polarisServices', [])
       },
       'getDisplayNameOfFieldHandle': function(field) {
         return this.getSimpleName(field.name);
+      },
+      'escapeHTML': function(s) {
+        var t = '';
+        for (var i = 0; i < s.length; i++) {
+          var ch = s[i];
+          if (ch == '&') {
+            t += '&amp;';
+          } else if (ch == '<') {
+            t += '&lt;';
+          } else if (ch == '>') {
+            t += '&gt;';
+          } else if (ch == '\'') {
+            t += '&apos;';
+          } else {
+            t += ch;
+          }
+        }
+        return t;
       }
     };
   })

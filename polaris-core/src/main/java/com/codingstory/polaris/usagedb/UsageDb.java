@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface UsageDb extends Closeable {
     List<Usage> query(Usage.Kind kind, long id) throws IOException;
+    List<Usage> findUsagesInFile(long fileId) throws IOException;
 }

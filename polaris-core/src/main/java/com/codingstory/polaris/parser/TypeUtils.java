@@ -42,6 +42,16 @@ public final class TypeUtils {
         }
     };
 
+    public static final Comparator<JumpTarget> JUMP_TARGET_COMPARATOR = new Comparator<JumpTarget>() {
+        @Override
+        public int compare(JumpTarget left, JumpTarget right) {
+            return ComparisonChain.start()
+                    .compare(left.getFile().getId(), right.getFile().getId())
+                    .compare(left.getSpan(), right.getSpan(), SPAN_COMPARATOR)
+                    .result();
+        }
+    };
+
     public static final Position ZERO_POSITION = positionOf(0, 0);
     public static final Span ZERO_SPAN = spanOf(ZERO_POSITION, ZERO_POSITION);
 

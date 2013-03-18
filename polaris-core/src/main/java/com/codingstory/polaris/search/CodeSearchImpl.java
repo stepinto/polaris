@@ -106,6 +106,7 @@ public class CodeSearchImpl implements CodeSearch.BlockingInterface, Closeable {
             }
             resp.setStatus(StatusCode.OK);
             resp.setSource(source);
+            resp.addAllUsages(usageDb.findUsagesInFile(req.getFileId()));
         } catch (Exception e) {
             LOG.warn("Caught exception", e);
             resp.setStatus(StatusCode.UNKNOWN_ERROR);
