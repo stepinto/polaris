@@ -1,22 +1,28 @@
 .source
   .loading
     p(ng-show='loading') Loading...
-  .left
-    project-tree(project="project", path="path")
-  .right
-    file-structure-tree(classes="classes")
-  .main
-    .main-top
-      code-view(
-          ng-hide='loading',
-          code='sourceCode',
-          usages='usages',
-          on-find-usages="onFindUsages(kind, id)",
-          on-go-to-definition="onGoToDefinition(kind, id)",
-          highlighted-line='highlightedLine')
-    .panel.main-bottom
-      .header
-        span xref
-      .body
-        span(ng-show='loadingXrefs') Loading
-        xref-box(xrefs="xrefs", ng-hide='loadingXrefs')
+  div(ng-hide='loading')
+    .top
+      path-bar(
+        on-selected='',
+        project='project',
+        path='path')
+    .left
+      project-tree(project="project", path="path")
+    .right
+      file-structure-tree(classes="classes")
+    .main
+      .main-top
+        code-view(
+            ng-hide='loading',
+            code='sourceCode',
+            usages='usages',
+            on-find-usages="onFindUsages(kind, id)",
+            on-go-to-definition="onGoToDefinition(kind, id)",
+            highlighted-line='highlightedLine')
+      .panel.main-bottom
+        .header
+          span xref
+        .body
+          span(ng-show='loadingXrefs') Loading
+          xref-box(xrefs="xrefs", ng-hide='loadingXrefs')

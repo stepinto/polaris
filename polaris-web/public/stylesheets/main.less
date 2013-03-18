@@ -124,6 +124,7 @@ html, body {
 }
 
 .source {
+  @topHeight: 36px;
   @leftWidth: 250px;
   @rightWidth: 250px;
 
@@ -132,6 +133,11 @@ html, body {
   bottom: 0;
   left: 0;
   right: 0;
+
+  .top {
+    width: 100%;
+    height: @topHeight;
+  }
 
   .left {
     float: left;
@@ -151,7 +157,7 @@ html, body {
     position: absolute;
     left: @leftWidth;
     right: @rightWidth;
-    top: 0;
+    top: @topHeight;
     bottom: 0;
     overflow: auto;
 

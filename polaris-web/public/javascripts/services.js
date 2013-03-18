@@ -169,6 +169,9 @@ angular.module('polarisServices', [])
       },
       'variable': function(id) {
         return '/goto/variable/' + id;
+      },
+      'file': function(project, path) {
+        return '/source/' + project + path;
       }
     };
   });

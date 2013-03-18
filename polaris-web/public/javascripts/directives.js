@@ -430,5 +430,46 @@ angular.module('polarisDirectives', ['polarisServices'])
         });
       }
     }
+  })
+
+  // Usage:
+  //   <path-bar on-selected="f(project, path)" project="project" path="/path/to/file" />
+  .directive('pathBar', function(Utils, LinkBuilder) {
+    return {
+      restrict: 'E',
+      templateUrl: 'partials/path-bar',
+      scope: {
+        onSelected: '&',
+        project: '=',
+        path: '='
+      },
+      link: function(scope, element, attrs) {
+        scope.$watch('project + path', function() {
+          var project = scope.project;
+          var path = scope.path;
+          if (!project || !path) {
+            return;
+          }
+          if (!Utils.startsWith(path, '/')) {
+            console.log('Path must start with "/"', path);
+            return;
+          }
+          path = '/' + project + path;
+          scope.parts = [];
+          for (var i = project.length + 1, j = 0; j != -1; j = i, i = path.indexOf('/', j + 1)) {
+            if (i == -1) {
+              // last
+              scope.parts.push({'name': path.substring(j + 1), 'active': true});
+            } else {
+              scope.parts.push({
+                'name': path.substring(j + 1, i),
+                'url': LinkBuilder.file(project, path.substring(0, i + 1))
+              });
+              scope.parts.push({'name': '/', 'divider': true});
+            }
+          }
+        });
+      }
+    };
   });
 
