@@ -1,4 +1,4 @@
-Polaris Code Search
+Polaris Code Search [![Build Status](https://secure.travis-ci.org/stepinto/polaris.png)](http://travis-ci.org/stepinto/polaris)
 ===================
 
 A code search engine for Java
