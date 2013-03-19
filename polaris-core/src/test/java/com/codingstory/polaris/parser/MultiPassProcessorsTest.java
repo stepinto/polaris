@@ -344,6 +344,14 @@ public class MultiPassProcessorsTest {
     }
 
     @Test
+    public void testParameter() throws IOException {
+        String code = "class A { void f(int n) {} }";
+        VariableUsage usage = findUniqueVariableUsageByKind(
+                extractFromCode(code).getUsages(), VariableUsage.Kind.DECLARATION).getVariable();
+        assertEquals("n", usage.getVariable().getName());
+    }
+
+    @Test
     public void testParameter_access() throws IOException {
         String code = "class A { void f(int n) { n = 10; } }";
         VariableUsage usage = findUniqueVariableUsageByKind(

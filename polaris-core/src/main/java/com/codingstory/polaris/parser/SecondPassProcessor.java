@@ -261,11 +261,11 @@ public final class SecondPassProcessor {
             List<TypeHandle> parameterTypes = Lists.newArrayList();
             for (Parameter parameter : nullToEmptyList(methodParameters)) {
                 TypeHandle parameterType = symbolTable.resolveTypeHandle(parameter.getType().toString());
-                JumpTarget parameterJumpTarget = nodeJumpTarget(file, parameter.getType());
+                JumpTarget parameterTypeJumpTarget = nodeJumpTarget(file, parameter.getType());
                 usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
                         .setType(parameterType)
                         .setKind(TypeUsage.Kind.METHOD_SIGNATURE)
-                        .build(), parameterJumpTarget, snippetLine(lines, parameterJumpTarget)));
+                        .build(), parameterTypeJumpTarget, snippetLine(lines, parameterTypeJumpTarget)));
                 parameterTypes.add(parameterType);
                 VariableHandle handle = VariableHandle.newBuilder()
                         .setId(idGenerator.next())
@@ -276,6 +276,11 @@ public final class SecondPassProcessor {
                         .setHandle(handle)
                         .setKind(Variable.Kind.PARAMETER)
                         .build());
+                JumpTarget parameterJumpTarget = nodeJumpTarget(file, parameter.getId());
+                usages.add(TypeUtils.usageOf(VariableUsage.newBuilder()
+                        .setKind(VariableUsage.Kind.DECLARATION)
+                        .setVariable(handle)
+                        .build(), parameterJumpTarget, snippetLine(lines, parameterJumpTarget)));
             }
             List<TypeHandle> exceptions = Lists.newArrayList();
             for (NameExpr throwExpr : nullToEmptyList(methodThrows)) {
