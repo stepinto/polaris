@@ -131,70 +131,95 @@ angular.module('polarisDirectives', ['polarisServices'])
   // Asynchounous project tree
   //
   // Usage:
-  //   <project-tree path="..." />
-  .directive('projectTree', function ($location, CodeSearch, Utils, LinkBuilder) {
+  //   <project-tree project='...' pathsToExpand='["path1", "path2"]' />
+  .directive('projectTree', function ($location, $timeout, CodeSearch, Utils, LinkBuilder) {
     return {
       restrict: 'E',
-      scope: true,
+      scope: {
+        project: '=',
+        pathsToExpand: '='
+      },
       replace: true,
-      transclude: true,
       templateUrl: 'partials/project-tree',
       link: function(scope, element, attrs) {
-        scope.loading = true;
-        var project;
-        var path;
-        var update = function() {
-          if (!project || !path) {
+        scope.loading = false;
+        scope.$watch('project + pathsToExpand', function() {
+          if (!scope.project || !scope.pathsToExpand) {
             return;
           }
-          populate(0, angular.element(element.children()[1]), function() {
-            scope.loading = false;
+          var root = element.find('.root');
+          $.each(scope.pathsToExpand, function(i, e) {
+            expand(e, root);
           });
-        }
-        scope.$watch(attrs.project, function(value) {
-          project = value;
-          update();
         });
-        scope.$watch(attrs.path, function(value) {
-          path = value;
-          update();
-        });
-        var populate = function(start, element, callback) {
-          var slash = path.indexOf('/', start);
-          if (slash == -1) {
-            callback();
+        var expand = function(path, node) {
+          doExpand(path, node, 0);
+        };
+        var doExpand = function(path, node, p) {
+          expandSingleLevel(path.substring(0, p + 1), node, function() {
+            var q = path.indexOf('/', p + 1);
+            if (q == -1) {
+              return;
+            }
+            var part = path.substring(p + 1, q);
+            var matches = node.find('ul > *').filter(function(i, child) {
+              var childName = $(child).find('> a').text();
+              return childName == part;
+            });
+            if (matches.length > 1) {
+              console.log('Multiple matches: ' + matches, path);
+              return;
+            }
+            if (matches.length == 0) {
+              console.log('No match: ' + path);
+              return;
+            }
+            doExpand(path, $(matches[0]), q);
+          });
+        };
+        var expandSingleLevel = function(path, node, callback) {
+          if (node.hasClass('expanded')) {
             return;
           }
-          var count = 0;
-          CodeSearch.listFiles(project, path.substring(0, slash + 1), function(resp) {
-            element.append("<ul></ul>");
-            var ul = angular.element(Utils.getLast(element.children()));
+          node.removeClass('collapsed').addClass('expanded');
+          if (!node.hasClass('unknown')) {
+            node.find('> ul > *').show();
+            return;
+          }
+          var ul = node.find('> ul');
+          CodeSearch.listFiles(scope.project, path, function(resp) {
+            node.removeClass('unknown');
             if (resp.directories) {
-              for (var i = 0; i < resp.directories.length; i++){
-                var dir = resp.directories[i];
-                ul.append("<li class='dir'>" + Utils.getBaseName(dir) + "</li>");
-                if (Utils.startsWith(path, dir)) {
-                  count++;
-                  populate(slash + 1, angular.element(Utils.getLast(ul.children())), function(){
-                    count--;
-                    if (count == 0) {
-                      callback();
-                    }
-                  });
-                }
-              }
+              $.each(resp.directories, function(i, dir) {
+                ul.append('<li><a href="#">' + Utils.getBaseName(dir) + '</a><ul></ul></li>');
+                var li = ul.find('> li:last');
+                li.addClass('dir');
+                li.addClass('collapsed');
+                li.addClass('unknown');
+                li.find('> a').click(function () {
+                  if (li.hasClass('expanded')) {
+                    collapseSingleLevel(dir, li);
+                  } else {
+                    expandSingleLevel(dir, li, function() {});
+                  }
+                  return false;
+                });
+              });
             }
             if (resp.files) {
-              for (var i = 0; i < resp.files.length; i++) {
-                var file = resp.files[i];
-                ul.append("<li class='java-file'><a href=#" + LinkBuilder.sourceFromFileId(file.id) + ">" +
-                    Utils.getBaseName(resp.files[i].path) + "</a></li>");
-              }
+              $.each(resp.files, function(i, file) {
+                ul.append("<li><a href=#" + LinkBuilder.sourceFromFileId(file.id) + ">" +
+                  Utils.getBaseName(resp.files[i].path) + "</a></li>");
+                var li = ul.find('> li:last');
+                li.addClass('normal-file');
+              });
             }
-            if (count == 0) {
-              callback();
-            }
+            callback();
           });
+        }
+        var collapseSingleLevel = function(path, node) {
+          node.removeClass('expanded').addClass('collapsed');
+          node.find('> ul > *').hide();
         }
       }
     };

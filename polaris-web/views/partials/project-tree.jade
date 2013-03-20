@@ -1,3 +1,5 @@
 .project-tree
   p(ng-show="loading")
-  .inner(ng-hide="loading")
+  .root.dir.unknown(ng-hide="loading")
+    span {{project}}
+    ul

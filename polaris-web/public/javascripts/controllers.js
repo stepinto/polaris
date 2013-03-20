@@ -39,6 +39,7 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
     $scope.usages = resp.usages ? resp.usages : [];
     $scope.project = resp.source.handle.project;
     $scope.path = resp.source.handle.path;
+    $scope.pathsToExpand = [$scope.path];
     $scope.highlightedLine = $routeParams.line;
     CodeSearch.listTypesInFile(resp.source.handle.id, function(resp) {
       $scope.classes = resp.classTypes;
