@@ -1,6 +1,13 @@
 'use strict';
 
 angular.module('polarisDirectives', ['polarisServices'])
+
+  .directive('eatClick', function() {
+    return function(scope, element, attrs) {
+      $(element).click(function(event) { event.preventDefault(); });
+    };
+  })
+
   // Search box with auto completion
   //
   // Usage:
@@ -131,13 +138,14 @@ angular.module('polarisDirectives', ['polarisServices'])
   // Asynchounous project tree
   //
   // Usage:
-  //   <project-tree project='...' pathsToExpand='["path1", "path2"]' />
+  //   <project-tree project='...' pathsToExpand='["path1", "path2"]' onSelectFile='f(fileId)' />
   .directive('projectTree', function ($location, $timeout, CodeSearch, Utils, LinkBuilder) {
     return {
       restrict: 'E',
       scope: {
         project: '=',
-        pathsToExpand: '='
+        pathsToExpand: '=',
+        onSelectFile: '&'
       },
       replace: true,
       templateUrl: 'partials/project-tree',
@@ -212,6 +220,10 @@ angular.module('polarisDirectives', ['polarisServices'])
                   Utils.getBaseName(resp.files[i].path) + "</a></li>");
                 var li = ul.find('> li:last');
                 li.addClass('normal-file');
+                li.find('> a').click(function () {
+                  scope.onSelectFile({'fileId': file.id});
+                  return false;
+                })
               });
             }
             callback();
@@ -228,7 +240,10 @@ angular.module('polarisDirectives', ['polarisServices'])
   // Renders source code with cross-reference support.
   //
   // Usage:
-  //   <code-view code="..." on-find-usages="f(kind, id)" on-go-to-definition="g(kind, id)" />
+  //   <code-view code="..."
+  //     on-find-usages="f(kind, id)"
+  //     on-go-to-definition="g(kind, id)"
+  //     on-select-jump-target="h(jumpTarget)" />
   .directive('codeView', function($compile, Utils) {
     return {
       restrict: 'E',
@@ -236,6 +251,7 @@ angular.module('polarisDirectives', ['polarisServices'])
       scope: {
         onFindUsages: '&',
         onGoToDefinition: '&',
+        onSelectJumpTarget: '&',
         code: '=',
         usages: '=',
         highlightedLine: '='
@@ -257,6 +273,7 @@ angular.module('polarisDirectives', ['polarisServices'])
           return '<usage ' +
             'on-find-usages="onFindUsagesInternal(kind, id)" ' +
             'on-go-to-definition="onGoToDefinitionInternal(kind, id)" ' +
+            'on-select-jump-target="onSelectJumpTargetInternal(jumpTarget)" ' +
             'highlight-context="highlightContext" ' +
             'usage="usages[' + k + ']">' +
             Utils.escapeHTML(text) +
@@ -306,9 +323,7 @@ angular.module('polarisDirectives', ['polarisServices'])
             s = prettyPrintOne(s);
             var pre = angular.element(Utils.getFirst(element.find(".code-column")));
             pre.html(s);
-            // console.log("compile begins");
             $compile(pre.contents())(scope);
-            // console.log("compile ends");
 
             // Set up line numbers.
             scope.lines = [];
@@ -331,6 +346,9 @@ angular.module('polarisDirectives', ['polarisServices'])
         scope.onGoToDefinitionInternal = function(kind, id) {
           scope.onGoToDefinition({'kind': kind, 'id': id});
         }
+        scope.onSelectJumpTargetInternal = function(jumpTarget) {
+          scope.onSelectJumpTarget({'jumpTarget': jumpTarget});
+        }
       }
     };
   })
@@ -346,6 +364,7 @@ angular.module('polarisDirectives', ['polarisServices'])
       scope: {
         onFindUsages: '&',
         onGoToDefinition: '&',
+        onSelectJumpTarget: '&',
         highlightContext: '=',
         usage: '&'
       },
@@ -360,21 +379,19 @@ angular.module('polarisDirectives', ['polarisServices'])
         scope.resolved = false;
         scope.id = -1;
         scope.text = usage.text;
+        scope.url = LinkBuilder.source(usage.jumpTarget);
         if (usage.kind ==='TYPE') {
           if (usage.type.type.kind == 'CLASS'
             && usage.type.type.clazz.resolved) {
             scope.resolved = true;
             scope.id = usage.type.type.clazz.id;
-            scope.url = LinkBuilder.type(scope.id);
           }
         } else if (usage.kind == 'METHOD') {
           scope.resolved = true;
           scope.id = usage.method.method.id;
-          scope.url = LinkBuilder.method(scope.id);
         } else if (usage.kind == 'VARIABLE') {
           scope.resolved = true;
           scope.id = usage.variable.variable.id;
-          scope.url = LinkBuilder.type(scope.id);
         } else {
           console.log('Unknown kind: ', data.kind);
         }
@@ -383,6 +400,9 @@ angular.module('polarisDirectives', ['polarisServices'])
         };
         scope.goToDefinitionInternal = function() {
           scope.onGoToDefinition({'kind': scope.kind, 'id': scope.id});
+        };
+        scope.onSelectJumpTargetInternal = function() {
+          scope.onSelectJumpTarget({'jumpTarget': usage.jumpTarget});
         };
         angular.element(element, 'usage > a').hover(function() {
           scope.highlightContext = {'kind': scope.kind, 'id': scope.id};

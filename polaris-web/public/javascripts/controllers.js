@@ -58,15 +58,26 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
       $scope.loadingXrefs = false;
       $scope.xrefs = resp.usages;
     });
-  }
+  };
 
   $scope.onFindUsages = function(kind, id) {
     console.log('Find usages:', kind, id);
     loadXrefs(kind, id);
-  }
+  };
 
   $scope.onGoToDefinition = function(kind, id) {
     console.log("Go to def:", kind, id);
+  };
+
+  $scope.onSelectFile = function(fileId) {
+    // TODO: update URL
+    CodeSearch.readSourceById(fileId, readSourceCallback);
+  };
+
+  $scope.onSelectJumpTarget = function(jumpTarget) {
+    // TODO: update URL
+    $routeParams.highlightedLine = jumpTarget.span.from.line;
+    CodeSearch.readSourceById(jumpTarget.file.id, readSourceCallback);
   }
 }
 

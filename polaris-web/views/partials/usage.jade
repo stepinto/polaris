@@ -1,7 +1,9 @@
 span.usage
   span(ng-show='resolved')
-    a(ng-href="{{'#' + url}}",
-      ng-class="{'highlighted-word': id > 0 && highlightContext.kind == kind && highlightContext.id == id}")
+    a(eat-click,
+      ng-href="{{'#' + url}}",
+      ng-class="{'highlighted-word': id > 0 && highlightContext.kind == kind && highlightContext.id == id}",
+      ng-click='onSelectJumpTargetInternal()')
       {{text}}
     span.dropdown
       a.dropdown-toggle(data-toggle="dropdown", href="#")
@@ -12,4 +14,3 @@ span.usage
         li
           a(href="javascript:void(0)", ng-click="findUsagesInternal()") Usages
   span(ng-hide='resolved') {{text}}
-  // span(ng-transclude)

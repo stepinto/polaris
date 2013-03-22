@@ -8,7 +8,10 @@
         project='project',
         path='path')
     .left
-      project-tree(project="project", paths-to-expand="pathsToExpand")
+      project-tree(
+        project="project",
+        paths-to-expand="pathsToExpand",
+        on-select-file='onSelectFile(fileId)')
     .right
       file-structure-tree(classes="classes")
     .main
@@ -19,7 +22,8 @@
             usages='usages',
             on-find-usages="onFindUsages(kind, id)",
             on-go-to-definition="onGoToDefinition(kind, id)",
-            highlighted-line='highlightedLine')
+            highlighted-line='highlightedLine',
+            on-select-jump-target='onSelectJumpTarget(jumpTarget)')
       .panel.main-bottom
         .header
           span xref
