@@ -81,21 +81,3 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
   }
 }
 
-function GoToTypeCtrl($routeParams, CodeSearch, LinkBuilder, Utils, $location) {
-  CodeSearch.getTypeById($routeParams.typeId, function(resp) {
-    var target = resp.classType.jumpTarget;
-    var url = LinkBuilder.source(target);
-    $location.url(Utils.removeStart(url, '#'));
-    $location.replace();
-  });
-}
-
-function GoToMethodCtrl($routeParams, CodeSearch, LinkBuilder, Utils, $location) {
-  CodeSearch.getMethodById($routeParams.methodId, function(resp) {
-    var target = resp.method.jumpTarget;
-    var url = LinkBuilder.source(target);
-    $location.url(Utils.removeStart(url, '#'));
-    $location.replace();
-  });
-}
-
