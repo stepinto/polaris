@@ -2,16 +2,26 @@
   // TODO: use different icons for class/interface, public/private..
   ul
     li(ng-repeat="clazz in classes")
-      a.clazz(ng-href="{{'#' + clazz.url}}") {{clazz.simpleName}}
+      a.clazz(
+        ng-href="{{clazz.url}}",
+        ng-click='onSelectJumpTargetInternal(clazz.jumpTarget)')
+        | {{clazz.simpleName}}
       ul(ng-repeat="field in clazz.fields")
         li
-          a.field(ng-href="{{'#' + field.url}}") {{field.simpleName}}:{{field.type.simpleName}}
+          a.field(
+            ng-href="{{field.url}}",
+            ng-click='onSelectJumpTargetInternal(field.jumpTarget)')
+            | {{field.simpleName}}
+          | :{{field.type.simpleName}}
       ul(ng-repeat="method in clazz.methods")
         li
           span.method
-            a(ng-href="{{'#' + method.url}}") {{method.simpleName}}
-            span &#40
+            a(
+              ng-href="{{method.url}}",
+              ng-click='onSelectJumpTargetInternal(method.jumpTarget)')
+              | {{method.simpleName}}
+            | &#40
             span(ng-repeat="parameter in method.parameters")
-              {{parameter.type.simpleName}}{{$last || ", "}}
-            span &#41
+              | {{parameter.type.simpleName}}{{$last || ", "}}
+            | &#41
 

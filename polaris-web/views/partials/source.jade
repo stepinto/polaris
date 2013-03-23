@@ -1,32 +1,31 @@
 .source
-  .loading
-    p(ng-show='loading') Loading...
-  div(ng-hide='loading')
-    .top
-      path-bar(
-        on-selected='',
-        project='project',
-        path='path')
-    .left
-      project-tree(
-        project="project",
-        paths-to-expand="pathsToExpand",
-        on-select-file='onSelectFile(fileId)')
-    .right
-      class-tree(classes="classes")
-    .main
-      .main-top
-        code-view(
-            ng-hide='loading',
-            code='sourceCode',
-            usages='usages',
-            on-find-usages="onFindUsages(kind, id)",
-            on-go-to-definition="onGoToDefinition(kind, id)",
-            highlighted-line='highlightedLine',
-            on-select-jump-target='onSelectJumpTarget(jumpTarget)')
-      .panel.main-bottom
-        .header
-          span xref
-        .body
-          span(ng-show='loadingXrefs') Loading
-          xref-box(xrefs="xrefs", ng-hide='loadingXrefs')
+  .top
+    path-bar(
+      on-selected='',
+      project='project',
+      path='path')
+  .left
+    project-tree(
+      project="project",
+      paths-to-expand="pathsToExpand",
+      on-select-file='onSelectFile(fileId)')
+  .right
+    class-tree-loader(
+      file-id='fileId',
+      on-select-jump-target='onSelectJumpTarget(jumpTarget)')
+  .main
+    .main-top
+      code-view(
+          ng-hide='loading',
+          code='sourceCode',
+          usages='usages',
+          on-find-usages="onFindUsages(kind, id)",
+          on-go-to-definition="onGoToDefinition(kind, id)",
+          highlighted-line='highlightedLine',
+          on-select-jump-target='onSelectJumpTarget(jumpTarget)')
+    .panel.main-bottom
+      .header
+        span xref
+      .body
+        span(ng-show='loadingXrefs') Loading
+        xref-box(xrefs="xrefs", ng-hide='loadingXrefs')

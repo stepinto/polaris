@@ -30,20 +30,18 @@ function SearchCtrl($scope, $routeParams, CodeSearch, LinkBuilder) {
 }
 
 function SourceCtrl($scope, $routeParams, CodeSearch) {
-  $scope.loading = true;
-  $scope.classes = [];
-
   var readSourceCallback = function (resp) {
-    $scope.loading = false;
+    $scope.fileId = resp.source.handle.id;
     $scope.sourceCode = resp.source.source;
     $scope.usages = resp.usages ? resp.usages : [];
     $scope.project = resp.source.handle.project;
     $scope.path = resp.source.handle.path;
-    $scope.pathsToExpand = [$scope.path];
+    if (!$scope.pathsToExpand) {
+      $scope.pathsToExpand = [$scope.path];
+    } else if ($scope.pathsToExpand.indexOf($scope.path) == -1) {
+      $scope.pathsToExpand.push($scope.path);
+    }
     $scope.highlightedLine = $routeParams.line;
-    CodeSearch.listTypesInFile(resp.source.handle.id, function(resp) {
-      $scope.classes = resp.classTypes;
-    });
   };
   if ($routeParams.project && $routeParams.path) {
     CodeSearch.readSourceByPath($routeParams.project, $routeParams.path, readSourceCallback);
@@ -75,8 +73,7 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
   };
 
   $scope.onSelectJumpTarget = function(jumpTarget) {
-    // TODO: update URL
-    $routeParams.highlightedLine = jumpTarget.span.from.line;
+    $routeParams.line = jumpTarget.span.from.line;
     CodeSearch.readSourceById(jumpTarget.file.id, readSourceCallback);
   }
 }

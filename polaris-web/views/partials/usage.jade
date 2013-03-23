@@ -1,7 +1,7 @@
 span.usage
   span(ng-show='resolved')
     a(eat-click,
-      ng-href="{{'#' + url}}",
+      ng-href="{{url}}",
       ng-class="{'highlighted-word': id > 0 && highlightContext.kind == kind && highlightContext.id == id}",
       ng-click='onSelectJumpTargetInternal()')
       {{text}}

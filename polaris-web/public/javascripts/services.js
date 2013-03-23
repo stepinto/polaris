@@ -153,16 +153,16 @@ angular.module('polarisServices', [])
     return {
       'source': function(jumpTarget) {
         if (jumpTarget.span) {
-          return 'source?file=' + jumpTarget.file.id + '&line=' + jumpTarget.span.from.line;
+          return '/source?file=' + jumpTarget.file.id + '&line=' + jumpTarget.span.from.line;
         } else {
-          return 'source?file=' + jumpTarget.file.id;
+          return '/source?file=' + jumpTarget.file.id;
         }
       },
       'sourceFromFileId': function(fileId) {
-        return 'source?file=' + fileId;
+        return '/source?file=' + fileId;
       },
       'file': function(project, path) {
-        return 'source/' + project + path;
+        return '/source/' + project + path;
       }
     };
   });

@@ -331,14 +331,16 @@ angular.module('polarisDirectives', ['polarisServices'])
             for (var i = 0; i < lineCount; i++) {
               scope.lines.push(i);
             }
-
-            // Scroll to highlighted line.
-            setTimeout(function() {
-              var l = scope.highlightedLine;
-              if (l > 3) { l -= 3; }
-              element.scrollTop(l * 20);
-            });
           }
+        });
+        scope.$watch('highlightedLine', function() {
+          // Scroll to highlighted line.
+          setTimeout(function() {
+            if (!scope.highlightedLine) { return; }
+            var l = scope.highlightedLine;
+            if (l > 3) { l -= 3; }
+            element.scrollTop(l * 20);
+          });
         });
         scope.onFindUsagesInternal = function(kind, id) {
           scope.onFindUsages({'kind': kind, 'id': id});
@@ -438,17 +440,53 @@ angular.module('polarisDirectives', ['polarisServices'])
     };
   })
 
+  // Usage:
+  //   <class-tree-loader fileId='100' />
+  .directive('classTreeLoader', function(CodeSearch) {
+    return {
+      restrict: 'E',
+      templateUrl: 'partials/class-tree-loader',
+      scope: {
+        fileId: '=',
+        onSelectJumpTarget: '&'
+      },
+      replace: true,
+      link: function(scope) {
+        scope.loading = true;
+        scope.classes = [];
+        scope.$watch('fileId', function(value) {
+          if (!scope.fileId) {
+            return;
+          }
+          if (scope.fileIdLoaded == scope.fileId) {
+            return;
+          }
+          scope.loading = true;
+          CodeSearch.listTypesInFile(scope.fileId, function(resp) {
+            scope.loading = false;
+            scope.classes = resp.classTypes;
+            scope.fileIdLoaded = scope.fileId;
+          });
+        });
+        scope.onSelectJumpTargetInternal = function(jumpTarget) {
+          scope.onSelectJumpTarget({'jumpTarget': jumpTarget});
+        }
+      }
+    };
+  })
+
   .directive('classTree', function(Utils, LinkBuilder) {
     return {
       restrict: 'E',
       templateUrl: 'partials/class-tree',
       scope: {
-        classes: '='
+        classes: '=',
+        onSelectJumpTarget: '&'
       },
       replace: true,
       link: function(scope) {
-        scope.$watch('classes', function(value) {
-          scope.classes = value;
+        scope.$watch('classes', function() {
+          if (!scope.classes) { return; }
           $.each(scope.classes, function(index, clazz) {
             clazz.simpleName = Utils.getSimpleName(clazz.handle.name);
             clazz.url = LinkBuilder.source(clazz.jumpTarget);
@@ -473,6 +511,9 @@ angular.module('polarisDirectives', ['polarisServices'])
             }
           });
         });
+        scope.onSelectJumpTargetInternal = function(jumpTarget) {
+          scope.onSelectJumpTarget({'jumpTarget': jumpTarget});
+        }
       }
     }
   })
