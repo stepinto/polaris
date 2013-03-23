@@ -148,7 +148,7 @@ message Usage {
 
     // The JumpTarget of class/method/variable, which is redirected to upon
     // click. Null if unresolved.
-    optional JumpTarget definiationJumpTarget = 7;
+    optional JumpTarget definitionJumpTarget = 7;
     optional string snippet = 6;
 }
 

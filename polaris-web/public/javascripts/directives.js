@@ -378,35 +378,33 @@ angular.module('polarisDirectives', ['polarisServices'])
           return;
         }
         scope.kind = usage.kind;
-        scope.resolved = false;
         scope.id = -1;
         scope.text = usage.text;
-        scope.url = LinkBuilder.source(usage.jumpTarget);
+        if (usage.definitionJumpTarget) {
+          scope.resolved = true;
+          scope.url = LinkBuilder.source(usage.definitionJumpTarget);
+        } else {
+          scope.resolved = false;
+        }
         if (usage.kind ==='TYPE') {
           if (usage.type.type.kind == 'CLASS'
             && usage.type.type.clazz.resolved) {
-            scope.resolved = true;
             scope.id = usage.type.type.clazz.id;
           }
         } else if (usage.kind == 'METHOD') {
-          scope.resolved = true;
           scope.id = usage.method.method.id;
         } else if (usage.kind == 'VARIABLE') {
-          scope.resolved = true;
           scope.id = usage.variable.variable.id;
         } else {
           console.log('Unknown kind: ', data.kind);
         }
-        scope.findUsagesInternal = function() {
+        scope.onFindUsagesInternal = function() {
           scope.onFindUsages({'kind': scope.kind, 'id': scope.id});
         };
-        scope.goToDefinitionInternal = function() {
-          scope.onGoToDefinition({'kind': scope.kind, 'id': scope.id});
+        scope.onGoToDefinitionInternal = function() {
+          scope.onSelectJumpTarget({'jumpTarget': usage.definitionJumpTarget});
         };
-        scope.onSelectJumpTargetInternal = function() {
-          scope.onSelectJumpTarget({'jumpTarget': usage.jumpTarget});
-        };
-        angular.element(element, 'usage > a').hover(function() {
+        $(element).find('.usage > span > a').hover(function() {
           scope.highlightContext = {'kind': scope.kind, 'id': scope.id};
           scope.$apply();
         });

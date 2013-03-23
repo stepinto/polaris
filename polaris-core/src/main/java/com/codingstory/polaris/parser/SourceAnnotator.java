@@ -74,7 +74,7 @@ public class SourceAnnotator {
         out.printf("<usage data=\"%s\">%s</usage>",
                 escape(JsonFormat.printToString(usageWithoutSnippet)),
                 text);*/
-        out.printf(escape(text));
+        out.print(escape(text));
     }
 
     private static String escape(String s) {

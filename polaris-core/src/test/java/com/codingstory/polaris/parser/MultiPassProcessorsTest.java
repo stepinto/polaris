@@ -62,7 +62,7 @@ public class MultiPassProcessorsTest {
                 result.getUsages(), TypeUsage.Kind.TYPE_DECLARATION);
         assertEquals(clazz.getHandle(), clazzDeclaration.getType().getType().getClazz());
         assertEquals(spanOf(positionOf(1, 13), positionOf(1, 20)), clazzDeclaration.getJumpTarget().getSpan());
-        assertEquals(clazzDeclaration.getJumpTarget(), clazzDeclaration.getDefiniationJumpTarget());
+        assertEquals(clazzDeclaration.getJumpTarget(), clazzDeclaration.getDefinitionJumpTarget());
     }
 
     @Test
@@ -100,13 +100,13 @@ public class MultiPassProcessorsTest {
         assertEquals(3, usages.size());
         assertEquals(spanOf(positionOf(0, 16), positionOf(0, 17)), usages.get(0).getJumpTarget().getSpan());
         assertEquals("B", usages.get(0).getType().getType().getClazz().getName());
-        assertFalse(usages.get(0).hasDefiniationJumpTarget());
+        assertFalse(usages.get(0).hasDefinitionJumpTarget());
         assertEquals(spanOf(positionOf(0, 29), positionOf(0, 30)), usages.get(1).getJumpTarget().getSpan());
         assertEquals("C", usages.get(1).getType().getType().getClazz().getName());
-        assertFalse(usages.get(1).hasDefiniationJumpTarget());
+        assertFalse(usages.get(1).hasDefinitionJumpTarget());
         assertEquals(spanOf(positionOf(0, 32), positionOf(0, 33)), usages.get(2).getJumpTarget().getSpan());
         assertEquals("D", usages.get(2).getType().getType().getClazz().getName());
-        assertFalse(usages.get(2).hasDefiniationJumpTarget());
+        assertFalse(usages.get(2).hasDefinitionJumpTarget());
     }
 
     @Test
@@ -120,7 +120,7 @@ public class MultiPassProcessorsTest {
         assertEquals(Usage.Kind.TYPE, usage.getKind());
         assertEquals("T", usage.getType().getType().getClazz().getName());
         assertEquals(spanOf(positionOf(0, 8), positionOf(0, 9)), usage.getJumpTarget().getSpan());
-        assertFalse(usage.hasDefiniationJumpTarget());
+        assertFalse(usage.hasDefinitionJumpTarget());
     }
 
     @Test
@@ -188,7 +188,7 @@ public class MultiPassProcessorsTest {
                 result.getUsages(), MethodUsage.Kind.METHOD_DECLARATION);
         assertEquals(method.getHandle(), methodDeclaration.getMethod().getMethod());
         assertEquals(spanOf(positionOf(0, 28), positionOf(0, 32)), methodDeclaration.getJumpTarget().getSpan());
-        assertEquals(methodDeclaration.getJumpTarget(), methodDeclaration.getDefiniationJumpTarget());
+        assertEquals(methodDeclaration.getJumpTarget(), methodDeclaration.getDefinitionJumpTarget());
     }
 
     @Test
@@ -347,7 +347,7 @@ public class MultiPassProcessorsTest {
                 extractFromCode(code).getUsages(), VariableUsage.Kind.ACCESS);
         assertEquals("n", usage.getVariable().getVariable().getName());
         assertEquals(spanOf(positionOf(0, 28), positionOf(0, 29)), usage.getJumpTarget().getSpan());
-        assertEquals(spanOf(positionOf(0, 25), positionOf(0, 26)), usage.getDefiniationJumpTarget().getSpan());
+        assertEquals(spanOf(positionOf(0, 25), positionOf(0, 26)), usage.getDefinitionJumpTarget().getSpan());
         // assertEquals(Variable.Kind.LOCAL_VARIABLE, usage.getVariable().getKind());
     }
 
@@ -357,7 +357,7 @@ public class MultiPassProcessorsTest {
         Usage usage = findUniqueVariableUsageByKind(
                 extractFromCode(code).getUsages(), VariableUsage.Kind.DECLARATION);
         assertEquals("n", usage.getVariable().getVariable().getName());
-        assertEquals(usage.getJumpTarget(), usage.getDefiniationJumpTarget());
+        assertEquals(usage.getJumpTarget(), usage.getDefinitionJumpTarget());
     }
 
     @Test
@@ -367,7 +367,7 @@ public class MultiPassProcessorsTest {
                 extractFromCode(code).getUsages(), VariableUsage.Kind.ACCESS);
         assertEquals("n", usage.getVariable().getVariable().getName());
         assertEquals(spanOf(positionOf(0, 26), positionOf(0, 27)), usage.getJumpTarget().getSpan());
-        assertEquals(spanOf(positionOf(0, 21), positionOf(0, 22)), usage.getDefiniationJumpTarget().getSpan());
+        assertEquals(spanOf(positionOf(0, 21), positionOf(0, 22)), usage.getDefinitionJumpTarget().getSpan());
     }
 
     @Test
@@ -378,7 +378,7 @@ public class MultiPassProcessorsTest {
                 MethodUsage.Kind.METHOD_CALL);
         assertEquals("A.f", usage.getMethod().getMethod().getName());
         assertEquals(spanOf(positionOf(0, 21), positionOf(0, 22)), usage.getJumpTarget().getSpan());
-        assertEquals(spanOf(positionOf(0, 15), positionOf(0, 16)), usage.getDefiniationJumpTarget().getSpan());
+        assertEquals(spanOf(positionOf(0, 15), positionOf(0, 16)), usage.getDefinitionJumpTarget().getSpan());
     }
 
     @Test
@@ -389,7 +389,7 @@ public class MultiPassProcessorsTest {
                 MethodUsage.Kind.METHOD_CALL);
         assertEquals("A.f", usage.getMethod().getMethod().getName());
         assertEquals(spanOf(positionOf(0, 26), positionOf(0, 27)), usage.getJumpTarget().getSpan());
-        assertEquals(spanOf(positionOf(0, 15), positionOf(0, 16)), usage.getDefiniationJumpTarget().getSpan());
+        assertEquals(spanOf(positionOf(0, 15), positionOf(0, 16)), usage.getDefinitionJumpTarget().getSpan());
     }
 
     @Test
@@ -401,7 +401,7 @@ public class MultiPassProcessorsTest {
                 MethodUsage.Kind.METHOD_CALL);
         assertEquals("A.f", usage.getMethod().getMethod().getName());
         assertEquals(spanOf(positionOf(1, 28), positionOf(1, 29)), usage.getJumpTarget().getSpan());
-        assertEquals(spanOf(positionOf(0, 15), positionOf(0, 16)), usage.getDefiniationJumpTarget().getSpan());
+        assertEquals(spanOf(positionOf(0, 15), positionOf(0, 16)), usage.getDefinitionJumpTarget().getSpan());
     }
 
     @Test
@@ -454,7 +454,7 @@ public class MultiPassProcessorsTest {
                 MethodUsage.Kind.INSTANCE_CREATION);
         assertEquals("A.<init>", usage.getMethod().getMethod().getName());
         assertEquals(spanOf(positionOf(1, 25), positionOf(1, 26)), usage.getJumpTarget().getSpan());
-        assertEquals(spanOf(positionOf(0, 10), positionOf(0, 11)), usage.getDefiniationJumpTarget().getSpan());
+        assertEquals(spanOf(positionOf(0, 10), positionOf(0, 11)), usage.getDefinitionJumpTarget().getSpan());
     }
 
     // TODO: testMethodCall_staticBlock()

@@ -1,16 +1,15 @@
 span.usage
   span(ng-show='resolved')
-    a(eat-click,
-      ng-href="{{url}}",
+    a(ng-href="{{url}}",
       ng-class="{'highlighted-word': id > 0 && highlightContext.kind == kind && highlightContext.id == id}",
-      ng-click='onSelectJumpTargetInternal()')
+      ng-click='onGoToDefinitionInternal()')
       {{text}}
     span.dropdown
       a.dropdown-toggle(data-toggle="dropdown", href="#")
         b.caret
       ul.dropdown-menu(role="menu")
         li
-          a(href="javascript:void(0)", ng-click="goToDefinitionInternal()") Definition
+          a(href="javascript:void(0)", ng-click="onGoToDefinitionInternal()") Definition
         li
-          a(href="javascript:void(0)", ng-click="findUsagesInternal()") Usages
+          a(href="javascript:void(0)", ng-click="onFindUsagesInternal()") Usages
   span(ng-hide='resolved') {{text}}

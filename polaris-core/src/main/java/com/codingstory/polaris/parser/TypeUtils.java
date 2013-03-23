@@ -119,7 +119,7 @@ public final class TypeUtils {
         Preconditions.checkNotNull(typeUsage);
         Usage.Builder builder = Usage.newBuilder();
         if (definitionJumpTarget != null) {
-            builder.setDefiniationJumpTarget(definitionJumpTarget);
+            builder.setDefinitionJumpTarget(definitionJumpTarget);
         }
         return builder
                 .setKind(Usage.Kind.TYPE)
@@ -176,7 +176,7 @@ public final class TypeUtils {
                 .setKind(Usage.Kind.METHOD)
                 .setMethod(methodUsage)
                 .setJumpTarget(jumpTarget)
-                .setDefiniationJumpTarget(definitionJumpTarget)
+                .setDefinitionJumpTarget(definitionJumpTarget)
                 .setSnippet(snippet)
                 .build();
     }
@@ -191,7 +191,7 @@ public final class TypeUtils {
                 .setKind(Usage.Kind.VARIABLE)
                 .setVariable(variableUsage)
                 .setJumpTarget(jumpTarget)
-                .setDefiniationJumpTarget(definitionJumpTarget)
+                .setDefinitionJumpTarget(definitionJumpTarget)
                 .setSnippet(snippet)
                 .build();
     }
