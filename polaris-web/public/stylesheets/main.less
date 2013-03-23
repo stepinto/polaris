@@ -124,7 +124,7 @@ html, body {
 }
 
 .source {
-  @topHeight: 36px;
+  @pathBarHeight: 36px;
   @leftWidth: 250px;
   @rightWidth: 250px;
 
@@ -136,18 +136,18 @@ html, body {
 
   .top {
     width: 100%;
-    height: @topHeight;
+    height: @pathBarHeight;
   }
 
   .left {
     float: left;
-    width: @leftWidth;
+    width: @leftWidth - @pathBarHeight;
     height: 100%;
     overflow: auto;
   }
   .right {
     float: right;
-    width: @rightWidth;
+    width: @rightWidth - @pathBarHeight;
     height: 100%;
     overflow: auto;
   }
@@ -157,7 +157,7 @@ html, body {
     position: absolute;
     left: @leftWidth;
     right: @rightWidth;
-    top: @topHeight;
+    top: @pathBarHeight;
     bottom: 0;
     overflow: auto;
 
@@ -177,6 +177,10 @@ html, body {
       right: 0;
     }
   }
+}
+
+.path-bar {
+
 }
 
 .project-tree {
