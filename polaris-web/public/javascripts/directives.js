@@ -438,10 +438,10 @@ angular.module('polarisDirectives', ['polarisServices'])
     };
   })
 
-  .directive('fileStructureTree', function(Utils, LinkBuilder) {
+  .directive('classTree', function(Utils, LinkBuilder) {
     return {
       restrict: 'E',
-      templateUrl: 'partials/file-structure-tree',
+      templateUrl: 'partials/class-tree',
       scope: {
         classes: '='
       },
