@@ -3,16 +3,17 @@ package com.codingstory.polaris.parser;
 import com.codingstory.polaris.IdGenerator;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
-import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
 import com.codingstory.polaris.parser.ParserProtos.Method;
 import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
 import com.codingstory.polaris.parser.ParserProtos.Span;
+import com.codingstory.polaris.parser.ParserProtos.Type;
 import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.TypeKind;
 import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
+import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.parser.ParserProtos.VariableHandle;
 import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
 import com.google.common.base.Objects;
@@ -43,8 +44,10 @@ import static com.codingstory.polaris.CollectionUtils.nullToEmptyCollection;
 import static com.codingstory.polaris.parser.ParserUtils.dropGenericTypes;
 import static com.codingstory.polaris.parser.ParserUtils.nodeJumpTarget;
 import static com.codingstory.polaris.parser.ParserUtils.nodeSpan;
+import static com.codingstory.polaris.parser.TypeUtils.createTypeUsage;
 import static com.codingstory.polaris.parser.TypeUtils.handleOf;
 import static com.codingstory.polaris.parser.TypeUtils.snippetLine;
+import static com.codingstory.polaris.parser.TypeUtils.unresolvedTypeHandleOf;
 import static com.codingstory.polaris.parser.TypeUtils.usageOf;
 
 /** Generates cross references for local variable declarationmethod calls. */
@@ -149,13 +152,12 @@ public class ThirdPassProcessor {
         @Override
         public void visit(VariableDeclarationExpr node, Void arg) {
             Preconditions.checkNotNull(node);
-            TypeHandle type = symbolTable.resolveTypeHandle(
-                    dropGenericTypes(node.getType().toString()));
-            JumpTarget jumpTarget = nodeJumpTarget(file, node.getType());
-            usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
-                    .setType(type)
-                    .setKind(TypeUsage.Kind.LOCAL_VARIABLE)
-                    .build(), jumpTarget, snippetLine(lines, jumpTarget)));
+            String className = dropGenericTypes(node.getType().toString());
+            Type type = symbolTable.resolveType(className);
+            TypeHandle typeHandle = (type == null ? unresolvedTypeHandleOf(className) : handleOf(type));
+            JumpTarget typeJumpTarget = nodeJumpTarget(file, node.getType());
+            usages.add(createTypeUsage(
+                    type, className, TypeUsage.Kind.LOCAL_VARIABLE, typeJumpTarget, snippetLine(lines, typeJumpTarget)));
             for (VariableDeclarator decl : node.getVars()) {
                 JumpTarget variableJumpTarget = nodeJumpTarget(file, decl.getId());
                 String variableName = decl.getId().getName();
@@ -165,15 +167,15 @@ public class ThirdPassProcessor {
                         .build();
                 Variable variable = Variable.newBuilder()
                         .setHandle(variableHandle)
-                        .setJumpTarget(jumpTarget)
+                        .setJumpTarget(variableJumpTarget)
                         .setKind(Variable.Kind.LOCAL_VARIABLE)
-                        .setType(type)
+                        .setType(typeHandle)
                         .build();
                 symbolTable.registerVariable(variable);
                 usages.add(TypeUtils.usageOf(VariableUsage.newBuilder()
                         .setVariable(variableHandle)
                         .setKind(VariableUsage.Kind.DECLARATION)
-                        .build(), variableJumpTarget, snippetLine(lines, variableJumpTarget)));
+                        .build(), variableJumpTarget, variableJumpTarget, snippetLine(lines, variableJumpTarget)));
             }
             super.visit(node, arg);
         }
@@ -228,7 +230,7 @@ public class ThirdPassProcessor {
                         usages.add(usageOf(MethodUsage.newBuilder()
                                 .setKind(kind)
                                 .setMethod(method.getHandle())
-                                .build(), jumpTarget, snippet));
+                                .build(), jumpTarget, method.getJumpTarget(), snippet));
                     }
                 }
             }
@@ -261,7 +263,7 @@ public class ThirdPassProcessor {
             usages.add(usageOf(VariableUsage.newBuilder()
                     .setKind(VariableUsage.Kind.ACCESS)
                     .setVariable(variable.getHandle())
-                    .build(), jumpTarget, snippetLine(lines, jumpTarget)));
+                    .build(), jumpTarget, variable.getJumpTarget(), snippetLine(lines, jumpTarget)));
         }
 
         public List<Usage> getUsages() {

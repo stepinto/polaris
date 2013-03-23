@@ -55,7 +55,7 @@ public class UsageDbTest {
         Usage usage1 = usageOf(TypeUsage.newBuilder()
                 .setType(handleOf(clazz))
                 .setKind(TypeUsage.Kind.METHOD_SIGNATURE)
-                .build(), jumpTarget1, "snippet");
+                .build(), jumpTarget1, jumpTarget1, "snippet");
         JumpTarget jumpTarget2 = JumpTarget.newBuilder()
                 .setFile(file)
                 .setSpan(spanOf(positionOf(0, 20), positionOf(0, 30)))
@@ -63,7 +63,7 @@ public class UsageDbTest {
         Usage usage2 = usageOf(TypeUsage.newBuilder()
                 .setType(handleOf(clazz))
                 .setKind(TypeUsage.Kind.METHOD_SIGNATURE)
-                .build(), jumpTarget2, "snippet");
+                .build(), jumpTarget2, jumpTarget2, "snippet");
         w.write(usage1);
         w.write(usage2);
         w.close();

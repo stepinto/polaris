@@ -23,6 +23,7 @@ import java.util.LinkedList;
 import java.util.Map;
 
 import static com.codingstory.polaris.parser.TypeUtils.handleOf;
+import static com.codingstory.polaris.parser.TypeUtils.unresolvedClassHandleOf;
 
 /**
  * Symbol table for types.
@@ -121,10 +122,7 @@ public class SymbolTable {
                     .setName(fullName)
                     .build();
         }
-        return ClassTypeHandle.newBuilder()
-                .setResolved(false)
-                .setName(name)
-                .build();
+        return unresolvedClassHandleOf(name);
     }
 
     public ClassType resolveClass(String name) {

@@ -1,18 +1,21 @@
 package com.codingstory.polaris.parser;
 
+import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
-import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
+import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
 import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
+import com.codingstory.polaris.parser.ParserProtos.Position;
 import com.codingstory.polaris.parser.ParserProtos.PrimitiveType;
+import com.codingstory.polaris.parser.ParserProtos.Span;
 import com.codingstory.polaris.parser.ParserProtos.Type;
 import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.TypeKind;
-import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
 import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
-import com.codingstory.polaris.parser.ParserProtos.Position;
-import com.codingstory.polaris.parser.ParserProtos.Span;
+import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ComparisonChain;
 import org.apache.commons.lang.StringUtils;
 
@@ -107,9 +110,18 @@ public final class TypeUtils {
                 .build();
     }
 
-    public static Usage usageOf(TypeUsage typeUsage, JumpTarget jumpTarget, String snippet) {
+    @VisibleForTesting
+    public static Usage usageOf(
+            TypeUsage typeUsage,
+            JumpTarget jumpTarget,
+            JumpTarget definitionJumpTarget,
+            String snippet) {
         Preconditions.checkNotNull(typeUsage);
-        return Usage.newBuilder()
+        Usage.Builder builder = Usage.newBuilder();
+        if (definitionJumpTarget != null) {
+            builder.setDefiniationJumpTarget(definitionJumpTarget);
+        }
+        return builder
                 .setKind(Usage.Kind.TYPE)
                 .setType(typeUsage)
                 .setJumpTarget(jumpTarget)
@@ -117,22 +129,69 @@ public final class TypeUtils {
                 .build();
     }
 
-    public static Usage usageOf(MethodUsage methodUsage, JumpTarget jumpTarget, String snippet) {
+    public static Usage createTypeUsage(
+            Type type,
+            String typeName,
+            TypeUsage.Kind kind,
+            JumpTarget jumpTarget,
+            String snippet) {
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(typeName));
+        Preconditions.checkNotNull(kind);
+        Preconditions.checkNotNull(jumpTarget);
+        Preconditions.checkNotNull(snippet);
+
+        TypeHandle typeHandle;
+        JumpTarget definitionJumpTarget;
+        if (type == null) {
+            typeHandle = unresolvedTypeHandleOf(typeName);
+            definitionJumpTarget = null;
+        } else if (type.getKind() == TypeKind.CLASS) {
+            typeHandle = handleOf(type);
+            definitionJumpTarget = type.getClazz().getJumpTarget();
+        } else if (type.getKind() == TypeKind.PRIMITIVE) {
+            typeHandle = handleOf(type);
+            definitionJumpTarget = null;
+        } else {
+            throw new AssertionError("Unknown kind: " + type.getKind());
+        }
+
+        TypeUsage typeUsage = TypeUsage.newBuilder()
+                .setType(typeHandle)
+                .setKind(kind)
+                .build();
+        return usageOf(
+                typeUsage,
+                jumpTarget,
+                definitionJumpTarget,
+                snippet);
+    }
+
+    public static Usage usageOf(
+            MethodUsage methodUsage,
+            JumpTarget jumpTarget,
+            JumpTarget definitionJumpTarget,
+            String snippet) {
         Preconditions.checkNotNull(methodUsage);
         return Usage.newBuilder()
                 .setKind(Usage.Kind.METHOD)
                 .setMethod(methodUsage)
                 .setJumpTarget(jumpTarget)
+                .setDefiniationJumpTarget(definitionJumpTarget)
                 .setSnippet(snippet)
                 .build();
     }
 
-    public static Usage usageOf(VariableUsage variableUsage, JumpTarget jumpTarget, String snippet) {
+    public static Usage usageOf(
+            VariableUsage variableUsage,
+            JumpTarget jumpTarget,
+            JumpTarget definitionJumpTarget,
+            String snippet) {
         Preconditions.checkNotNull(variableUsage);
         return Usage.newBuilder()
                 .setKind(Usage.Kind.VARIABLE)
                 .setVariable(variableUsage)
                 .setJumpTarget(jumpTarget)
+                .setDefiniationJumpTarget(definitionJumpTarget)
                 .setSnippet(snippet)
                 .build();
     }
@@ -154,5 +213,23 @@ public final class TypeUtils {
         int row = jumpTarget.getSpan().getFrom().getLine();
         String rawSnippet = lines[row];
         return StringUtils.strip(rawSnippet, "\n\t ");
+    }
+
+    public static ClassTypeHandle unresolvedClassHandleOf(String name) {
+        return ClassTypeHandle.newBuilder()
+                .setResolved(false)
+                .setName(name)
+                .build();
+    }
+
+    public static TypeHandle unresolvedTypeHandleOf(String name) {
+        return handleOf(unresolvedClassHandleOf(name));
+    }
+
+    public static Type typeOf(ClassType clazz) {
+        return Type.newBuilder()
+                .setClazz(clazz)
+                .setKind(TypeKind.CLASS)
+                .build();
     }
 }

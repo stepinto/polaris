@@ -3,17 +3,18 @@ package com.codingstory.polaris.parser;
 import com.codingstory.polaris.IdGenerator;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.ClassTypeHandle;
-import com.codingstory.polaris.parser.ParserProtos.Variable;
-import com.codingstory.polaris.parser.ParserProtos.VariableHandle;
-import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.JumpTarget;
 import com.codingstory.polaris.parser.ParserProtos.Method;
 import com.codingstory.polaris.parser.ParserProtos.MethodHandle;
 import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
+import com.codingstory.polaris.parser.ParserProtos.Type;
 import com.codingstory.polaris.parser.ParserProtos.TypeHandle;
 import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
+import com.codingstory.polaris.parser.ParserProtos.Variable;
+import com.codingstory.polaris.parser.ParserProtos.VariableHandle;
+import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -39,10 +40,13 @@ import static com.codingstory.polaris.CollectionUtils.nullToEmptyList;
 import static com.codingstory.polaris.parser.ParserUtils.dropGenericTypes;
 import static com.codingstory.polaris.parser.ParserUtils.makeTypeName;
 import static com.codingstory.polaris.parser.ParserUtils.nodeJumpTarget;
+import static com.codingstory.polaris.parser.TypeUtils.createTypeUsage;
 import static com.codingstory.polaris.parser.TypeUtils.getSimpleName;
 import static com.codingstory.polaris.parser.TypeUtils.handleOf;
 import static com.codingstory.polaris.parser.TypeUtils.snippetLine;
-import static com.codingstory.polaris.parser.TypeUtils.usageOf;
+import static com.codingstory.polaris.parser.TypeUtils.typeOf;
+import static com.codingstory.polaris.parser.TypeUtils.unresolvedClassHandleOf;
+import static com.codingstory.polaris.parser.TypeUtils.unresolvedTypeHandleOf;
 
 /** Extracts class members and generate cross references for field types and method signatures. */
 public final class SecondPassProcessor {
@@ -102,13 +106,13 @@ public final class SecondPassProcessor {
                 symbolTable.registerImportPackage(node.getName().toString());
             } else {
                 String name = node.getName().toString();
-                ClassTypeHandle clazz = symbolTable.resolveClassHandle(name);
+                Type clazz = symbolTable.resolveType(name);
+                ClassTypeHandle classHandle = (clazz == null
+                        ? unresolvedClassHandleOf(name) : clazz.getClazz().getHandle());
                 JumpTarget jumpTarget = nodeJumpTarget(file, node.getName());
-                usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
-                        .setKind(TypeUsage.Kind.IMPORT)
-                        .setType(TypeUtils.handleOf(clazz))
-                        .build(), jumpTarget, snippetLine(lines, jumpTarget)));
-                symbolTable.registerImportClass(clazz);
+                usages.add(createTypeUsage(
+                        clazz, name, TypeUsage.Kind.IMPORT, jumpTarget, snippetLine(lines, jumpTarget)));
+                symbolTable.registerImportClass(classHandle);
             }
             super.visit(node, arg);
         }
@@ -118,12 +122,16 @@ public final class SecondPassProcessor {
             Preconditions.checkNotNull(node);
             List<ClassOrInterfaceType> superTypeAsts = ImmutableList.copyOf(Iterables.concat(
                     nullToEmptyList(node.getExtends()), nullToEmptyList(node.getImplements())));
-            for (TypeParameter genericType : nullToEmptyList(node.getTypeParameters())) {
-                JumpTarget jumpTarget = nodeJumpTarget(file, genericType);
-                usages.add(usageOf(TypeUsage.newBuilder()
-                        .setKind(TypeUsage.Kind.GENERIC_TYPE_PARAMETER)
-                        .setType(handleOf(symbolTable.resolveClassHandle(genericType.getName())))
-                        .build(), jumpTarget, snippetLine(lines, jumpTarget)));
+            for (TypeParameter genericTypeParameter : nullToEmptyList(node.getTypeParameters())) {
+                JumpTarget jumpTarget = nodeJumpTarget(file, genericTypeParameter);
+                String genericTypeName = genericTypeParameter.getName();
+                Type genericType = symbolTable.resolveType(genericTypeName);
+                usages.add(createTypeUsage(
+                        genericType,
+                        genericTypeName,
+                        TypeUsage.Kind.GENERIC_TYPE_PARAMETER,
+                        jumpTarget,
+                        snippetLine(lines, jumpTarget)));
             }
             processTypeDeclaration(node.getName(),
                     node.isInterface() ? ClassType.Kind.INTERFACE : ClassType.Kind.CLASS,
@@ -151,19 +159,24 @@ public final class SecondPassProcessor {
             }
             for (ClassOrInterfaceType superTypeAst : superTypeAsts) {
                 String superTypeName = superTypeAst.toString();
-                TypeHandle superType = symbolTable.resolveTypeHandle(superTypeName);
+                Type superClass = symbolTable.resolveType(superTypeName);
                 JumpTarget superJumpTarget = nodeJumpTarget(file, superTypeAst);
-                usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
-                        .setType(superType)
-                        .setKind(TypeUsage.Kind.SUPER_CLASS)
-                        .build(), superJumpTarget, snippetLine(lines, superJumpTarget)));
-                classBuilder.addSuperTypes(superType);
+                usages.add(createTypeUsage(
+                        superClass,
+                        superTypeName,
+                        TypeUsage.Kind.SUPER_CLASS,
+                        superJumpTarget,
+                        snippetLine(lines, superJumpTarget)));
+                classBuilder.addSuperTypes(
+                        superClass == null ? unresolvedTypeHandleOf(superTypeName) : handleOf(superClass));
             }
-            usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
-                    .setType(TypeUtils.handleOf(classBuilder.getHandle()))
-                    .setKind(TypeUsage.Kind.TYPE_DECLARATION)
-                    .build(), jumpTarget, snippetLine(lines, jumpTarget)));
             clazz = classBuilder.build();
+            usages.add(createTypeUsage(
+                    typeOf(clazz),
+                    fullName,
+                    TypeUsage.Kind.TYPE_DECLARATION,
+                    jumpTarget,
+                    snippetLine(lines, jumpTarget)));
             symbolTable.enterScope();
             typeStack.push(clazz);
             visitChildren.run();
@@ -246,51 +259,64 @@ public final class SecondPassProcessor {
                 List<Parameter> methodParameters,
                 List<NameExpr> methodThrows,
                 Runnable visitChildren) {
-            TypeHandle returnType;
+            TypeHandle returnTypeHandle;
             if (type == null) {
-                returnType = TypeUtils.handleOf(PrimitiveTypes.VOID);
+                returnTypeHandle = TypeUtils.handleOf(PrimitiveTypes.VOID);
             } else {
-                returnType = symbolTable.resolveTypeHandle(type.toString());
+                String returnTypeName = type.toString();
+                Type returnType = symbolTable.resolveType(returnTypeName);
+                returnTypeHandle = (returnType == null ? unresolvedTypeHandleOf(returnTypeName) : handleOf(returnType));
                 JumpTarget returnJumpTarget = nodeJumpTarget(file, type);
-                usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
-                        .setKind(TypeUsage.Kind.METHOD_SIGNATURE)
-                        .setType(returnType)
-                        .build(), returnJumpTarget, snippetLine(lines, returnJumpTarget)));
+                usages.add(createTypeUsage(
+                        returnType,
+                        returnTypeName,
+                        TypeUsage.Kind.METHOD_SIGNATURE,
+                        returnJumpTarget,
+                        snippetLine(lines, returnJumpTarget)));
             }
             List<Variable> parameters = Lists.newArrayList();
             List<TypeHandle> parameterTypes = Lists.newArrayList();
             for (Parameter parameter : nullToEmptyList(methodParameters)) {
-                TypeHandle parameterType = symbolTable.resolveTypeHandle(parameter.getType().toString());
+                String parameterTypeName = parameter.getType().toString();
+                Type parameterType = symbolTable.resolveType(parameterTypeName);
+                TypeHandle parameterTypeHandle = symbolTable.resolveTypeHandle(parameterTypeName);
                 JumpTarget parameterTypeJumpTarget = nodeJumpTarget(file, parameter.getType());
-                usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
-                        .setType(parameterType)
-                        .setKind(TypeUsage.Kind.METHOD_SIGNATURE)
-                        .build(), parameterTypeJumpTarget, snippetLine(lines, parameterTypeJumpTarget)));
-                parameterTypes.add(parameterType);
+                usages.add(createTypeUsage(
+                        parameterType,
+                        parameterTypeName,
+                        TypeUsage.Kind.METHOD_SIGNATURE,
+                        parameterTypeJumpTarget,
+                        snippetLine(lines, parameterTypeJumpTarget)));
+                parameterTypes.add(parameterTypeHandle);
                 VariableHandle handle = VariableHandle.newBuilder()
                         .setId(idGenerator.next())
                         .setName(parameter.getId().getName())
                         .build();
+                JumpTarget parameterJumpTarget = nodeJumpTarget(file, parameter.getId());
                 parameters.add(Variable.newBuilder()
-                        .setType(parameterType)
+                        .setType(parameterTypeHandle)
                         .setHandle(handle)
                         .setKind(Variable.Kind.PARAMETER)
+                        .setJumpTarget(parameterJumpTarget)
                         .build());
-                JumpTarget parameterJumpTarget = nodeJumpTarget(file, parameter.getId());
                 usages.add(TypeUtils.usageOf(VariableUsage.newBuilder()
                         .setKind(VariableUsage.Kind.DECLARATION)
                         .setVariable(handle)
-                        .build(), parameterJumpTarget, snippetLine(lines, parameterJumpTarget)));
+                        .build(), parameterJumpTarget, parameterJumpTarget, snippetLine(lines, parameterJumpTarget)));
             }
             List<TypeHandle> exceptions = Lists.newArrayList();
             for (NameExpr throwExpr : nullToEmptyList(methodThrows)) {
-                TypeHandle exceptionType = symbolTable.resolveTypeHandle(throwExpr.getName());
+                Type exceptionType = symbolTable.resolveType(throwExpr.getName());
+                TypeHandle exceptionTypeHandle = (exceptionType == null
+                        ? unresolvedTypeHandleOf(throwExpr.getName()) : handleOf(exceptionType));
                 JumpTarget throwJumpTarget = nodeJumpTarget(file, throwExpr);
-                usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
-                        .setType(exceptionType)
-                        .setKind(TypeUsage.Kind.METHOD_SIGNATURE)
-                        .build(), throwJumpTarget, snippetLine(lines, throwJumpTarget)));
-                exceptions.add(exceptionType);
+                usages.add(createTypeUsage(
+                        exceptionType,
+                        throwExpr.getName(),
+                        TypeUsage.Kind.METHOD_SIGNATURE,
+                        throwJumpTarget,
+                        snippetLine(lines, throwJumpTarget)));
+                exceptions.add(exceptionTypeHandle);
             }
             String fullMemberName = currentTypeName() + "." + methodName;
             MethodHandle methodHandle = MethodHandle.newBuilder()
@@ -301,10 +327,10 @@ public final class SecondPassProcessor {
             usages.add(TypeUtils.usageOf(MethodUsage.newBuilder()
                     .setMethod(methodHandle)
                     .setKind(MethodUsage.Kind.METHOD_DECLARATION)
-                    .build(), jumpTarget, snippetLine(lines, jumpTarget)));
+                    .build(), jumpTarget, jumpTarget, snippetLine(lines, jumpTarget)));
             Method method = Method.newBuilder()
                     .setHandle(methodHandle)
-                    .setReturnType(returnType)
+                    .setReturnType(returnTypeHandle)
                     .addAllParameters(parameters)
                     .addAllExceptions(exceptions)
                     .setJumpTarget(jumpTarget)
@@ -325,13 +351,16 @@ public final class SecondPassProcessor {
         @Override
         public void visit(japa.parser.ast.body.FieldDeclaration node, Object arg) {
             Preconditions.checkNotNull(node);
-            TypeHandle type = symbolTable.resolveTypeHandle(
-                    dropGenericTypes(node.getType().toString()));
+            String typeName = dropGenericTypes(node.getType().toString());
+            Type type = symbolTable.resolveType(typeName);
+            TypeHandle typeHandle = symbolTable.resolveTypeHandle(typeName);
             JumpTarget jumpTarget = nodeJumpTarget(file, node.getType());
-            usages.add(TypeUtils.usageOf(TypeUsage.newBuilder()
-                    .setType(type)
-                    .setKind(TypeUsage.Kind.FIELD)
-                    .build(), jumpTarget, snippetLine(lines, jumpTarget)));
+            usages.add(createTypeUsage(
+                    type,
+                    typeName,
+                    TypeUsage.Kind.FIELD,
+                    jumpTarget,
+                    snippetLine(lines, jumpTarget)));
             for (VariableDeclarator varDecl : node.getVariables()) {
                 JumpTarget fieldTarget = nodeJumpTarget(file, varDecl.getId());
                 String fullMemberName = currentTypeName() + "." + varDecl.getId().getName();
@@ -341,7 +370,7 @@ public final class SecondPassProcessor {
                         .build();
                 Variable field = Variable.newBuilder()
                         .setHandle(fieldHandle)
-                        .setType(type)
+                        .setType(typeHandle)
                         .setKind(Variable.Kind.FIELD)
                         .setJumpTarget(fieldTarget)
                         .build();
@@ -349,7 +378,7 @@ public final class SecondPassProcessor {
                 usages.add(TypeUtils.usageOf(VariableUsage.newBuilder()
                         .setVariable(field.getHandle())
                         .setKind(VariableUsage.Kind.DECLARATION)
-                        .build(), fieldTarget, snippetLine(lines, fieldTarget)));
+                        .build(), fieldTarget, fieldTarget, snippetLine(lines, fieldTarget)));
             }
             super.visit(node, arg);
         }
