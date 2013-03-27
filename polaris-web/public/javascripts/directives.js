@@ -415,13 +415,14 @@ angular.module('polarisDirectives', ['polarisServices'])
   // Shows type usages
   // 
   // Usage:
-  //   <xref-box xrefs="..." />
+  //   <xref-box xrefs="..." on-select-jump-target='...' />
   .directive('xrefBox', function(CodeSearch, LinkBuilder) {
     return {
       restrict: 'E',
       templateUrl: 'partials/xref-box',
       scope: {
-        xrefs: '='
+        xrefs: '=',
+        onSelectJumpTarget: '&'
       },
       replace: true,
       link: function(scope) {
@@ -434,6 +435,9 @@ angular.module('polarisDirectives', ['polarisServices'])
             });
           }
         });
+        scope.onSelectUsage = function(usage) {
+          scope.onSelectJumpTarget({'jumpTarget': usage.jumpTarget});
+        }
       }
     };
   })

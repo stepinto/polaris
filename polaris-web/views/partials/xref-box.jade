@@ -1,5 +1,5 @@
 .xref-box
   ul
     li(ng-repeat='u in usages')
-      a.usage(ng-href="{{'#' + u.url}}") {{u.title}}
+      a.usage(ng-href="{{u.url}}", ng-click='onSelectUsage(u)') {{u.title}}
       pre {{u.snippet}}

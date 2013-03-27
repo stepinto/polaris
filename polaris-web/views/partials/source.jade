@@ -28,4 +28,7 @@
         span xref
       .body
         span(ng-show='loadingXrefs') Loading
-        xref-box(xrefs="xrefs", ng-hide='loadingXrefs')
+        xref-box(
+          xrefs="xrefs",
+          ng-hide='loadingXrefs',
+          on-select-jump-target='onSelectJumpTarget(jumpTarget)')
