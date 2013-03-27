@@ -250,7 +250,6 @@ angular.module('polarisDirectives', ['polarisServices'])
       templateUrl: 'partials/code-view',
       scope: {
         onFindUsages: '&',
-        onGoToDefinition: '&',
         onSelectJumpTarget: '&',
         code: '=',
         usages: '=',
@@ -272,7 +271,6 @@ angular.module('polarisDirectives', ['polarisServices'])
         var processMatch = function(text, k) {
           return '<usage ' +
             'on-find-usages="onFindUsagesInternal(kind, id)" ' +
-            'on-go-to-definition="onGoToDefinitionInternal(kind, id)" ' +
             'on-select-jump-target="onSelectJumpTargetInternal(jumpTarget)" ' +
             'highlight-context="highlightContext" ' +
             'usage="usages[' + k + ']">' +
@@ -344,9 +342,6 @@ angular.module('polarisDirectives', ['polarisServices'])
         });
         scope.onFindUsagesInternal = function(kind, id) {
           scope.onFindUsages({'kind': kind, 'id': id});
-        }
-        scope.onGoToDefinitionInternal = function(kind, id) {
-          scope.onGoToDefinition({'kind': kind, 'id': id});
         }
         scope.onSelectJumpTargetInternal = function(jumpTarget) {
           scope.onSelectJumpTarget({'jumpTarget': jumpTarget});
