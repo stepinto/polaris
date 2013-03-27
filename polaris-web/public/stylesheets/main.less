@@ -140,17 +140,22 @@ html, body {
   }
 
   .left {
-    float: left;
-    width: @leftWidth - @pathBarHeight;
-    height: 100%;
+    position: absolute;
+    top: @pathBarHeight;
+    bottom: 0;
+    width: @leftWidth;
     overflow: auto;
   }
+
   .right {
-    float: right;
-    width: @rightWidth - @pathBarHeight;
-    height: 100%;
+    position: absolute;
+    top: @pathBarHeight;
+    bottom: 0;
+    right: 0;
+    width: @rightWidth;
     overflow: auto;
   }
+
   .main {
     @bottomHeight: 150px;
 
@@ -287,6 +292,10 @@ html, body {
 .class-tree {
   li {
     list-style-type: none;
+  }
+
+  span {
+    white-space: pre;
   }
 
   .clazz {
