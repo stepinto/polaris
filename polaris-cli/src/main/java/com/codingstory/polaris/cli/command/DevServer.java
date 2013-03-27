@@ -10,6 +10,7 @@ import com.codingstory.polaris.search.SearchProtos.CodeSearch;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.protobuf.BlockingService;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
@@ -35,6 +36,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.util.Set;
 
 import static com.codingstory.polaris.cli.CommandUtils.checkDirectoryExists;
 import static com.codingstory.polaris.cli.CommandUtils.die;
@@ -46,6 +48,7 @@ public class DevServer {
 
     /** Reads CSS and LESS files. */
     public static class MyServlet extends HttpServlet {
+        private static final Set<String> CONTROLLER_PATHS = ImmutableSet.of("/index", "/search", "/source");
         private final File webDir;
         private final CodeSearchImpl searcher;
 
@@ -60,9 +63,9 @@ public class DevServer {
             LOG.info(req.getMethod() + " " + path);
             if (path.endsWith(".css")) {
                 handleCss(req, resp);
-            } else if (Objects.equal(path, "/")) {
-                handleJade(req, resp);
             } else if (path.endsWith(".html")) {
+                handleJade(req, resp);
+            } else if (isControllerPath(path)) {
                 handleJade(req, resp);
             } else if (path.startsWith("/partials")) {
                 handleJade(req, resp);
@@ -81,6 +84,18 @@ public class DevServer {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             }
             LOG.info("Status code: " + resp.getStatus());
+        }
+
+        private boolean isControllerPath(String path) {
+            if (Objects.equal(path, "/")) {
+                return true;
+            }
+            for (String controllerPath : CONTROLLER_PATHS) {
+                if (path.startsWith(controllerPath)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override
@@ -119,7 +134,7 @@ public class DevServer {
 
         private void handleJade(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             String path = req.getRequestURI();
-            if (Objects.equal(path, "/")) {
+            if (isControllerPath(path)) {
                 path = "index.html";
             }
             File htmlFile = new File(webDir, "views/" + path);

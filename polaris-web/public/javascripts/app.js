@@ -4,6 +4,8 @@
 
 angular.module('polaris', ['polarisServices', 'polarisDirectives']).
   config(function ($routeProvider, $locationProvider) {
+    // When adding new controllers, need to modify DevServer.java to redirect
+    // the request to index.html.
     $routeProvider
       .when('/', {
         controller: IndexCtrl,
