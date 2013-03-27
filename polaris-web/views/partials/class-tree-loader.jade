@@ -1,0 +1,6 @@
+.class-tree-loader
+  div(ng-show='loading') Loading...
+  .class-tree-loader-inner(ng-hide='loading')
+    class-tree(
+      classes='classes',
+      on-select-jump-target='onSelectJumpTargetInternal(jumpTarget)')

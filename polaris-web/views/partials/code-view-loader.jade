@@ -1,0 +1,9 @@
+.code-view-loader
+  span(ng-show='loading') Loading...
+  .code-view-loader-inner(ng-hide='loading')
+    code-view(
+      code='sourceCode',
+      usages='usages',
+      on-find-usages="onFindUsagesInternal(kind, id)",
+      highlighted-line='highlightedLine',
+      on-select-jump-target='onSelectJumpTargetInternal(jumpTarget)')

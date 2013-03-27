@@ -216,13 +216,12 @@ angular.module('polarisDirectives', ['polarisServices'])
             }
             if (resp.files) {
               $.each(resp.files, function(i, file) {
-                ul.append("<li><a href=#" + LinkBuilder.sourceFromFileId(file.id) + ">" +
+                ul.append("<li><a href=" + LinkBuilder.sourceFromFileId(file.id) + ">" +
                   Utils.getBaseName(resp.files[i].path) + "</a></li>");
                 var li = ul.find('> li:last');
                 li.addClass('normal-file');
                 li.find('> a').click(function () {
                   scope.onSelectFile({'fileId': file.id});
-                  return false;
                 })
               });
             }
@@ -232,6 +231,44 @@ angular.module('polarisDirectives', ['polarisServices'])
         var collapseSingleLevel = function(path, node) {
           node.removeClass('expanded').addClass('collapsed');
           node.find('> ul > *').hide();
+        }
+      }
+    };
+  })
+
+  .directive('codeViewLoader', function(CodeSearch) {
+    return {
+      restrict: 'E',
+      templateUrl: 'partials/code-view-loader',
+      scope: {
+        onFindUsages: '&',
+        onSelectJumpTarget: '&',
+        fileId: '=',
+        highlightedLine: '='
+      },
+      replace: true,
+      link: function(scope, element, attrs) {
+        scope.loading = true;
+        scope.$watch('fileId', function() {
+          if (!scope.fileId) {
+            return;
+          }
+          if (scope.fileIdLoaded == scope.fileId) {
+            return;
+          }
+          scope.loading = true;
+          console.log('loading');
+          CodeSearch.readSourceById(scope.fileId, function(resp) {
+            scope.sourceCode = resp.source.source;
+            scope.usages = resp.usages ? resp.usages : [];
+            scope.loading = false;
+          });
+        });
+        scope.onFindUsagesInternal = function(kind, id) {
+          scope.onFindUsages({'kind': kind, 'id': id});
+        }
+        scope.onSelectJumpTargetInternal = function(jumpTarget) {
+          scope.onSelectJumpTarget({'jumpTarget': jumpTarget});
         }
       }
     };
@@ -313,6 +350,10 @@ angular.module('polarisDirectives', ['polarisServices'])
           return result;
         }
 
+        var scrollToLine = function (line) {
+          if (line > 3) { line -= 3; }
+          $(element).scrollTop(line * 20);
+        };
         scope.$watch('code + usages', function() {
           if (scope.code && scope.usages) {
             // Bind nested directievs.
@@ -329,16 +370,17 @@ angular.module('polarisDirectives', ['polarisServices'])
             for (var i = 0; i < lineCount; i++) {
               scope.lines.push(i);
             }
+
+            if (scope.highlightedLine) {
+              scrollToLine(scope.highlightedLine);
+            }
           }
         });
         scope.$watch('highlightedLine', function() {
-          // Scroll to highlighted line.
-          setTimeout(function() {
-            if (!scope.highlightedLine) { return; }
-            var l = scope.highlightedLine;
-            if (l > 3) { l -= 3; }
-            element.scrollTop(l * 20);
-          });
+          if (!scope.highlightedLine) {
+            return;
+          }
+          scrollToLine(scope.highlightedLine);
         });
         scope.onFindUsagesInternal = function(kind, id) {
           scope.onFindUsages({'kind': kind, 'id': id});
@@ -451,7 +493,7 @@ angular.module('polarisDirectives', ['polarisServices'])
       link: function(scope) {
         scope.loading = true;
         scope.classes = [];
-        scope.$watch('fileId', function(value) {
+        scope.$watch('fileId', function() {
           if (!scope.fileId) {
             return;
           }
@@ -460,9 +502,9 @@ angular.module('polarisDirectives', ['polarisServices'])
           }
           scope.loading = true;
           CodeSearch.listTypesInFile(scope.fileId, function(resp) {
-            scope.loading = false;
             scope.classes = resp.classTypes;
             scope.fileIdLoaded = scope.fileId;
+            scope.loading = false;
           });
         });
         scope.onSelectJumpTargetInternal = function(jumpTarget) {

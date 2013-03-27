@@ -32,8 +32,6 @@ function SearchCtrl($scope, $routeParams, CodeSearch, LinkBuilder) {
 function SourceCtrl($scope, $routeParams, CodeSearch) {
   var readSourceCallback = function (resp) {
     $scope.fileId = resp.source.handle.id;
-    $scope.sourceCode = resp.source.source;
-    $scope.usages = resp.usages ? resp.usages : [];
     $scope.project = resp.source.handle.project;
     $scope.path = resp.source.handle.path;
     if (!$scope.pathsToExpand) {
@@ -41,7 +39,7 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
     } else if ($scope.pathsToExpand.indexOf($scope.path) == -1) {
       $scope.pathsToExpand.push($scope.path);
     }
-    $scope.highlightedLine = $routeParams.line;
+    $scope.highlightedLine = $routeParams.line ? $routeParams.line : 0;
   };
   if ($routeParams.project && $routeParams.path) {
     CodeSearch.readSourceByPath($routeParams.project, $routeParams.path, readSourceCallback);
