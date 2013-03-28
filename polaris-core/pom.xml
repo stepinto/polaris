@@ -22,9 +22,6 @@
         <plugin>
             <groupId>com.google.protobuf.tools</groupId>
             <artifactId>maven-protoc-plugin</artifactId>
-            <configuration>
-                <protocExecutable>/usr/local/bin/protoc</protocExecutable>
-            </configuration>
             <executions>
                 <execution>
                     <goals>
