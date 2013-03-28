@@ -2,4 +2,4 @@ language: java
 before_install:
   - sudo apt-get install protobuf-compiler
   - git clone https://github.com/matozoid/javaparser.git && cd javaparser && mvn install -DskipTests && cd ..
-  - git clone https://git-wip-us.apache.org/repos/asf/crunch.git && cd crunch && mvn install -DskipTests && cd ..
+  - git clone https://git-wip-us.apache.org/repos/asf/crunch.git && cd crunch && mvn install -DskipTests -Phadoop-2 && cd ..
