@@ -4,42 +4,45 @@
 
 angular.module('polarisServices', [])
   .factory('CodeSearch', function($http) {
+    var execute = function(method, req, callback) {
+      $http.post('/api/' + method, req).success(callback);
+    };
     return {
       search: function (query, rankFrom, rankTo, callback) {
         var req = {'query': query, 'rankFrom': rankFrom, 'rankTo': rankTo};
-        $http.post('/api/search', req).success(callback);
+        execute('search', req, callback);
       },
       complete: function(query, limit, callback) {
         var req = {'query': query, 'limit': limit};
-        $http.post('/api/complete', req).success(callback);
+        execute('complete', req, callback);
       },
       readSourceByPath: function (project, path, callback) {
         var req = {'projectName': project, 'fileName': path};
-        $http.post('/api/source', req).success(callback);
+        execute('source', req, callback);
       },
       readSourceById: function(id, callback) {
         var req = {'fileId': Number(id)};
-        $http.post('/api/source', req).success(callback);
+        execute('source', req, callback);
       },
       listFiles: function(project, path, callback) {
         var req = {'projectName': project, 'directoryName': path};
-        $http.post('/api/layout', req).success(callback);
+        execute('layout', req, callback);
       },
       getTypeById: function(typeId, callback) {
         var req = {'typeId': Number(typeId)};
-        $http.post('/api/getType', req).success(callback);
+        execute('getType', req, callback);
       },
       getMethodById: function(methodId, callback) {
         var req = {'methodId': Number(methodId)};
-        $http.post('/api/getMethod', req).success(callback);
+        execute('getMethod', req, callback);
       },
       listUsages: function(kind, id, callback) {
         var req = {'kind': kind, 'id': Number(id)};
-        $http.post('/api/listUsages', req).success(callback);
+        execute('listUsages', req, callback);
       },
       listTypesInFile: function(fileId, callback) {
         var req = {'fileId': Number(fileId), 'limit': 2147483647};
-        $http.post('/api/listTypesInFile', req).success(callback);
+        execute('listTypesInFile', req, callback);
       }
     };
   })

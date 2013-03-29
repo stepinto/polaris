@@ -35,8 +35,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.OutputStreamWriter;
 import java.util.Set;
+import java.util.zip.GZIPOutputStream;
 
 import static com.codingstory.polaris.cli.CommandUtils.checkDirectoryExists;
 import static com.codingstory.polaris.cli.CommandUtils.die;
@@ -189,10 +190,14 @@ public class DevServer {
                 Message output = service.callBlockingMethod(
                         methodDesc, NoOpController.getInstance(), inputBuilder.build());
 
+                resp.setHeader("Content-Encoding", "gzip");
+                resp.setContentType("application/json");
                 resp.setStatus(HttpServletResponse.SC_OK);
-                PrintWriter out = resp.getWriter();
+                GZIPOutputStream gzipOutputStream = new GZIPOutputStream(resp.getOutputStream());
+                OutputStreamWriter out = new OutputStreamWriter(gzipOutputStream);
                 JsonFormat.print(output, out);
                 out.flush();
+                gzipOutputStream.finish();
             } catch (ServiceException e) {
                 throw new AssertionError(e);
             }

@@ -257,7 +257,6 @@ angular.module('polarisDirectives', ['polarisServices'])
             return;
           }
           scope.loading = true;
-          console.log('loading');
           CodeSearch.readSourceById(scope.fileId, function(resp) {
             scope.sourceCode = resp.source.source;
             scope.usages = resp.usages ? resp.usages : [];
