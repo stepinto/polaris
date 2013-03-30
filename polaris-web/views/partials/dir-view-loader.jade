@@ -1,0 +1,7 @@
+.dir-view-loader
+  span(ng-show='loading') Loading...
+  dir-view(
+    ng-hide='loading',
+    project='project()',
+    children='children',
+    on-select-file='onSelectFile({"file": file})')

@@ -1,31 +1,38 @@
 .source
   .top
     path-bar(
-      on-selected='',
+      on-select-file='onSelectFile(file)',
       project='project',
       path='path')
   .left
     project-tree(
       project="project",
       paths-to-expand="pathsToExpand",
-      on-select-file='onSelectFile(fileId)')
+      on-select-file='onSelectFile(file)')
   .right
-    class-tree-loader(
-      file-id='fileId',
-      on-select-jump-target='onSelectJumpTarget(jumpTarget)')
+    div(ng-show='view == "CODE"')
+      class-tree-loader(
+        file-id='fileId',
+        on-select-jump-target='onSelectJumpTarget(jumpTarget)')
   .main
-    .main-top
-      code-view-loader(
-          file-id='fileId',
-          highlighted-line='highlightedLine',
-          on-find-usages="onFindUsages(kind, id)",
-          on-select-jump-target='onSelectJumpTarget(jumpTarget)')
-    .panel.main-bottom
-      .header
-        span xref
-      .body
-        span(ng-show='loadingXrefs') Loading
-        xref-box(
-          xrefs="xrefs",
-          ng-hide='loadingXrefs',
-          on-select-jump-target='onSelectJumpTarget(jumpTarget)')
+    div(ng-show='view == "CODE"')
+      .main-top
+        code-view-loader(
+            file='file',
+            highlighted-line='highlightedLine',
+            on-find-usages="onFindUsages(kind, id)",
+            on-select-jump-target='onSelectJumpTarget(jumpTarget)')
+      .panel.main-bottom
+        .header
+          span xref
+        .body
+          span(ng-show='loadingXrefs') Loading
+          xref-box(
+            xrefs="xrefs",
+            ng-hide='loadingXrefs',
+            on-select-jump-target='onSelectJumpTarget(jumpTarget)')
+    div(ng-show='view == "DIR"')
+      dir-view-loader(
+        project='project',
+        path='path',
+        on-select-file='onSelectFile(file)')

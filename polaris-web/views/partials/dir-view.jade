@@ -1,0 +1,7 @@
+.dir-view
+  ul
+    li(ng-repeat='child in children_')
+      a(
+        ng-href='{{child.url}}',
+        ng-click='onSelectFile({"file": child.handle})')
+        | {{child.name}}

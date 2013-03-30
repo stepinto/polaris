@@ -59,6 +59,10 @@ angular.module('polarisServices', [])
       listTypesInFile: function(fileId, callback) {
         var req = {'fileId': Number(fileId), 'limit': 2147483647};
         execute('listTypesInFile', req, callback);
+      },
+      getFileHandle: function(project, path, callback) {
+        var req = {'project': project, 'path': path};
+        execute('getFileHandle', req, callback);
       }
     };
   })
@@ -180,17 +184,17 @@ angular.module('polarisServices', [])
   .factory('LinkBuilder', function() {
     return {
       'source': function(jumpTarget) {
+        var url = this.sourceFromHandle(jumpTarget.file);
         if (jumpTarget.span) {
-          return '/source?file=' + jumpTarget.file.id + '&line=' + jumpTarget.span.from.line;
-        } else {
-          return '/source?file=' + jumpTarget.file.id;
+          url += '&line=' + jumpTarget.span.from.line;
         }
+        return url;
       },
-      'sourceFromFileId': function(fileId) {
-        return '/source?file=' + fileId;
+      'sourceFromProjectAndPath': function(project, path) {
+        return '/source?project=' + project + '&path=' + path;
       },
-      'file': function(project, path) {
-        return '/source/' + project + path;
+      'sourceFromHandle': function(fileHandle) {
+        return this.sourceFromProjectAndPath(fileHandle.project, fileHandle.path);
       }
     };
   });

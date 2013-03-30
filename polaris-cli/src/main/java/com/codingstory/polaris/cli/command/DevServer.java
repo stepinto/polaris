@@ -49,7 +49,7 @@ public class DevServer {
 
     /** Reads CSS and LESS files. */
     public static class MyServlet extends HttpServlet {
-        private static final Set<String> CONTROLLER_PATHS = ImmutableSet.of("/index", "/search", "/source");
+        private static final Set<String> CONTROLLER_PATHS = ImmutableSet.of("/index", "/search", "/dir", "/source");
         private final File webDir;
         private final CodeSearchImpl searcher;
 

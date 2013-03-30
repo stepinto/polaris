@@ -1,4 +1,12 @@
 ul.breadcrumb
   li(ng-repeat='p in parts')
-    a(href='{{p.url}}', ng-show='p.url != undefined') {{p.name}}
-    span(ng-show='$last', ng-show='p.url == undefined', ng-class='{divider: p.divider, active: p.active}') {{p.name}}
+    a(
+      ng-href='{{p.url}}',
+      ng-show='p.url != undefined',
+      ng-click='onSelectFileInternal(p.path)')
+      | {{p.name}}
+    span(
+      ng-show='$last',
+      ng-show='p.url == undefined',
+      ng-class='{divider: p.divider, active: p.active}')
+      | {{p.name}}

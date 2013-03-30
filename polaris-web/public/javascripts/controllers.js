@@ -29,23 +29,39 @@ function SearchCtrl($scope, $routeParams, CodeSearch, LinkBuilder) {
   $scope.search();
 }
 
-function SourceCtrl($scope, $routeParams, CodeSearch) {
-  var readSourceCallback = function (resp) {
-    $scope.fileId = resp.source.handle.id;
-    $scope.project = resp.source.handle.project;
-    $scope.path = resp.source.handle.path;
+function SourceCtrl($scope, $routeParams, CodeSearch, Utils) {
+  var showFile = function (file, line) {
+    console.log('Show file', file);
+    if (file.kind == 'DIRECTORY') {
+      $scope.view = 'DIR';
+    } else if (file.kind == 'NORMAL_FILE') {
+      $scope.view = 'CODE';
+    } else {
+      console.warn('Ignore bad FileHandle.Kind:', file.kind);
+    }
+    $scope.file = file;
+    $scope.fileId = file.id;
+    $scope.project = file.project;
+    $scope.path = file.path;
     if (!$scope.pathsToExpand) {
       $scope.pathsToExpand = [$scope.path];
     } else if ($scope.pathsToExpand.indexOf($scope.path) == -1) {
       $scope.pathsToExpand.push($scope.path);
     }
-    $scope.highlightedLine = $routeParams.line ? $routeParams.line : 0;
+    $scope.highlightedLine = line;
   };
-  if ($routeParams.project && $routeParams.path) {
-    CodeSearch.readSourceByPath($routeParams.project, $routeParams.path, readSourceCallback);
-  } else if ($routeParams.file) {
-    CodeSearch.readSourceById($routeParams.file, readSourceCallback);
+
+  if (!$routeParams.project || !$routeParams.path) {
+    console.error('Expect parameter project and path');
+    return;
   }
+  CodeSearch.getFileHandle($routeParams.project, $routeParams.path, function (resp) {
+    var line = 0;
+    if ($routeParams.line) {
+      line = $routeParams.line;
+    }
+    showFile(resp.fileHandle, line);
+  });
 
   var loadXrefs = function(kind, id) {
     $scope.loadingXrefs = true;
@@ -65,14 +81,12 @@ function SourceCtrl($scope, $routeParams, CodeSearch) {
     console.log("Go to def:", kind, id);
   };
 
-  $scope.onSelectFile = function(fileId) {
-    // TODO: update URL
-    CodeSearch.readSourceById(fileId, readSourceCallback);
+  $scope.onSelectFile = function(file) {
+    showFile(file, 0);
   };
 
   $scope.onSelectJumpTarget = function(jumpTarget) {
-    $routeParams.line = jumpTarget.span.from.line;
-    CodeSearch.readSourceById(jumpTarget.file.id, readSourceCallback);
+    showFile(jumpTarget.file, jumpTarget.span.from.line);
   }
 }
 
