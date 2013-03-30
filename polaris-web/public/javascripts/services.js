@@ -3,7 +3,7 @@
 /* Services */
 
 angular.module('polarisServices', [])
-  .factory('CodeSearch', function($http) {
+  .factory('CodeSearch', function($http, Utils) {
     var execute = function(method, req, callback) {
       $http.post('/api/' + method, req).success(callback);
     };
@@ -25,8 +25,24 @@ angular.module('polarisServices', [])
         execute('source', req, callback);
       },
       listFiles: function(project, path, callback) {
+        var FILE_HANDLE_KIND_ORDINALS = {'DIRECTORY': 0, 'NORMAL_FILE': 1};
         var req = {'projectName': project, 'directoryName': path};
-        execute('listFiles', req, callback);
+        execute('listFiles', req, function(resp) {
+          if (resp.children) {
+            resp.children.sort(function(left, right) {
+              var leftKindOrdinal = FILE_HANDLE_KIND_ORDINALS[left.kind];
+              var rightKindOrdinal = FILE_HANDLE_KIND_ORDINALS[right.kind];
+              if (leftKindOrdinal != rightKindOrdinal) {
+                return leftKindOrdinal - rightKindOrdinal;
+              }
+              if (left.project != right.project) {
+                return Utils.strcmp(left.project, right.project);
+              }
+              return Utils.strcmp(left.path, right.path);
+            });
+            callback(resp);
+          }
+        });
       },
       getTypeById: function(typeId, callback) {
         var req = {'typeId': Number(typeId)};
@@ -149,6 +165,15 @@ angular.module('polarisServices', [])
           }
         }
         return t;
+      },
+      'strcmp': function(s, t) {
+        if (s == t) {
+          return 0;
+        } else if (s < t) {
+          return -1;
+        } else {
+          return 1;
+        }
       }
     };
   })

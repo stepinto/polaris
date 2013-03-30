@@ -197,32 +197,33 @@ angular.module('polarisDirectives', ['polarisServices'])
           var ul = node.find('> ul');
           CodeSearch.listFiles(scope.project, path, function(resp) {
             node.removeClass('unknown');
-            if (resp.directories) {
-              $.each(resp.directories, function(i, dir) {
-                ul.append('<li><a href="#">' + Utils.getBaseName(dir) + '</a><ul></ul></li>');
-                var li = ul.find('> li:last');
-                li.addClass('dir');
-                li.addClass('collapsed');
-                li.addClass('unknown');
-                li.find('> a').click(function () {
-                  if (li.hasClass('expanded')) {
-                    collapseSingleLevel(dir, li);
-                  } else {
-                    expandSingleLevel(dir, li, function() {});
-                  }
-                  return false;
-                });
-              });
-            }
-            if (resp.files) {
-              $.each(resp.files, function(i, file) {
-                ul.append("<li><a href=" + LinkBuilder.sourceFromFileId(file.id) + ">" +
-                  Utils.getBaseName(resp.files[i].path) + "</a></li>");
-                var li = ul.find('> li:last');
-                li.addClass('normal-file');
-                li.find('> a').click(function () {
-                  scope.onSelectFile({'fileId': file.id});
-                })
+            if (resp.children) {
+              $.each(resp.children, function(i, child) {
+                if (child.kind == 'DIRECTORY') {
+                  ul.append('<li><a href="#">' + Utils.getBaseName(child.path) + '</a><ul></ul></li>');
+                  var li = ul.find('> li:last');
+                  li.addClass('dir');
+                  li.addClass('collapsed');
+                  li.addClass('unknown');
+                  li.find('> a').click(function () {
+                    if (li.hasClass('expanded')) {
+                      collapseSingleLevel(child.path, li);
+                    } else {
+                      expandSingleLevel(child.path, li, function() {});
+                    }
+                    return false;
+                  });
+                } else if (child.kind == 'NORMAL_FILE') {
+                  ul.append("<li><a href=" + LinkBuilder.sourceFromFileId(child.id) + ">" +
+                    Utils.getBaseName(child.path) + "</a></li>");
+                  var li = ul.find('> li:last');
+                  li.addClass('normal-file');
+                  li.find('> a').click(function () {
+                    scope.onSelectFile({'fileId': child.id});
+                  })
+                } else {
+                  console.warn('Ignore bad FileHandle.Kind:', child.kind);
+                }
               });
             }
             callback();
