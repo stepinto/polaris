@@ -1,11 +1,22 @@
 'use strict';
 
-/* Services */
+var rpcCount = 0;
 
+/* Services */
 angular.module('polarisServices', [])
   .factory('CodeSearch', function($http, Utils) {
+    var now = function() {
+      return new Date().getTime();
+    };
     var execute = function(method, req, callback) {
-      $http.post('/api/' + method, req).success(callback);
+      var startTime = now();
+      $http.post('/api/' + method, req).success(function (resp) {
+        var latency = now() - startTime;
+        console.log('RPC #' + rpcCount + ' ' + method +
+          ' status: ' + resp.status + ' latency: ' + latency + ' ms');
+        rpcCount++;
+        callback(resp);
+      });
     };
     return {
       search: function (query, rankFrom, rankTo, callback) {
