@@ -66,12 +66,12 @@ message CompleteResponse {
     // OBSOLETED repeated string entries = 2;
 }
 
-message LayoutRequest {
+message ListFilesRequest {
     optional string projectName = 1;
     optional string directoryName = 2;
 }
 
-message LayoutResponse {
+message ListFilesResponse {
     optional StatusCode status = 1;
     repeated string directories = 3;
     repeated FileHandle files = 4;
@@ -131,7 +131,7 @@ service CodeSearch {
     rpc search(SearchRequest) returns (SearchResponse);
     rpc source(SourceRequest) returns (SourceResponse);
     rpc complete(CompleteRequest) returns (CompleteResponse);
-    rpc layout(LayoutRequest) returns (LayoutResponse);
+    rpc listFiles(ListFilesRequest) returns (ListFilesResponse);
     rpc getType(GetTypeRequest) returns (GetTypeResponse);
     rpc listTypesInFile(ListTypesInFileRequest) returns (ListTypesInFileResponse);
     rpc listUsages(ListUsagesRequest) returns (ListUsagesResponse);

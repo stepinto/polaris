@@ -26,7 +26,7 @@ angular.module('polarisServices', [])
       },
       listFiles: function(project, path, callback) {
         var req = {'projectName': project, 'directoryName': path};
-        execute('layout', req, callback);
+        execute('listFiles', req, callback);
       },
       getTypeById: function(typeId, callback) {
         var req = {'typeId': Number(typeId)};

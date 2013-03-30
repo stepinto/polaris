@@ -15,8 +15,8 @@ import com.codingstory.polaris.search.SearchProtos.GetMethodResponse;
 import com.codingstory.polaris.search.SearchProtos.GetTypeRequest;
 import com.codingstory.polaris.search.SearchProtos.GetTypeResponse;
 import com.codingstory.polaris.search.SearchProtos.Hit;
-import com.codingstory.polaris.search.SearchProtos.LayoutRequest;
-import com.codingstory.polaris.search.SearchProtos.LayoutResponse;
+import com.codingstory.polaris.search.SearchProtos.ListFilesRequest;
+import com.codingstory.polaris.search.SearchProtos.ListFilesResponse;
 import com.codingstory.polaris.search.SearchProtos.ListTypesInFileRequest;
 import com.codingstory.polaris.search.SearchProtos.ListTypesInFileResponse;
 import com.codingstory.polaris.search.SearchProtos.ListUsagesRequest;
@@ -134,8 +134,8 @@ public class CodeSearchImpl implements CodeSearch.BlockingInterface, Closeable {
     }
 
     @Override
-    public LayoutResponse layout(RpcController controller, LayoutRequest req) {
-        LayoutResponse.Builder resp = LayoutResponse.newBuilder();
+    public ListFilesResponse listFiles(RpcController controller, ListFilesRequest req) {
+        ListFilesResponse.Builder resp = ListFilesResponse.newBuilder();
         try {
             if (!req.hasProjectName() || !req.hasDirectoryName()) {
                 resp.setStatus(StatusCode.MISSING_FIELDS);

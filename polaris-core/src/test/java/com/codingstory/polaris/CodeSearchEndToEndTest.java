@@ -14,8 +14,8 @@ import com.codingstory.polaris.search.SearchProtos.CodeSearch;
 import com.codingstory.polaris.search.SearchProtos.GetTypeRequest;
 import com.codingstory.polaris.search.SearchProtos.GetTypeResponse;
 import com.codingstory.polaris.search.SearchProtos.Hit;
-import com.codingstory.polaris.search.SearchProtos.LayoutRequest;
-import com.codingstory.polaris.search.SearchProtos.LayoutResponse;
+import com.codingstory.polaris.search.SearchProtos.ListFilesRequest;
+import com.codingstory.polaris.search.SearchProtos.ListFilesResponse;
 import com.codingstory.polaris.search.SearchProtos.ListUsagesRequest;
 import com.codingstory.polaris.search.SearchProtos.ListUsagesResponse;
 import com.codingstory.polaris.search.SearchProtos.SearchRequest;
@@ -83,11 +83,11 @@ public class CodeSearchEndToEndTest {
         buildIndex(ImmutableList.of("project"));
 
         CodeSearch.BlockingInterface searcher = createSearcher();
-        LayoutRequest req = LayoutRequest.newBuilder()
+        ListFilesRequest req = ListFilesRequest.newBuilder()
                 .setProjectName("project")
                 .setDirectoryName("/src/com/company")
                 .build();
-        LayoutResponse resp = searcher.layout(NoOpController.getInstance(), req);
+        ListFilesResponse resp = searcher.listFiles(NoOpController.getInstance(), req);
         assertEquals(StatusCode.OK, resp.getStatus());
         assertEqualsIgnoreOrder(ImmutableList.of("/src/com/company/module1/"), resp.getDirectoriesList());
         assertEqualsIgnoreOrder(ImmutableList.of("/src/com/company/A.java"),
