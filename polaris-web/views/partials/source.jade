@@ -8,7 +8,8 @@
     project-tree(
       project="project",
       paths-to-expand="pathsToExpand",
-      on-select-file='onSelectFile(file)')
+      on-select-file='onSelectFile(file)',
+      current-file='file')
   .right
     div(ng-show='view == "CODE"')
       class-tree-loader(

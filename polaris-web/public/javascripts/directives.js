@@ -145,13 +145,18 @@ angular.module('polarisDirectives', ['polarisServices'])
       scope: {
         project: '=',
         pathsToExpand: '=',
-        onSelectFile: '&'
+        onSelectFile: '&',
+        currentFile: '&' // optional FileHandle
       },
       replace: true,
       templateUrl: 'partials/project-tree',
       link: function(scope, element, attrs) {
         scope.loading = false;
-        scope.$watch('project + pathsToExpand', function() {
+        var highlightFile = function(fileId) {
+          element.find('.current').removeClass('current');
+          element.find('li [file-id="' + fileId + '"]').addClass('current');
+        }
+        scope.$watch('project + pathsToExpand + currentFile()', function() {
           if (!scope.project || !scope.pathsToExpand) {
             return;
           }
@@ -159,6 +164,17 @@ angular.module('polarisDirectives', ['polarisServices'])
           $.each(scope.pathsToExpand, function(i, e) {
             expand(e, root);
           });
+          element.find('.current').removeClass('current');
+          if (scope.currentFile()) {
+            highlightFile(scope.currentFile().id);
+          }
+        });
+        scope.$watch('currentFile()', function() {
+          var currentFile = scope.currentFile();
+          if (!currentFile) {
+            return;
+          }
+          highlightFile(currentFile.id);
         });
         var expand = function(path, node) {
           doExpand(path, node, 0);
@@ -199,9 +215,10 @@ angular.module('polarisDirectives', ['polarisServices'])
             node.removeClass('unknown');
             if (resp.children) {
               $.each(resp.children, function(i, child) {
+                var li = null;
                 if (child.kind == 'DIRECTORY') {
                   ul.append('<li><a href="#">' + Utils.getBaseName(child.path) + '</a><ul></ul></li>');
-                  var li = ul.find('> li:last');
+                  li = ul.find('> li:last');
                   li.addClass('dir');
                   li.addClass('collapsed');
                   li.addClass('unknown');
@@ -211,19 +228,23 @@ angular.module('polarisDirectives', ['polarisServices'])
                     } else {
                       expandSingleLevel(child.path, li, function() {});
                     }
+                    scope.$apply();
                     return false;
                   });
                 } else if (child.kind == 'NORMAL_FILE') {
                   ul.append("<li><a href=" + LinkBuilder.sourceFromHandle(child) + ">" +
                     Utils.getBaseName(child.path) + "</a></li>");
-                  var li = ul.find('> li:last');
+                  li = ul.find('> li:last');
                   li.addClass('normal-file');
                   li.find('> a').click(function () {
                     scope.onSelectFile({'file': child});
+                    scope.$apply();
                   })
                 } else {
-                  console.warn('Ignore bad FileHandle.Kind:', child.kind);
+                  console.warn('Ignore unknown FileHandle.Kind:', child.kind);
+                  return;
                 }
+                li.attr('file-id', child.id);
               });
             }
             callback();

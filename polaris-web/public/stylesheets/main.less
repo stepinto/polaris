@@ -205,6 +205,11 @@ html, body {
     list-style-type: none;
   }
 
+  li > a {
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+
   .expanded {
     background: url(/img/icons/dir-open.png) no-repeat 0% 0%;
     padding-left: 18px;
@@ -218,6 +223,12 @@ html, body {
   .normal-file {
     background: url(/img/icons/text.png) no-repeat 0% 0%;
     padding-left: 18px;
+  }
+
+  .current > a {
+    background-color: #0088cc;
+    color: white;
+    border-radius: 2px;
   }
 }
 
