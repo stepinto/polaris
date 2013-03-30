@@ -461,6 +461,7 @@ public class MultiPassProcessorsTest {
 
     public static SecondPassProcessor.Result extractFromCode(String code) throws IOException {
         FileHandle fakeFile = FileHandle.newBuilder()
+                .setKind(FileHandle.Kind.NORMAL_FILE)
                 .setId(100L)
                 .setProject("project")
                 .setPath("/file")

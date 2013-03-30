@@ -3,5 +3,6 @@ option java_package = "com.codingstory.polaris.sourcedb";
 option java_outer_classname = "SourceDbProtos";
 
 message SourceData {
-    optional SourceFile sourceFile = 1;
+    optional FileHandle fileHandle = 2;
+    optional SourceFile sourceFile = 1; // valid if fileHandle.kind == NORMAL_FILE
 }

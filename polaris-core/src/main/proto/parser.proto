@@ -12,6 +12,11 @@ message Span {
 }
 
 message FileHandle {
+    enum Kind {
+        DIRECTORY = 1;
+        NORMAL_FILE = 2;
+    }
+    optional Kind kind = 4;
     optional int64 id = 1;
     optional string project = 2;
     optional string path = 3; // starts with "/"

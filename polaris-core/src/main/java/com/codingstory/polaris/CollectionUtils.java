@@ -24,4 +24,12 @@ public final class CollectionUtils {
             return in;
         }
     }
+
+    public static <T> Collection<T> nullToEmptyCollection(T[] in) {
+        if (in == null) {
+            return ImmutableList.of();
+        } else {
+            return ImmutableList.copyOf(in);
+        }
+    }
 }

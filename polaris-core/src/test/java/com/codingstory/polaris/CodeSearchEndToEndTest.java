@@ -2,12 +2,12 @@ package com.codingstory.polaris;
 
 import com.codingstory.polaris.indexing.IndexPathUtils;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
-import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.Method;
 import com.codingstory.polaris.parser.ParserProtos.MethodUsage;
 import com.codingstory.polaris.parser.ParserProtos.TypeUsage;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
+import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.pipeline.IndexPipeline;
 import com.codingstory.polaris.search.CodeSearchImpl;
 import com.codingstory.polaris.search.SearchProtos.CodeSearch;
@@ -25,7 +25,6 @@ import com.codingstory.polaris.search.SearchProtos.SourceResponse;
 import com.codingstory.polaris.search.SearchProtos.StatusCode;
 import com.codingstory.polaris.typedb.TypeDb;
 import com.codingstory.polaris.typedb.TypeDbImpl;
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -89,14 +88,12 @@ public class CodeSearchEndToEndTest {
                 .build();
         ListFilesResponse resp = searcher.listFiles(NoOpController.getInstance(), req);
         assertEquals(StatusCode.OK, resp.getStatus());
-        assertEqualsIgnoreOrder(ImmutableList.of("/src/com/company/module1/"), resp.getDirectoriesList());
-        assertEqualsIgnoreOrder(ImmutableList.of("/src/com/company/A.java"),
-                Lists.transform(resp.getFilesList(), new Function<FileHandle, String>() {
-                    @Override
-                    public String apply(FileHandle h) {
-                        return h.getPath();
-                    }
-                }));
+        assertEqualsIgnoreOrder(
+                ImmutableList.of("/src/com/company/module1/"),
+                filterPathsByKind(resp.getChildrenList(), FileHandle.Kind.DIRECTORY));
+        assertEqualsIgnoreOrder(
+                ImmutableList.of("/src/com/company/A.java"),
+                filterPathsByKind(resp.getChildrenList(), FileHandle.Kind.NORMAL_FILE));
     }
 
     @Test
@@ -259,5 +256,15 @@ public class CodeSearchEndToEndTest {
                 indexPipeline.cleanUp();
             }
         }
+    }
+
+    private List<String> filterPathsByKind(List<FileHandle> files, FileHandle.Kind kind) {
+        List<String> results = Lists.newArrayList();
+        for (FileHandle file : files) {
+            if (file.getKind() == kind) {
+                results.add(file.getPath());
+            }
+        }
+        return results;
     }
 }

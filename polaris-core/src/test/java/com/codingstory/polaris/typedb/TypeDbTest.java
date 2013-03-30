@@ -35,11 +35,13 @@ import static org.junit.Assert.assertNull;
 public class TypeDbTest {
     private static final IdGenerator ID_GENERATOR = new SimpleIdGenerator();
     private static final FileHandle FAKE_FILE = FileHandle.newBuilder()
+            .setKind(FileHandle.Kind.NORMAL_FILE)
             .setId(100L)
             .setProject("project")
             .setPath("/somefile")
             .build();
     private static final FileHandle FAKE_FILE2 = FileHandle.newBuilder()
+            .setKind(FileHandle.Kind.NORMAL_FILE)
             .setId(101L)
             .setProject("project")
             .setPath("/anotherfile")

@@ -49,7 +49,7 @@ public class SourceDbImpl implements SourceDb {
         searcher = new IndexSearcher(reader);
     }
     @Override
-    public DirectoryContent listDirectory(String project, String path) throws IOException {
+    public List<FileHandle> listDirectory(String project, String path) throws IOException {
         Preconditions.checkNotNull(project);
         Preconditions.checkNotNull(path);
         path = SourceDbUtils.fixPathForDirectory(path);
@@ -57,29 +57,21 @@ public class SourceDbImpl implements SourceDb {
         booleanQuery.add(new TermQuery(new Term(SourceDbIndexedField.PROJECT_RAW, project)), BooleanClause.Occur.MUST);
         booleanQuery.add(new TermQuery(new Term(SourceDbIndexedField.PARENT_PATH_RAW, path)), BooleanClause.Occur.MUST);
         TopDocs topDocs = searcher.search(booleanQuery, Integer.MAX_VALUE);
-        List<String> dirs = Lists.newArrayList();
-        List<FileHandle> files = Lists.newArrayList();
+        List<FileHandle> children = Lists.newArrayList();
         for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
-            int docId = scoreDoc.doc;
-            Document document = reader.document(docId);
-            if (document.get(SourceDbIndexedField.FILE_ID_RAW) != null) {
-                files.add(FileHandle.newBuilder()
-                        .setId(Long.parseLong(document.get(SourceDbIndexedField.FILE_ID_RAW)))
-                        .setProject(document.get(SourceDbIndexedField.PROJECT_RAW))
-                        .setPath(document.get(SourceDbIndexedField.PATH_RAW))
-                        .build());
-            } else {
-                dirs.add(document.get(SourceDbIndexedField.PATH_RAW));
-            }
+            children.add(retrieveDocument(scoreDoc.doc).getFileHandle());
         }
-        Collections.sort(dirs);
-        Collections.sort(files, new Comparator<FileHandle>() {
+        sortFileHandlesByPath(children);
+        return children;
+    }
+
+    private void sortFileHandlesByPath(List<FileHandle> children) {
+        Collections.sort(children, new Comparator<FileHandle>() {
             @Override
             public int compare(FileHandle left, FileHandle right) {
                 return left.getPath().compareTo(right.getPath());
             }
         });
-        return new DirectoryContent(dirs, files);
     }
 
     @Override
@@ -94,7 +86,7 @@ public class SourceDbImpl implements SourceDb {
         if (count > 1) {
             LOG.warn("Ambiguous file id: " + fileId);
         }
-        return retrieveDocument(topDocs.scoreDocs[0].doc);
+        return retrieveDocumentAsNormalFile(topDocs.scoreDocs[0].doc);
     }
 
     @Override
@@ -112,7 +104,7 @@ public class SourceDbImpl implements SourceDb {
         } else if (count > 1) {
             throw new IOException("Ambiguous project and path: " + project + path);
         }
-        return retrieveDocument(topDocs.scoreDocs[0].doc);
+        return retrieveDocumentAsNormalFile(topDocs.scoreDocs[0].doc);
     }
 
     @Override
@@ -127,9 +119,12 @@ public class SourceDbImpl implements SourceDb {
             TopDocs topDocs = searcher.search(parser.parse(query), n);
             List<Hit> hits = Lists.newArrayList();
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
-                SourceFile source = retrieveDocument(scoreDoc.doc);
+                SourceData data = retrieveDocument(scoreDoc.doc);
+                if (data.getFileHandle().getKind() != FileHandle.Kind.NORMAL_FILE) {
+                    continue; // Ignore directories.
+                }
                 JumpTarget jumpTarget = JumpTarget.newBuilder()
-                        .setFile(source.getHandle())
+                        .setFile(data.getFileHandle())
                         .build();
                 hits.add(Hit.newBuilder()
                         .setKind(Hit.Kind.FILE)
@@ -154,11 +149,18 @@ public class SourceDbImpl implements SourceDb {
         return path.substring(slash + 1);
     }
 
-    private SourceFile retrieveDocument(int docId) throws IOException {
+    private SourceData retrieveDocument(int docId) throws IOException {
         Document document = reader.document(docId);
-        SourceData sourceData = SourceData.parseFrom(
+        return SourceData.parseFrom(
                 SnappyUtils.uncompress(document.getBinaryValue(SourceDbIndexedField.SOURCE_DATA)));
-        return sourceData.getSourceFile();
+    }
+
+    private SourceFile retrieveDocumentAsNormalFile(int docId) throws IOException {
+        SourceData data = retrieveDocument(docId);
+        if (data.getFileHandle().getKind() != FileHandle.Kind.NORMAL_FILE) {
+            throw new IOException("The result is not NORMAL_FILE: " + data.getFileHandle());
+        }
+        return data.getSourceFile();
     }
 
     @Override

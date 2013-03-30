@@ -39,6 +39,7 @@ public class UsageDbTest {
         long typeId = 100L;
         long fileId = 200L;
         FileHandle file = FileHandle.newBuilder()
+                .setKind(FileHandle.Kind.NORMAL_FILE)
                 .setId(fileId)
                 .setPath("project")
                 .setPath("/filename")

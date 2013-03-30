@@ -73,8 +73,9 @@ message ListFilesRequest {
 
 message ListFilesResponse {
     optional StatusCode status = 1;
-    repeated string directories = 3;
-    repeated FileHandle files = 4;
+    repeated FileHandle children = 5;
+    // OBSOLETED repeated string directories = 3;
+    // OBSOLETED repeated FileHandle files = 4;
 }
 
 message GetTypeRequest {

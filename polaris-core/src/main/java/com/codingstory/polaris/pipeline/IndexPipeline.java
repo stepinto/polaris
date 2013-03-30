@@ -338,6 +338,7 @@ public class IndexPipeline implements Serializable {
         long count = 0;
         for (File sourceFile : sourceFiles) {
             FileHandle handle = FileHandle.newBuilder()
+                    .setKind(FileHandle.Kind.NORMAL_FILE)
                     .setId(ID_GENERATOR.next())
                     .setProject(project)
                     .setPath(StringUtils.removeStart(sourceFile.getPath(), dir.getPath()))
@@ -356,6 +357,7 @@ public class IndexPipeline implements Serializable {
 
         for (File sourceDir : sourceDirs) {
             FileHandle f = FileHandle.newBuilder()
+                    .setKind(FileHandle.Kind.DIRECTORY)
                     .setId(ID_GENERATOR.next())
                     .setProject(project)
                     .setPath(StringUtils.removeStart(sourceDir.getPath(), dir.getPath()) + "/")
@@ -612,7 +614,7 @@ public class IndexPipeline implements Serializable {
 
             // Process pipeline output.
             BytesWritable value = new BytesWritable();
-            for (File file : classOutputDir.listFiles()) {
+            for (File file : nullToEmptyCollection(classOutputDir.listFiles())) {
                 if (isCrcFile(file)) {
                     continue;
                 }
@@ -621,7 +623,7 @@ public class IndexPipeline implements Serializable {
                     typeDb.write(ClassType.parseFrom(Arrays.copyOf(value.getBytes(), value.getLength())));
                 }
             }
-            for (File file : usageOutputDir.listFiles()) {
+            for (File file : nullToEmptyCollection(usageOutputDir.listFiles())) {
                 if (isCrcFile(file)) {
                     continue;
                 }
@@ -634,7 +636,7 @@ public class IndexPipeline implements Serializable {
                     }
                 }
             }
-            for (File file : sourceOutputDir.listFiles()) {
+            for (File file : nullToEmptyCollection(sourceOutputDir.listFiles())) {
                 if (isCrcFile(file)) {
                     continue;
                 }
@@ -645,14 +647,14 @@ public class IndexPipeline implements Serializable {
             }
 
             // Process repository layout.
-            for (File file : inputDir2.listFiles()) {
+            for (File file : nullToEmptyCollection(inputDir2.listFiles())) {
                 if (isCrcFile(file)) {
                     continue;
                 }
                 SequenceFile.Reader r = openLocalSequenceFile(file);
                 while (r.next(NullWritable.get(), value)) {
                     FileHandle f = FileHandle.parseFrom(Arrays.copyOf(value.getBytes(), value.getLength()));
-                    sourceDb.writeDirectory(f.getProject(), f.getPath());
+                    sourceDb.writeDirectory(f);
                 }
             }
 

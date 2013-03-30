@@ -6,6 +6,7 @@ import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.SourceFile;
 import com.codingstory.polaris.search.SearchProtos.Hit;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,9 +15,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import static com.codingstory.polaris.TestUtils.assertEqualsIgnoreOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class SourceDbTest {
     private static final String TEST_PROJECT = "TestProject";
@@ -51,20 +54,25 @@ public class SourceDbTest {
         SourceDbWriter w = new SourceDbWriterImpl(tempDir);
         writeFile(w, "/dir/a", "hello");
         writeFile(w, "/dir/b", "world");
-        w.writeDirectory(TEST_PROJECT, "/dir/c");
-        w.writeDirectory(TEST_PROJECT, "/dir");
+        writeDirectory(w, "/dir/c/");
+        writeDirectory(w, "/dir/");
         w.close();
 
         SourceDb r = new SourceDbImpl(tempDir);
-        assertEquals(new SourceDb.DirectoryContent(ImmutableList.of("/dir/"), ImmutableList.<FileHandle>of()),
-                r.listDirectory(TEST_PROJECT, "/"));
-        SourceDb.DirectoryContent dir = r.listDirectory(TEST_PROJECT, "/dir");
-        assertEquals(1, dir.getDirectories().size());
-        assertEquals(2, dir.getFiles().size());
+        r.listDirectory(TEST_PROJECT, "/");
+        assertEqualsIgnoreOrder(
+                ImmutableList.of("/dir/"),
+                listFiles(r, "/"));
+        assertEqualsIgnoreOrder(
+                ImmutableList.of("/dir/a", "/dir/b", "/dir/c/"),
+                listFiles(r, "/dir/"));
+        assertEqualsIgnoreOrder(
+                ImmutableList.<String>of(),
+                listFiles(r, "/dir/c/"));
 
-        // TODO: Currently we can't tell non-existant directory or empty directory.
+        // TODO: We cannot distinguish whether the dir does not exist or it has no children yet.
         // assertNull(r.listDirectory("NoSuchProject", "/"));
-        // assertNull(r.listDirectory(TEST_PROJECT, "/nosuchdir"));
+        // assertNull(listFiles(r, "/NoSuchDir"));
     }
 
     @Test
@@ -112,6 +120,7 @@ public class SourceDbTest {
     private long writeFile(SourceDbWriter w, String path, String content) throws IOException {
         long fileId = ID_GENERATOR.next();
         FileHandle f = FileHandle.newBuilder()
+                .setKind(FileHandle.Kind.NORMAL_FILE)
                 .setId(fileId)
                 .setProject(TEST_PROJECT)
                 .setPath(path)
@@ -123,5 +132,34 @@ public class SourceDbTest {
                 .build();
         w.writeSourceFile(source);
         return fileId;
+    }
+
+    private long writeDirectory(SourceDbWriter w, String path) throws IOException {
+        long fileId = ID_GENERATOR.next();
+        FileHandle f = FileHandle.newBuilder()
+                .setKind(FileHandle.Kind.DIRECTORY)
+                .setId(fileId)
+                .setProject(TEST_PROJECT)
+                .setPath(path)
+                .build();
+        w.writeDirectory(f);
+        return fileId;
+    }
+
+    private List<String> listFiles(SourceDb r, String path) throws IOException {
+        List<String> results = Lists.newArrayList();
+        List<FileHandle> fileHandles = r.listDirectory(TEST_PROJECT, path);
+        if (fileHandles == null) {
+            return null;
+        }
+        for (FileHandle fileHandle : fileHandles) {
+            if (fileHandle.getKind() == FileHandle.Kind.DIRECTORY) {
+                assertTrue(fileHandle.getPath().endsWith("/"));
+            } else {
+                assertFalse(fileHandle.getPath().endsWith("/"));
+            }
+            results.add(fileHandle.getPath());
+        }
+        return results;
     }
 }

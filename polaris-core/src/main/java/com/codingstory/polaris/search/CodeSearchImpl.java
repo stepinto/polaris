@@ -1,6 +1,7 @@
 package com.codingstory.polaris.search;
 
 import com.codingstory.polaris.indexing.IndexPathUtils;
+import com.codingstory.polaris.parser.ParserProtos;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
 import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.parser.ParserProtos.Method;
@@ -141,14 +142,13 @@ public class CodeSearchImpl implements CodeSearch.BlockingInterface, Closeable {
                 resp.setStatus(StatusCode.MISSING_FIELDS);
                 return resp.build();
             }
-            SourceDb.DirectoryContent content = sourceDb.listDirectory(req.getProjectName(), req.getDirectoryName());
-            if (content == null) {
+            List<ParserProtos.FileHandle> children = sourceDb.listDirectory(req.getProjectName(), req.getDirectoryName());
+            if (children == null) {
                 resp.setStatus(StatusCode.FILE_NOT_FOUND);
                 return resp.build();
             }
             resp.setStatus(StatusCode.OK);
-            resp.addAllDirectories(content.getDirectories());
-            resp.addAllFiles(content.getFiles());
+            resp.addAllChildren(children);
         } catch (Exception e) {
             LOG.error("Caught exception", e);
             resp.setStatus(StatusCode.UNKNOWN_ERROR);
