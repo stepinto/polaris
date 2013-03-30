@@ -14,6 +14,7 @@ public interface SourceDb extends Closeable {
     List<FileHandle> listDirectory(String project, String path) throws IOException;
     SourceFile querySourceById(long fileId) throws IOException;
     SourceFile querySourceByPath(String project, String path) throws IOException;
+    FileHandle getFileHandle(String project, String path) throws IOException;
 
     /** Matches {@code query} against file names or contents. */
     List<Hit> query(String query, int n) throws IOException;

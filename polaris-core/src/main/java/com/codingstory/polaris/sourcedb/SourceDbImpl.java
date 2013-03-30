@@ -108,6 +108,24 @@ public class SourceDbImpl implements SourceDb {
     }
 
     @Override
+    public FileHandle getFileHandle(String project, String path) throws IOException {
+        Preconditions.checkNotNull(project);
+        Preconditions.checkNotNull(path);
+        BooleanQuery booleanQuery = new BooleanQuery();
+        booleanQuery.add(new TermQuery(new Term(SourceDbIndexedField.PROJECT_RAW, project)), BooleanClause.Occur.MUST);
+        booleanQuery.add(new TermQuery(new Term(SourceDbIndexedField.PATH_RAW, path)), BooleanClause.Occur.MUST);
+        TopDocs topDocs = searcher.search(booleanQuery, 2);
+        int count = topDocs.scoreDocs.length;
+        if (count == 0) {
+            LOG.debug("File not found: " + project + path);
+            return null;
+        } else if (count > 1) {
+            throw new IOException("Ambiguous project and path: " + project + path);
+        }
+        return retrieveDocument(topDocs.scoreDocs[0].doc).getFileHandle();
+    }
+
+    @Override
     public List<Hit> query(String query, int n) throws IOException {
         Preconditions.checkNotNull(query);
         Preconditions.checkArgument(n >= 0);

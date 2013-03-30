@@ -128,6 +128,16 @@ message GetMethodResponse {
     optional Method method = 2;
 }
 
+message GetFileHandleRequest {
+    optional string project = 1;
+    optional string path = 2;
+}
+
+message GetFileHandleResponse {
+    optional StatusCode status = 1;
+    optional FileHandle fileHandle = 2;
+}
+
 service CodeSearch {
     rpc search(SearchRequest) returns (SearchResponse);
     rpc source(SourceRequest) returns (SourceResponse);
@@ -138,4 +148,5 @@ service CodeSearch {
     rpc listUsages(ListUsagesRequest) returns (ListUsagesResponse);
     rpc getField(GetFieldRequest) returns (GetFieldResponse);
     rpc getMethod(GetMethodRequest) returns (GetMethodResponse);
+    rpc getFileHandle(GetFileHandleRequest) returns (GetFileHandleResponse);
 }

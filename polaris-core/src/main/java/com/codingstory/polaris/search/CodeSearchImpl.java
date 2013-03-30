@@ -3,14 +3,17 @@ package com.codingstory.polaris.search;
 import com.codingstory.polaris.indexing.IndexPathUtils;
 import com.codingstory.polaris.parser.ParserProtos;
 import com.codingstory.polaris.parser.ParserProtos.ClassType;
-import com.codingstory.polaris.parser.ParserProtos.Variable;
+import com.codingstory.polaris.parser.ParserProtos.FileHandle;
 import com.codingstory.polaris.parser.ParserProtos.Method;
 import com.codingstory.polaris.parser.ParserProtos.SourceFile;
+import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.search.SearchProtos.CodeSearch;
 import com.codingstory.polaris.search.SearchProtos.CompleteRequest;
 import com.codingstory.polaris.search.SearchProtos.CompleteResponse;
 import com.codingstory.polaris.search.SearchProtos.GetFieldRequest;
 import com.codingstory.polaris.search.SearchProtos.GetFieldResponse;
+import com.codingstory.polaris.search.SearchProtos.GetFileHandleRequest;
+import com.codingstory.polaris.search.SearchProtos.GetFileHandleResponse;
 import com.codingstory.polaris.search.SearchProtos.GetMethodRequest;
 import com.codingstory.polaris.search.SearchProtos.GetMethodResponse;
 import com.codingstory.polaris.search.SearchProtos.GetTypeRequest;
@@ -266,6 +269,29 @@ public class CodeSearchImpl implements CodeSearch.BlockingInterface, Closeable {
             }
             resp.setStatus(StatusCode.OK);
             resp.setMethod(method);
+            return resp.build();
+        } catch (Exception e) {
+            LOG.error("Caught exception", e);
+            resp.setStatus(StatusCode.UNKNOWN_ERROR);
+            return resp.build();
+        }
+    }
+
+    @Override
+    public GetFileHandleResponse getFileHandle(RpcController controller, GetFileHandleRequest req) {
+        GetFileHandleResponse.Builder resp = GetFileHandleResponse.newBuilder();
+        try {
+            if (!req.hasProject() || !req.hasPath()) {
+                resp.setStatus(StatusCode.MISSING_FIELDS);
+                return resp.build();
+            }
+            FileHandle fileHandle = sourceDb.getFileHandle(req.getProject(), req.getPath());
+            if (fileHandle == null) {
+                resp.setStatus(StatusCode.FILE_NOT_FOUND);
+                return resp.build();
+            }
+            resp.setStatus(StatusCode.OK);
+            resp.setFileHandle(fileHandle);
             return resp.build();
         } catch (Exception e) {
             LOG.error("Caught exception", e);

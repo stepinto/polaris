@@ -117,6 +117,20 @@ public class SourceDbTest {
         assertEquals(2, hits.size());
     }
 
+    @Test
+    public void testGetFileHandle() throws IOException {
+        SourceDbWriter w = new SourceDbWriterImpl(tempDir);
+        long a = writeFile(w, "/a", "a");
+        long b = writeDirectory(w, "/b/");
+        w.close();
+
+        SourceDb r = new SourceDbImpl(tempDir);
+        assertEquals(a, r.getFileHandle(TEST_PROJECT, "/a").getId());
+        assertEquals(b, r.getFileHandle(TEST_PROJECT, "/b/").getId());
+        assertNull(r.getFileHandle("NoSuchProject", "/"));
+        assertNull(r.getFileHandle(TEST_PROJECT, "/NoSuchFile"));
+    }
+
     private long writeFile(SourceDbWriter w, String path, String content) throws IOException {
         long fileId = ID_GENERATOR.next();
         FileHandle f = FileHandle.newBuilder()
