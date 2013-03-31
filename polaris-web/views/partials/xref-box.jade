@@ -1,5 +1,15 @@
 .xref-box
-  ul
-    li(ng-repeat='u in usages')
-      a.usage(ng-href="{{u.url}}", ng-click='onSelectUsage(u)') {{u.title}}
-      pre {{u.snippet}}
+  span
+    | Found&nbsp;
+    | {{usageCount}}
+    | &nbsp;
+    ng-pluralize(
+      count="usageCount",
+      when="{'1': 'usage', 'other': 'usages'}")
+  ul.category
+    li(ng-repeat='c in categories', ng-show='c.usages.length > 0')
+      span {{c.name}}
+      ul.usage
+        li(ng-repeat='u in c.usages')
+          a(ng-href="{{u.url}}", ng-click='onSelectUsage(u)') {{u.title}}
+          pre {{u.snippet}}

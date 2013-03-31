@@ -545,12 +545,54 @@ angular.module('polarisDirectives', ['polarisServices'])
       },
       replace: true,
       link: function(scope) {
+        scope.usageCount = 0;
+        scope.categories = [
+          {name: 'Declaration', kind: 'TYPE', subkind: 'TYPE_DECLARATION'},
+          {name: 'Extends/implements', kind: 'TYPE', subkind: 'SUPER_CLASS'},
+          {name: 'Methods', kind: 'TYPE', subkind: 'METHOD_SIGNATURE'},
+          {name: 'Fields', kind: 'TYPE', subkind: 'FIELD'},
+          {name: 'Local variables', kind: 'TYPE', subkind: 'LOCAL_VARIABLE'},
+          {name: 'Generic types', kind: 'TYPE', subkind: 'GENERIC_TYPE_PARAMETER'},
+          {name: 'Imports', kind: 'TYPE', subkind: 'IMPORT'},
+          {name: 'Declaration', kind: 'METHOD', subkind: 'METHOD_DECLARATION'},
+          {name: 'New instance creation', kind: 'METHOD', subkind: 'INSTANCE_CREATION'},
+          {name: 'Method calls', kind: 'METHOD', subkind: 'METHOD_CALL'},
+          {name: 'Declaration', kind: 'VARIABLE', subkind: 'DECLARATION'},
+          {name: 'Variable access', kind: 'VARIABLE', subkind: 'ACCESS'}
+        ];
+        var getUsageSubkind = function(u) {
+          if (u.kind == 'TYPE') {
+            return u.type.kind;
+          } else if (u.kind == 'METHOD') {
+            return u.method.kind;
+          } else if (u.kind == 'VARIABLE') {
+            return u.variable.kind;
+          } else {
+            console.log('Bad Usage.Kind:', u.kind);
+            return null;
+          }
+        }
         scope.$watch('xrefs', function(value) {
           if (value) {
-            scope.usages = value;
-            $.each(scope.usages, function(i, u) {
-              u.url = LinkBuilder.source(u.jumpTarget);
+            var usages = value;
+            scope.usages = usages;
+            scope.usageCount = value.length;
+            $.each(scope.categories, function(i, c) {
+              c.usages = [];
+            });
+            $.each(usages, function(i, u) {
               u.title = u.jumpTarget.file.project + u.jumpTarget.file.path;
+              u.url = LinkBuilder.source(u.jumpTarget);
+              var found = false;
+              $.each(scope.categories, function(j, c) {
+                if (u.kind == c.kind && getUsageSubkind(u) == c.subkind) {
+                  c.usages.push(u);
+                  found = true;
+                }
+              });
+              if (!found) {
+                console.warn('Ignore usage of unknown kind:', u);
+              }
             });
           }
         });
