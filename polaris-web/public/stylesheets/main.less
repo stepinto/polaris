@@ -14,6 +14,12 @@ pre {
   padding: 0;
 }
 
+.wrap {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
 .page {
   .header {
     position: absolute;
@@ -27,6 +33,18 @@ pre {
     bottom: 0;
     width: 100%;
   }
+}
+
+.rotate-left {
+  -moz-transform: rotate(-90deg);
+  -webkit-transform: rotate(-90deg);
+  -o-transform: rotate(-90deg);
+}
+
+.rotate-right {
+  -moz-transform: rotate(90deg);
+  -webkit-transform: rotate(90deg);
+  -o-transform: rotate(90deg);
 }
 
 .bonjour {
@@ -154,7 +172,6 @@ pre {
     top: @pathBarHeight;
     bottom: 0;
     width: @leftWidth;
-    overflow: auto;
   }
 
   .right {
@@ -170,7 +187,7 @@ pre {
     @bottomHeight: 150px;
 
     position: absolute;
-    left: @leftWidth;
+    left: 25px;
     right: @rightWidth;
     top: @pathBarHeight;
     bottom: 0;
@@ -191,6 +208,10 @@ pre {
       left: 0;
       right: 0;
     }
+  }
+
+  .main-left-show {
+    left: @leftWidth;
   }
 }
 
@@ -259,6 +280,43 @@ pre {
     top: @headerHeight;
     bottom: 0px;
     width: 100%;
+    overflow: auto;
+  }
+}
+
+.collapsible-panel {
+  @titleBarSize: 25px;
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+
+  .title-bar {
+    position: absolute;
+    left: 0;
+    width: @titleBarSize;
+    top: 0;
+    bottom: 0;
+    background-color: #F5F5F5;
+
+    .title-bar-inner {
+      width: 100%;
+      height: @titleBarSize;
+
+      a {
+        float: right;
+        margin-top: 1px;
+        margin-bottom: 1px;
+        width: 50px;
+      }
+    }
+  }
+
+  .panel-content {
+    position: absolute;
+    left: @titleBarSize;
+    right: 0;
+    height: 100%;
     overflow: auto;
   }
 }

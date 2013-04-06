@@ -490,7 +490,6 @@ angular.module('polarisDirectives', ['polarisServices'])
         usage: '&'
       },
       replace: false,
-      transclude: true,
       link: function(scope, element, attrs) {
         var usage = scope.usage();
         if (!usage) {
@@ -731,6 +730,29 @@ angular.module('polarisDirectives', ['polarisServices'])
             'path': path
           };
           scope.onSelectFile({'file': fileHandle});
+        }
+      }
+    };
+  })
+
+  // Usage:
+  //   <collapsible-panel title=... attach-to-boundary='LEFT/RIGHT' visible=...>
+  //     some content
+  //   </colappsible-panel>
+  .directive('collapsiblePanel', function() {
+    return {
+      restrict: 'E',
+      templateUrl: 'partials/collapsible-panel',
+      scope: {
+        'title': '@',
+        'attach-to-boundary': '@',
+        'visible': '='
+      },
+      transclude: true,
+      link: function(scope, element, attr) {
+        scope.title = attr.title;
+        scope.onShowOrHide = function() {
+          scope.visible = !scope.visible;
         }
       }
     };

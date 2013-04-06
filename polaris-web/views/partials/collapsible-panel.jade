@@ -1,0 +1,5 @@
+.collapsible-panel
+  .title-bar
+    .title-bar-inner.rotate-left
+      a.btn.btn-mini.btn-block(ng-class='{active: visible}', ng-click='onShowOrHide()') {{title}}
+  .panel-content(ng-transclude, ng-show='visible')

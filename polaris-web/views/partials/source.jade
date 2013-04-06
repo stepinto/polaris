@@ -5,17 +5,21 @@
       project='project',
       path='path')
   .left
-    project-tree(
-      project="project",
-      paths-to-expand="pathsToExpand",
-      on-select-file='onSelectFile(file)',
-      current-file='file')
+    collapsible-panel(
+      title='Files',
+      attach-to-boundary='LEFT',
+      visible='leftPanelVisible')
+      project-tree(
+        project="project",
+        paths-to-expand="pathsToExpand",
+        on-select-file='onSelectFile(file)',
+        current-file='file')
   .right
     div(ng-show='view == "CODE"')
       class-tree-loader(
         file-id='fileId',
         on-select-jump-target='onSelectJumpTarget(jumpTarget)')
-  .main
+  .main(ng-class='{"main-left-show": leftPanelVisible}')
     div(ng-show='view == "CODE"')
       .main-top
         code-view-loader(
