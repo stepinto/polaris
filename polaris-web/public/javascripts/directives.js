@@ -751,6 +751,8 @@ angular.module('polarisDirectives', ['polarisServices'])
       transclude: true,
       link: function(scope, element, attr) {
         scope.title = attr.title;
+        scope.attachToLeft = (attr.attachToBoundary == 'LEFT');
+        scope.attachToRight = (attr.attachToBoundary == 'RIGHT');
         scope.onShowOrHide = function() {
           scope.visible = !scope.visible;
         }

@@ -1,5 +1,8 @@
 .collapsible-panel
-  .title-bar
-    .title-bar-inner.rotate-left
+  .title-bar(ng-class='{"title-bar-left": attachToLeft, "title-bar-right": attachToRight}')
+    .title-bar-inner
       a.btn.btn-mini.btn-block(ng-class='{active: visible}', ng-click='onShowOrHide()') {{title}}
-  .panel-content(ng-transclude, ng-show='visible')
+  .panel-content(
+    ng-class='{"panel-content-left": attachToLeft, "panel-content-right": attachToRight}',
+    ng-transclude,
+    ng-show='visible')

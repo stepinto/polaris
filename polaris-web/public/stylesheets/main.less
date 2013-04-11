@@ -188,7 +188,7 @@ pre {
 
     position: absolute;
     left: 25px;
-    right: @rightWidth;
+    right: 25px;
     top: @pathBarHeight;
     bottom: 0;
     overflow: auto;
@@ -212,6 +212,10 @@ pre {
 
   .main-left-show {
     left: @leftWidth;
+  }
+
+  .main-right-show {
+    right: @rightWidth;
   }
 }
 
@@ -293,7 +297,6 @@ pre {
 
   .title-bar {
     position: absolute;
-    left: 0;
     width: @titleBarSize;
     top: 0;
     bottom: 0;
@@ -304,7 +307,6 @@ pre {
       height: @titleBarSize;
 
       a {
-        float: right;
         margin-top: 1px;
         margin-bottom: 1px;
         width: 50px;
@@ -312,12 +314,44 @@ pre {
     }
   }
 
+  .title-bar-left {
+    left: 0;
+
+    .title-bar-inner {
+      .rotate-left;
+
+      a {
+        float: right;
+      }
+    }
+  }
+
+  .title-bar-right {
+    right: 0;
+
+    .title-bar-inner {
+      .rotate-right;
+
+      a {
+        float: left;
+      }
+    }
+  }
+
   .panel-content {
     position: absolute;
-    left: @titleBarSize;
-    right: 0;
     height: 100%;
     overflow: auto;
+  }
+
+  .panel-content-left {
+    left: @titleBarSize;
+    right: 0;
+  }
+
+  .panel-content-right {
+    left: 0;
+    right: @titleBarSize;
   }
 }
 

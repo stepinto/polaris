@@ -31,6 +31,7 @@ function SearchCtrl($scope, $routeParams, CodeSearch, LinkBuilder) {
 
 function SourceCtrl($scope, $routeParams, CodeSearch, Utils) {
   $scope.leftPanelVisible = true;
+  $scope.rightPanelVisible = true;
 
   var showFile = function (file, line) {
     console.log('Show file', file);

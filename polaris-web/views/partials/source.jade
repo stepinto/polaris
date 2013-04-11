@@ -15,11 +15,15 @@
         on-select-file='onSelectFile(file)',
         current-file='file')
   .right
-    div(ng-show='view == "CODE"')
-      class-tree-loader(
-        file-id='fileId',
-        on-select-jump-target='onSelectJumpTarget(jumpTarget)')
-  .main(ng-class='{"main-left-show": leftPanelVisible}')
+    .wrap(ng-show='view == "CODE"')
+      collapsible-panel(
+        title='Classes',
+        attach-to-boundary='RIGHT',
+        visible='rightPanelVisible')
+        class-tree-loader(
+          file-id='fileId',
+          on-select-jump-target='onSelectJumpTarget(jumpTarget)')
+  .main(ng-class='{"main-left-show": leftPanelVisible, "main-right-show": rightPanelVisible}')
     div(ng-show='view == "CODE"')
       .main-top
         code-view-loader(
