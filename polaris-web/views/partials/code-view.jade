@@ -4,3 +4,8 @@
       li.line-no-row(ng-repeat = "line in lines", ng-class = "{'highlighted-row': line == highlightedLine}")
         span {{line + 1}}
     pre.code-column
+    ul.dropdown-menu(role="menu", aria-labelledby='usage-menu')
+      li
+        a(href="javascript:void(0)", ng-click="onGoToDefinition()") Definition
+      li
+        a(href="javascript:void(0)", ng-click="onFindUsages()") Usages

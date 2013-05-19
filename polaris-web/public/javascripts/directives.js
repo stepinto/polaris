@@ -12,7 +12,7 @@ angular.module('polarisDirectives', ['polarisServices'])
   //
   // Usage:
   //   <search-box placeholder="..." />
-  .directive('searchBox', function ($location, CodeSearch, LinkBuilder) {
+  .directive('searchBox', function ($location, CodeSearch, LinkBuilder, Protos) {
     return {
       restrict: 'E',
       replace: true,
@@ -56,6 +56,27 @@ angular.module('polarisDirectives', ['polarisServices'])
               if (scope.selected >= scope.choices.length) {
                 scope.selected = 0;
               }
+              $.each(scope.choices, function(i, choice) {
+                choice.icon = null;
+                if (choice.kind == Protos.Hit.Kind.FILE) {
+                  choice.icon = 'file';
+                } else if (choice.kind == Protos.Hit.Kind.TYPE) {
+                  if (choice.classType.kind == Protos.ClassType.Kind.CLASS) {
+                    choice.icon = 'clazz';
+                  } else if (choice.classType.kind = Protos.ClassType.Kind.INTERFACE) {
+                    choice.icon = 'interface';
+                  } else if (choice.classType.kind = Protos.ClassType.Kind.ENUM) {
+                    choice.icon = 'enum';
+                  } else if (choice.classType.kind = Protos.ClassType.Kind.ANNOTATION) {
+                    choice.icon = 'annotation';
+                  } else {
+                    console.log('Ignore ClassType of unkonwn kind:', choice.classType);
+                  }
+                } else {
+                  console.warn('Ignore Hit of unknown kind:', choice);
+                }
+              });
+              console.log('Got ' + scope.choices.length + ' candidates for ' + scope.query);
             } else {
               scope.choices = [];
               scope.selected = 0;
@@ -137,7 +158,7 @@ angular.module('polarisDirectives', ['polarisServices'])
   //
   // Usage:
   //   <project-tree project='...' pathsToExpand='["path1", "path2"]' onSelectFile='f(fileId)' />
-  .directive('projectTree', function ($location, $timeout, CodeSearch, Utils, LinkBuilder) {
+  .directive('projectTree', function ($location, $timeout, CodeSearch, Utils, LinkBuilder, Protos) {
     return {
       restrict: 'E',
       scope: {
@@ -214,7 +235,7 @@ angular.module('polarisDirectives', ['polarisServices'])
             if (resp.children) {
               $.each(resp.children, function(i, child) {
                 var li = null;
-                if (child.kind == 'DIRECTORY') {
+                if (child.kind == Protos.FileHandle.Kind.DIRECTORY) {
                   ul.append('<li><a href="#">' + Utils.getBaseName(child.path) + '</a><ul></ul></li>');
                   li = ul.find('> li:last');
                   li.addClass('dir');
@@ -229,7 +250,7 @@ angular.module('polarisDirectives', ['polarisServices'])
                     scope.$apply();
                     return false;
                   });
-                } else if (child.kind == 'NORMAL_FILE') {
+                } else if (child.kind == Protos.FileHandle.Kind.NORMAL_FILE) {
                   ul.append("<li><a href=" + LinkBuilder.sourceFromHandle(child) + ">" +
                     Utils.getBaseName(child.path) + "</a></li>");
                   li = ul.find('> li:last');
@@ -256,7 +277,7 @@ angular.module('polarisDirectives', ['polarisServices'])
     };
   })
 
-  .directive('codeViewLoader', function(CodeSearch) {
+  .directive('codeViewLoader', function(CodeSearch, Protos) {
     return {
       restrict: 'E',
       templateUrl: 'partials/code-view-loader',
@@ -274,17 +295,19 @@ angular.module('polarisDirectives', ['polarisServices'])
           if (!file) {
             return;
           }
-          if (file.kind != 'NORMAL_FILE') {
+          if (file.kind != Protos.FileHandle.Kind.NORMAL_FILE) {
             return;
           }
-          if (scope.fileIdLoaded == file.id) {
+          console.log('fileIdLoaded', scope.fileIdLoaded);
+          console.log('file.id', file.id);
+          if (scope.fileIdLoaded && file.id.equals(scope.fileIdLoaded)) {
             console.log('File #' + file.id + ' is already loaded.');
             return;
           }
           scope.loading = true;
           CodeSearch.readSourceById(file.id, function(resp) {
             scope.sourceCode = resp.source.source;
-            scope.usages = resp.usages ? resp.usages : [];
+            scope.usages = resp.usages;
             scope.loading = false;
             scope.fileIdLoaded = file.id;
           });
@@ -306,15 +329,15 @@ angular.module('polarisDirectives', ['polarisServices'])
   //     on-find-usages="f(kind, id)"
   //     on-go-to-definition="g(kind, id)"
   //     on-select-jump-target="h(jumpTarget)" />
-  .directive('codeView', function($compile, Utils) {
+  .directive('codeView', function($compile, Utils, LinkBuilder) {
     return {
       restrict: 'E',
       templateUrl: 'partials/code-view',
       scope: {
         onFindUsages: '&',
         onSelectJumpTarget: '&',
-        code: '=',
-        usages: '=',
+        code: '&',
+        usages: '&',
         highlightedLine: '='
       },
       replace: true,
@@ -330,14 +353,20 @@ angular.module('polarisDirectives', ['polarisServices'])
           }
         }
 
-        var processMatch = function(text, k) {
-          return '<usage ' +
-            'on-find-usages="onFindUsagesInternal(kind, id)" ' +
-            'on-select-jump-target="onSelectJumpTargetInternal(jumpTarget)" ' +
-            'highlight-context="highlightContext" ' +
-            'usage="usages[' + k + ']">' +
-            Utils.escapeHTML(text) +
-            '</usage>';
+        var processMatch = function(text, k, usage) {
+          return '<span class="usage dropdown" index="' + k + '" highlight-group="' + Utils.getEntityIdOfUsage(usage) + '">' +
+              '<a href="' + LinkBuilder.source(usage.jumpTarget) + '">' +
+                Utils.escapeHTML(text) +
+              '</a>' + 
+              '<span>' +
+                '<a class="dropdown-toggle" data-toggle="dropdown" href="#"><b class="caret"></b></a>' +
+                '<ul class="dropdown-menu" role="menu">' +
+                  '<li><a class="go-to-definition-button">Definition</a></li>' +
+                  '<li><a class="find-usages-button">Find usages</a></li>' +
+                '</ul>' +
+              '</span>' + 
+              // '<a href="#"><b class="usage-dropdown-menu-button"></b></a>' +
+            '</span>';
         }
 
         var processSource = function(code, usages) {
@@ -357,7 +386,7 @@ angular.module('polarisDirectives', ['polarisServices'])
             }
             if (matchFrom != -1 && comparePosition(usages[j].jumpTarget.span.to, current) <= 0) {
               var matchText = code.substring(matchFrom, i);
-              result += processMatch(matchText, j);
+              result += processMatch(matchText, j, usages[j]);
               usages[j].text = matchText;
               matchFrom = -1;
             }
@@ -380,26 +409,60 @@ angular.module('polarisDirectives', ['polarisServices'])
           if (line > 3) { line -= 3; }
           $(element).scrollTop(line * 20);
         };
-        scope.$watch('code + usages', function() {
-          if (scope.code && scope.usages) {
+
+        scope.$watch('code() + usages()', function() {
+          var code = scope.code();
+          var usages = scope.usages();
+          if (code && usages) {
+            console.time('processSource');
             // Bind nested directievs.
-            var s = processSource(scope.code, scope.usages);
-            // console.log('s', s);
+            var s = processSource(code, usages);
+            console.timeEnd('processSource');
+            console.time('prettyPrintOne');
             s = prettyPrintOne(s);
-            var pre = angular.element(Utils.getFirst(element.find(".code-column")));
+            console.timeEnd('prettyPrintOne');
+            console.time('pre.html');
+            var pre = $(".code-column");
             pre.html(s);
-            $compile(pre.contents())(scope);
+            console.timeEnd('pre.html');
 
             // Set up line numbers.
+            console.time('setUpLineNumbers');
             scope.lines = [];
-            var lineCount = Utils.countLines(scope.code);
+            var lineCount = Utils.countLines(code);
             for (var i = 0; i < lineCount; i++) {
               scope.lines.push(i);
             }
+            console.timeEnd('setUpLineNumbers');
 
+            console.time('scrollToLine');
             if (scope.highlightedLine) {
               scrollToLine(scope.highlightedLine);
             }
+            console.timeEnd('scrollToLine');
+
+            // Set up menu click handlers
+            console.time('setUpMenuHandlers');
+            $(element).find('.usage').each(function(i, e) {
+              var j = $(e).attr('index');
+              var usage = usages[j];
+              var goToDefinitionFn = function(e) {
+                scope.onSelectJumpTarget({'jumpTarget': usage.definitionJumpTarget});
+                scope.$apply();
+              };
+              var a = $(e).find('> a');
+              $(a).click(goToDefinitionFn);
+              $(a).hover(function() {
+                $(element).find('.usage > a').removeClass('highlighted-word');
+                $(element).find('.usage[highlight-group=' + Utils.getEntityIdOfUsage(usage) + '] > a').addClass('highlighted-word');
+              });
+              $(e).find('.go-to-definition-button').click(goToDefinitionFn);
+              $(e).find('.find-usages-button').click(function(e) {
+                scope.onFindUsages({'kind': usage.kind, 'id': Utils.getEntityIdOfUsage(usage)});
+                scope.$apply();
+              });
+            });
+            console.timeEnd('setUpMenuHandlers');
           }
         });
         scope.$watch('highlightedLine', function() {
@@ -476,7 +539,7 @@ angular.module('polarisDirectives', ['polarisServices'])
   //
   // Usage:
   //   <usage find-usages=... go-to-definition=... highlighted-context=... />
-  .directive('usage', function(Utils, LinkBuilder) {
+  /*.directive('usage', function(Utils, LinkBuilder) {
     return {
       restrict: 'E',
       templateUrl: 'partials/usage',
@@ -526,13 +589,13 @@ angular.module('polarisDirectives', ['polarisServices'])
         });
       }
     }
-  })
+  })*/
 
   // Shows type usages
   // 
   // Usage:
   //   <xref-box xrefs="..." on-select-jump-target='...' />
-  .directive('xrefBox', function(CodeSearch, LinkBuilder) {
+  .directive('xrefBox', function(CodeSearch, LinkBuilder, Protos) {
     return {
       restrict: 'E',
       templateUrl: 'partials/xref-box',
@@ -544,25 +607,25 @@ angular.module('polarisDirectives', ['polarisServices'])
       link: function(scope) {
         scope.usageCount = 0;
         scope.categories = [
-          {name: 'Declaration', kind: 'TYPE', subkind: 'TYPE_DECLARATION'},
-          {name: 'Extends/implements', kind: 'TYPE', subkind: 'SUPER_CLASS'},
-          {name: 'Methods', kind: 'TYPE', subkind: 'METHOD_SIGNATURE'},
-          {name: 'Fields', kind: 'TYPE', subkind: 'FIELD'},
-          {name: 'Local variables', kind: 'TYPE', subkind: 'LOCAL_VARIABLE'},
-          {name: 'Generic types', kind: 'TYPE', subkind: 'GENERIC_TYPE_PARAMETER'},
-          {name: 'Imports', kind: 'TYPE', subkind: 'IMPORT'},
-          {name: 'Declaration', kind: 'METHOD', subkind: 'METHOD_DECLARATION'},
-          {name: 'New instance creation', kind: 'METHOD', subkind: 'INSTANCE_CREATION'},
-          {name: 'Method calls', kind: 'METHOD', subkind: 'METHOD_CALL'},
-          {name: 'Declaration', kind: 'VARIABLE', subkind: 'DECLARATION'},
-          {name: 'Variable access', kind: 'VARIABLE', subkind: 'ACCESS'}
+          {name: 'Declaration', kind: Protos.Usage.Kind.TYPE, subkind: Protos.TypeUsage.Kind.TYPE_DECLARATION},
+          {name: 'Extends/implements', kind: Protos.Usage.Kind.TYPE, subkind: Protos.TypeUsage.Kind.SUPER_CLASS},
+          {name: 'Methods', kind: Protos.Usage.Kind.TYPE, subkind: Protos.TypeUsage.Kind.METHOD_SIGNATURE},
+          {name: 'Fields', kind: Protos.Usage.Kind.TYPE, subkind: Protos.TypeUsage.Kind.FIELD},
+          {name: 'Local variables', kind: Protos.Usage.Kind.TYPE, subkind: Protos.TypeUsage.Kind.LOCAL_VARIABLE},
+          {name: 'Generic types', kind: Protos.Usage.Kind.TYPE, subkind: Protos.TypeUsage.Kind.GENERIC_TYPE_PARAMETER},
+          {name: 'Imports', kind: Protos.Usage.Kind.TYPE, subkind: Protos.TypeUsage.Kind.IMPORT},
+          {name: 'Declaration', kind: Protos.Usage.Kind.METHOD, subkind: Protos.MethodUsage.Kind.METHOD_DECLARATION},
+          {name: 'New instance creation', kind: Protos.Usage.Kind.METHOD, subkind: Protos.MethodUsage.Kind.INSTANCE_CREATION},
+          {name: 'Method calls', kind: Protos.Usage.Kind.METHOD, subkind: Protos.MethodUsage.Kind.METHOD_CALL},
+          {name: 'Declaration', kind: Protos.Usage.Kind.VARIABLE, subkind: Protos.VariableUsage.Kind.DECLARATION},
+          {name: 'Variable access', kind: Protos.Usage.Kind.VARIABLE, subkind: Protos.VariableUsage.Kind.ACCESS}
         ];
         var getUsageSubkind = function(u) {
-          if (u.kind == 'TYPE') {
+          if (u.kind == Protos.Usage.Kind.TYPE) {
             return u.type.kind;
-          } else if (u.kind == 'METHOD') {
+          } else if (u.kind == Protos.Usage.Kind.METHOD) {
             return u.method.kind;
-          } else if (u.kind == 'VARIABLE') {
+          } else if (u.kind == Protos.Usage.Kind.VARIABLE) {
             return u.variable.kind;
           } else {
             console.log('Bad Usage.Kind:', u.kind);

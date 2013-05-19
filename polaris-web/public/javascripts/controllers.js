@@ -29,15 +29,15 @@ function SearchCtrl($scope, $routeParams, CodeSearch, LinkBuilder) {
   $scope.search();
 }
 
-function SourceCtrl($scope, $routeParams, CodeSearch, Utils) {
+function SourceCtrl($scope, $routeParams, CodeSearch, Utils, Protos) {
   $scope.leftPanelVisible = true;
   $scope.rightPanelVisible = true;
 
   var showFile = function (file, line) {
-    console.log('Show file', file);
-    if (file.kind == 'DIRECTORY') {
+    console.log('Show file', file.path);
+    if (file.kind == Protos.FileHandle.Kind.DIRECTORY) {
       $scope.view = 'DIR';
-    } else if (file.kind == 'NORMAL_FILE') {
+    } else if (file.kind == Protos.FileHandle.Kind.NORMAL_FILE) {
       $scope.view = 'CODE';
     } else {
       console.warn('Ignore bad FileHandle.Kind:', file.kind);

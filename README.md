@@ -43,6 +43,6 @@ Run
 
 2. Start searcher
 
-		$ ./polaris devserver
+		$ polaris-web/link-protos.sh && ./polaris devserver
 
     Navigate to http://localhost:8080.

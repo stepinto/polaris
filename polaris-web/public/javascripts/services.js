@@ -4,7 +4,47 @@ var rpcCount = 0;
 
 /* Services */
 angular.module('polarisServices', [])
-  .factory('CodeSearch', function($http, Utils) {
+  .factory('Protos', function() {
+    var defs = {
+      'protos/search.proto': [
+        'CompleteRequest',
+        'CompleteResponse',
+        'SourceRequest',
+        'SourceResponse',
+        'GetFileHandleRequest',
+        'GetFileHandleResponse',
+        'ListFilesRequest',
+        'ListFilesResponse',
+        'GetTypeRequsest',
+        'GetTypeResponse',
+        'GetMethodRequest',
+        'GetMethodResponse',
+        'ListTypesInFileRequest',
+        'ListTypesInFileResponse',
+        'ListUsagesRequest',
+        'ListUsagesResponse',
+        'Hit'
+      ],
+      'protos/parser.proto': [
+        'ClassType',
+        'FileHandle',
+        'Usage',
+        'TypeUsage',
+        'MethodUsage',
+        'VariableUsage',
+        'TypeKind',
+        'PrimitiveType']
+    };
+    var ret = {};
+    $.each(defs, function(protoFile, messages) {
+      var pb = dcodeIO.ProtoBuf.protoFromFile('protos/search.proto');
+      $.each(messages, function(i, message) {
+        ret[message] = pb.build(message);
+      });
+    });
+    return ret;
+  })
+  .factory('CodeSearch', function($http, $rootScope, Utils, Protos) {
     var now = function() {
       return new Date().getTime();
     };
@@ -18,33 +58,56 @@ angular.module('polarisServices', [])
         callback(resp);
       });
     };
+    var execute2 = function(method, req, decoder, callback) {
+      // We have to use XMLHttpRequest directly here, because $http seems to not
+      // support receiving binary responses.
+      var startTime = now();
+      var xmlReq = new XMLHttpRequest();
+      xmlReq.open('POST', '/api/' + method, true);
+      xmlReq.responseType = 'arraybuffer';
+      xmlReq.send(new Uint8Array(req.toArrayBuffer()));
+      xmlReq.onload = function(e) {
+        var latency = now() - startTime;
+        var out = xmlReq.response;
+        var resp = decoder.decode(out);
+        rpcCount++;
+        console.log('RPC #' + rpcCount + ' ' + method +
+          ' status: ' + resp.status + ' latency: ' + latency + ' ms');
+        callback(resp);
+        $rootScope.$apply();
+      };
+    }
     return {
       search: function (query, rankFrom, rankTo, callback) {
         var req = {'query': query, 'rankFrom': rankFrom, 'rankTo': rankTo};
         execute('search', req, callback);
       },
       complete: function(query, limit, callback) {
-        var req = {'query': query, 'limit': limit};
-        execute('complete', req, callback);
+        var req = new Protos.CompleteRequest();
+        req.query = query;
+        req.limit = limit;
+        execute2('complete', req, Protos.CompleteResponse, callback);
       },
       readSourceByPath: function (project, path, callback) {
-        var req = {'projectName': project, 'fileName': path};
-        execute('source', req, callback);
+        var req = new Protos.SourceRequest();
+        req.projectName = project;
+        req.fileName = path;
+        execute2('source', req, Protos.SourceResponse, callback);
       },
       readSourceById: function(id, callback) {
-        var req = {'fileId': Number(id)};
-        execute('source', req, callback);
+        var req = new Protos.SourceRequest();
+        req.fileId = Number(id);
+        execute2('source', req, Protos.SourceResponse, callback);
       },
       listFiles: function(project, path, callback) {
-        var FILE_HANDLE_KIND_ORDINALS = {'DIRECTORY': 0, 'NORMAL_FILE': 1};
-        var req = {'projectName': project, 'directoryName': path};
-        execute('listFiles', req, function(resp) {
+        var req = new Protos.ListFilesRequest();
+        req.projectName = project;
+        req.directoryName = path;
+        execute2('listFiles', req, Protos.ListFilesResponse, function(resp) {
           if (resp.children) {
             resp.children.sort(function(left, right) {
-              var leftKindOrdinal = FILE_HANDLE_KIND_ORDINALS[left.kind];
-              var rightKindOrdinal = FILE_HANDLE_KIND_ORDINALS[right.kind];
-              if (leftKindOrdinal != rightKindOrdinal) {
-                return leftKindOrdinal - rightKindOrdinal;
+              if (left.kind != right.kind) {
+                return left.kind - right.kind;
               }
               if (left.project != right.project) {
                 return Utils.strcmp(left.project, right.project);
@@ -56,28 +119,36 @@ angular.module('polarisServices', [])
         });
       },
       getTypeById: function(typeId, callback) {
-        var req = {'typeId': Number(typeId)};
-        execute('getType', req, callback);
+        var req = new Protos.GetTypeRequest();
+        req.typeId = typeId;
+        execute2('getType', req, Protos.GetTypeResponse, callback);
       },
       getMethodById: function(methodId, callback) {
-        var req = {'methodId': Number(methodId)};
-        execute('getMethod', req, callback);
+        var req = new Protos.GetMethodRequest();
+        req.methodId = methodId;
+        execute2('getMethod', req, Protos.GetMethodResponse, callback);
       },
       listUsages: function(kind, id, callback) {
-        var req = {'kind': kind, 'id': Number(id)};
-        execute('listUsages', req, callback);
+        var req = new Protos.ListUsagesRequest();
+        req.kind = kind;
+        req.id = id;
+        execute2('listUsages', req, Protos.ListUsagesResponse, callback);
       },
       listTypesInFile: function(fileId, callback) {
-        var req = {'fileId': Number(fileId), 'limit': 2147483647};
-        execute('listTypesInFile', req, callback);
+        var req = new Protos.ListTypesInFileRequest();
+        req.fileId = fileId;
+        req.limit = 2147483647;
+        execute2('listTypesInFile', req, Protos.ListTypesInFileResponse, callback);
       },
       getFileHandle: function(project, path, callback) {
-        var req = {'project': project, 'path': path};
-        execute('getFileHandle', req, callback);
+        var req = new Protos.GetFileHandleRequest();
+        req.project = project;
+        req.path = path;
+        execute2('getFileHandle', req, Protos.GetFileHandleResponse, callback);
       }
     };
   })
-  .factory('Utils', function() {
+  .factory('Utils', function(Protos) {
     return {
       'startsWith': function(s, t) {
         return s.indexOf(t) == 0;
@@ -139,11 +210,19 @@ angular.module('polarisServices', [])
         return s.substring(pos + 1);
       },
       'getDisplayNameOfTypeHandle': function(type) {
-        if (type.kind == 'PRIMITIVE') {
-          var n = type.primitive.kind.toLowerCase();
-          if (n == 'integer') { return 'int'; }
-          return n;
-        } else if (type.kind == 'CLASS') {
+        if (type.kind == Protos.TypeKind.PRIMITIVE) {
+          var result = null;
+          $.each(Protos.PrimitiveType.Kind, function(name, value) {
+            if (value == type.primitive.kind) {
+              result = name.toLowerCase();
+            }
+          });
+          if (result == null) {
+            console.log('Unknown primitive type: ' + type);
+            result = 'UnknownPrimitive#' + type;
+          }
+          return result;
+        } else if (type.kind == Protos.TypeKind.CLASS) {
           return this.getSimpleName(type.clazz.name);
         } else {
           console.log("Unknown kind of type handle: " + type);
@@ -189,6 +268,35 @@ angular.module('polarisServices', [])
         } else {
           return 1;
         }
+      },
+      'replaceAll': function(str, s, t) {
+        return str.replace(new RegExp(s, 'g'), t);
+      },
+
+      // Returns type/method/variable id of a given usage.
+      'getEntityIdOfUsage': function(usage) {
+        if (usage.kind == Protos.Usage.Kind.TYPE) {
+          if (usage.type.type.kind == Protos.TypeUsage.Kind.CLASS && usage.type.type.clazz.resolved) {
+            return usage.type.type.clazz.id;
+          }
+        } else if (usage.kind == Protos.Usage.Kind.METHOD) {
+          return usage.method.method.id;
+        } else if (usage.kind == Protos.Usage.Kind.VARIABLE) {
+          return usage.variable.variable.id;
+        }
+        console.log('Found usage of unknown kind:', usage);
+        return 0;
+      },
+      'ab2str': function(buf) {
+        return String.fromCharCode.apply(null, new Uint8Array(buf));
+      },
+      'str2ab': function(str) {
+        var buf = new ArrayBuffer(str.length*2); // 2 bytes for each char
+        var bufView = new Uint16Array(buf);
+        for (var i=0, strLen=str.length; i<strLen; i++) {
+          bufView[i] = str.charCodeAt(i);
+        }
+        return buf;
       }
     };
   })

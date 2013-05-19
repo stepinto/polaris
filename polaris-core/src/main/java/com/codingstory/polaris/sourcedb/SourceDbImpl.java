@@ -78,10 +78,8 @@ public class SourceDbImpl implements SourceDb {
 
     @Override
     public SourceFile querySourceById(long fileId) throws IOException {
-        System.out.println("SourceDbImpl.querySourceById");
         Query query = NumericRangeQuery.newLongRange(SourceDbIndexedField.FILE_ID_RAW, fileId, fileId, true, true);
         TopDocs topDocs = searcher.search(query, 2);
-        System.out.println("topDocs.scoreDocs.length = " + topDocs.scoreDocs.length);
         int count = topDocs.scoreDocs.length;
         if (count == 0) {
             LOG.debug("Source not found: " + fileId);

@@ -81,6 +81,8 @@ public class DevServer {
                 handleStatic(req, resp, new File(webDir, "public"), "image/gif");
             } else if (path.endsWith(".xml")) {
                 handleStatic(req, resp, new File(webDir, "public"), "text/xml");
+            } else if (path.endsWith(".proto")) {
+                handleStatic(req, resp, new File(webDir, "public"), "text/plain");
             } else if (path.startsWith("/api")) {
                 handleAjax(req, resp);
             } else {
@@ -188,19 +190,18 @@ public class DevServer {
 
                 BlockingService service = CodeSearch.newReflectiveBlockingService(searcher);
                 Message.Builder inputBuilder = service.getRequestPrototype(methodDesc).newBuilderForType();
-                JsonFormat.merge(new InputStreamReader(req.getInputStream()), inputBuilder);
+                inputBuilder.mergeFrom(req.getInputStream());
 
                 Message output = service.callBlockingMethod(
                         methodDesc, NoOpController.getInstance(), inputBuilder.build());
 
                 resp.setHeader("Content-Encoding", "gzip");
-                resp.setContentType("application/json");
+                resp.setContentType("application/octet-stream");
                 resp.setStatus(HttpServletResponse.SC_OK);
                 GZIPOutputStream gzipOutputStream = new GZIPOutputStream(resp.getOutputStream());
-                OutputStreamWriter out = new OutputStreamWriter(gzipOutputStream);
-                JsonFormat.print(output, out);
-                out.flush();
+                output.writeTo(gzipOutputStream);
                 gzipOutputStream.finish();
+                gzipOutputStream.flush();
             } catch (ServiceException e) {
                 throw new AssertionError(e);
             }
