@@ -20,6 +20,7 @@ import de.neuland.jade4j.Jade4J;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.server.Server;
@@ -61,6 +62,8 @@ public class DevServer {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             String path = req.getRequestURI();
+            StopWatch stopWatch = new StopWatch();
+            stopWatch.start();
             LOG.info(req.getMethod() + " " + path);
             if (path.endsWith(".css")) {
                 handleCss(req, resp);
@@ -84,7 +87,7 @@ public class DevServer {
                 LOG.info("Unsupported file path: " + path);
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             }
-            LOG.info("Status code: " + resp.getStatus());
+            LOG.info(req.getMethod() + " " + path + " " + resp.getStatus() + " " + stopWatch.getTime() + "ms");
         }
 
         private boolean isControllerPath(String path) {
