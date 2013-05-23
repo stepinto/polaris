@@ -96,6 +96,8 @@ public class SourceDbWriterImpl implements SourceDbWriter {
     @Override
     public void flush() throws IOException {
         writer.commit();
+        writer.forceMerge(1);
+      writer.forceMerge(1);
     }
 
     @Override

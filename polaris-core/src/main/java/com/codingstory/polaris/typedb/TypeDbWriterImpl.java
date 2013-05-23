@@ -66,6 +66,7 @@ public class TypeDbWriterImpl implements TypeDbWriter {
     @Override
     public void flush() throws IOException {
         writer.commit();
+        writer.forceMerge(1);
     }
 
     @Override

@@ -659,6 +659,10 @@ public class IndexPipeline implements Serializable {
             }
 
             LOG.info("Index files are written to " + indexDir);
+
+          typeDb.flush();
+          sourceDb.flush();
+          usageDb.flush();
         } finally {
             IOUtils.closeQuietly(typeDb);
             IOUtils.closeQuietly(sourceDb);

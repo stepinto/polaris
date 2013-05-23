@@ -58,6 +58,7 @@ public class UsageDbWriterImpl implements UsageDbWriter {
     @Override
     public void flush() throws IOException {
         writer.commit();
+        writer.forceMerge(1);
     }
 
     @Override
