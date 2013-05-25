@@ -8,11 +8,18 @@ import com.codingstory.polaris.sourcedb.SourceDbProtos.SourceData;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang.StringUtils;
+import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.IntField;
+import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 
 import java.io.File;
@@ -23,7 +30,7 @@ public class SourceDbWriterImpl implements SourceDbWriter {
 
     public SourceDbWriterImpl(File path) throws IOException {
         Preconditions.checkNotNull(path);
-        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_36, SourceCodeAnalyzer.getInstance());
+        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_43, SourceCodeAnalyzer.getInstance());
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
         this.writer = new IndexWriter(FSDirectory.open(path), config);
     }
@@ -42,43 +49,38 @@ public class SourceDbWriterImpl implements SourceDbWriter {
 
     private void doWrite(SourceData sourceData) throws IOException {
         Document document = new Document();
-        document.add(new Field(
-                SourceDbIndexedField.FILE_ID_RAW, String.valueOf(sourceData.getFileHandle().getId()),
-                Field.Store.YES,
-                Field.Index.ANALYZED));
-        document.add(new Field(
+        document.add(new LongField(
+                SourceDbIndexedField.FILE_ID_RAW,
+                sourceData.getFileHandle().getId(),
+                Field.Store.YES));
+        document.add(new TextField(
                 SourceDbIndexedField.PROJECT,
                 sourceData.getFileHandle().getProject(),
-                Field.Store.YES,
-                Field.Index.ANALYZED));
-        document.add(new Field(
+                Field.Store.YES));
+        document.add(new StringField(
                 SourceDbIndexedField.PROJECT_RAW,
                 sourceData.getFileHandle().getProject(),
-                Field.Store.YES,
-                Field.Index.ANALYZED));
-        document.add(new Field(
+                Field.Store.YES));
+        document.add(new TextField(
                 SourceDbIndexedField.PATH,
                 sourceData.getFileHandle().getPath(),
-                Field.Store.YES,
-                Field.Index.ANALYZED));
-        document.add(new Field(
+                Field.Store.YES));
+        document.add(new StringField(
                 SourceDbIndexedField.PATH_RAW,
                 sourceData.getFileHandle().getPath(),
-                Field.Store.YES,
-                Field.Index.ANALYZED));
-        document.add(new Field(
+                Field.Store.YES));
+        document.add(new StringField(
                 SourceDbIndexedField.PARENT_PATH_RAW,
                 findParentPath(sourceData.getFileHandle().getPath()),
-                Field.Store.YES,
-                Field.Index.ANALYZED));
-        document.add(new Field(
+                Field.Store.YES));
+        document.add(new TextField(
                 SourceDbIndexedField.SOURCE_TEXT,
                 sourceData.getSourceFile().getSource(),
-                Field.Store.YES,
-                Field.Index.ANALYZED,
-                Field.TermVector.WITH_POSITIONS_OFFSETS));
+                Field.Store.YES));
         byte[] sourceDataBinary = SnappyUtils.compress(sourceData.toByteArray());
-        document.add(new Field(SourceDbIndexedField.SOURCE_DATA, sourceDataBinary));
+        document.add(new StoredField(
+                SourceDbIndexedField.SOURCE_DATA,
+                new BytesRef(sourceDataBinary)));
         writer.addDocument(document);
     }
 
@@ -97,7 +99,6 @@ public class SourceDbWriterImpl implements SourceDbWriter {
     public void flush() throws IOException {
         writer.commit();
         writer.forceMerge(1);
-      writer.forceMerge(1);
     }
 
     @Override

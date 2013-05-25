@@ -10,21 +10,23 @@ import com.codingstory.polaris.sourcedb.SourceDbProtos.SourceData;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.queryParser.MultiFieldQueryParser;
-import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
+import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.NumericRangeQuery;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 
 import java.io.File;
@@ -76,8 +78,10 @@ public class SourceDbImpl implements SourceDb {
 
     @Override
     public SourceFile querySourceById(long fileId) throws IOException {
-        TermQuery query = new TermQuery(new Term(SourceDbIndexedField.FILE_ID_RAW, String.valueOf(fileId)));
+        System.out.println("SourceDbImpl.querySourceById");
+        Query query = NumericRangeQuery.newLongRange(SourceDbIndexedField.FILE_ID_RAW, fileId, fileId, true, true);
         TopDocs topDocs = searcher.search(query, 2);
+        System.out.println("topDocs.scoreDocs.length = " + topDocs.scoreDocs.length);
         int count = topDocs.scoreDocs.length;
         if (count == 0) {
             LOG.debug("Source not found: " + fileId);
@@ -131,10 +135,11 @@ public class SourceDbImpl implements SourceDb {
         Preconditions.checkArgument(n >= 0);
         try {
             MultiFieldQueryParser parser = new MultiFieldQueryParser(
-                    Version.LUCENE_36,
+                    Version.LUCENE_43,
                     SEARCHABLE_FIELDS,
                     SourceCodeAnalyzer.getInstance());
-            TopDocs topDocs = searcher.search(parser.parse(query), n);
+            Query parsedQuery = parser.parse(query);
+            TopDocs topDocs = searcher.search(parsedQuery, n);
             List<Hit> hits = Lists.newArrayList();
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
                 SourceData data = retrieveDocument(scoreDoc.doc);
@@ -169,8 +174,8 @@ public class SourceDbImpl implements SourceDb {
 
     private SourceData retrieveDocument(int docId) throws IOException {
         Document document = reader.document(docId);
-        return SourceData.parseFrom(
-                SnappyUtils.uncompress(document.getBinaryValue(SourceDbIndexedField.SOURCE_DATA)));
+        BytesRef bytesRef = document.getBinaryValue(SourceDbIndexedField.SOURCE_DATA);
+        return SourceData.parseFrom(SnappyUtils.uncompress(bytesRef.bytes, bytesRef.offset, bytesRef.length));
     }
 
     private SourceFile retrieveDocumentAsNormalFile(int docId) throws IOException {
@@ -183,7 +188,6 @@ public class SourceDbImpl implements SourceDb {
 
     @Override
     public void close() throws IOException {
-        IOUtils.closeQuietly(reader);
-        IOUtils.closeQuietly(searcher);
+        reader.close();
     }
 }

@@ -25,6 +25,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.BytesRef;
 
 import java.io.File;
 import java.io.IOException;
@@ -159,13 +160,13 @@ public class TypeDbImpl implements TypeDb {
     @Override
     public void close() throws IOException {
         reader.close();
-        searcher.close();
     }
 
     private ClassType retrieveDocument(int docId) throws IOException {
         Document document = reader.document(docId);
+        BytesRef bytesRef = document.getBinaryValue(TypeDbIndexedField.TYPE_DATA);
         TypeData typeData = TypeData.parseFrom(
-                SnappyUtils.uncompress(document.getBinaryValue(TypeDbIndexedField.TYPE_DATA)));
+                SnappyUtils.uncompress(bytesRef.bytes, bytesRef.offset, bytesRef.length));
         return typeData.getClassType();
     }
 

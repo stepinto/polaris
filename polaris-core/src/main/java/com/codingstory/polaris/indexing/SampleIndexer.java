@@ -7,7 +7,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -29,8 +29,8 @@ public class SampleIndexer {
     public static void main(String[] args) throws Exception {
         // create index
         Directory dir = FSDirectory.open(new File("index"));
-        Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_36);
-        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_36, analyzer);
+        Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_43);
+        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_43, analyzer);
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
         IndexWriter writer = new IndexWriter(dir, config);
         Document document = new Document();
@@ -42,7 +42,7 @@ public class SampleIndexer {
         // search
         IndexReader reader = IndexReader.open(FSDirectory.open(new File("index")));
         IndexSearcher searcher = new IndexSearcher(reader);
-        QueryParser parser = new QueryParser(Version.LUCENE_36, "test_field", analyzer);
+        QueryParser parser = new QueryParser(Version.LUCENE_43, "test_field", analyzer);
         Query q = parser.parse("hello");
         TopDocs docs = searcher.search(q, null, 100);
         ScoreDoc[] results = docs.scoreDocs;

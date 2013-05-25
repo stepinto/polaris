@@ -7,6 +7,7 @@ import com.codingstory.polaris.usagedb.UsageDbProtos.UsageData;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
@@ -16,6 +17,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.BytesRef;
 
 import java.io.File;
 import java.io.IOException;
@@ -72,13 +74,13 @@ public class UsageDbImpl implements UsageDb {
     @Override
     public void close() throws IOException {
         reader.close();
-        searcher.close();
     }
 
     private Usage retrieveDocument(int docId) throws IOException {
         Document document = reader.document(docId);
-        byte[] binaryData = document.getBinaryValue(UsageDbIndexedField.USAGE_DATA);
-        UsageData usageData = UsageData.parseFrom(SnappyUtils.uncompress(binaryData));
+        BytesRef bytesRef = document.getBinaryValue(UsageDbIndexedField.USAGE_DATA);
+        UsageData usageData = UsageData.parseFrom(
+                SnappyUtils.uncompress(bytesRef.bytes, bytesRef.offset, bytesRef.length));
         return usageData.getUsage();
     }
 }

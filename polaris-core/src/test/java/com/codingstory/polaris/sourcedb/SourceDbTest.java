@@ -35,40 +35,58 @@ public class SourceDbTest {
     @Test
     public void testSource() throws IOException {
         SourceDbWriter w = new SourceDbWriterImpl(tempDir);
-        long f1 = writeFile(w, "/dir/a", "hello");
-        long f2 = writeFile(w, "/dir/b", "world");
-        w.close();
+        long f1;
+        long f2;
+        try {
+            f1 = writeFile(w, "/dir/a", "hello");
+            f2 = writeFile(w, "/dir/b", "world");
+            w.flush();
+        } finally {
+            w.close();
+        }
 
         SourceDb r = new SourceDbImpl(tempDir);
-        assertEquals("hello", r.querySourceById(f1).getSource());
-        assertEquals("hello", r.querySourceByPath(TEST_PROJECT, "/dir/a").getSource());
-        assertEquals("world", r.querySourceById(f2).getSource());
-        assertEquals("world", r.querySourceByPath(TEST_PROJECT, "/dir/b").getSource());
-        assertNull(r.querySourceById(3L));
-        assertNull(r.querySourceByPath("NoSuchProject", "/dir/a"));
-        assertNull(r.querySourceByPath(TEST_PROJECT, "/nosuchfile"));
+        try {
+            assertEquals("hello", r.querySourceById(f1).getSource());
+            assertEquals("hello", r.querySourceByPath(TEST_PROJECT, "/dir/a").getSource());
+            assertEquals("world", r.querySourceById(f2).getSource());
+            assertEquals("world", r.querySourceByPath(TEST_PROJECT, "/dir/b").getSource());
+            assertNull(r.querySourceById(3L));
+            assertNull(r.querySourceByPath("NoSuchProject", "/dir/a"));
+            assertNull(r.querySourceByPath(TEST_PROJECT, "/nosuchfile"));
+        } finally  {
+            r.close();
+        }
     }
 
     @Test
     public void testListDirectory() throws IOException {
         SourceDbWriter w = new SourceDbWriterImpl(tempDir);
-        writeFile(w, "/dir/a", "hello");
-        writeFile(w, "/dir/b", "world");
-        writeDirectory(w, "/dir/c/");
-        writeDirectory(w, "/dir/");
-        w.close();
+        try {
+            writeFile(w, "/dir/a", "hello");
+            writeFile(w, "/dir/b", "world");
+            writeDirectory(w, "/dir/c/");
+            writeDirectory(w, "/dir/");
+            w.flush();
+        } finally {
+            w.close();
+        }
 
         SourceDb r = new SourceDbImpl(tempDir);
-        r.listDirectory(TEST_PROJECT, "/");
-        assertEqualsIgnoreOrder(
-                ImmutableList.of("/dir/"),
-                listFiles(r, "/"));
-        assertEqualsIgnoreOrder(
-                ImmutableList.of("/dir/a", "/dir/b", "/dir/c/"),
-                listFiles(r, "/dir/"));
-        assertEqualsIgnoreOrder(
-                ImmutableList.<String>of(),
-                listFiles(r, "/dir/c/"));
+        try {
+            r.listDirectory(TEST_PROJECT, "/");
+            assertEqualsIgnoreOrder(
+                    ImmutableList.of("/dir/"),
+                    listFiles(r, "/"));
+            assertEqualsIgnoreOrder(
+                    ImmutableList.of("/dir/a", "/dir/b", "/dir/c/"),
+                    listFiles(r, "/dir/"));
+            assertEqualsIgnoreOrder(
+                    ImmutableList.<String>of(),
+                    listFiles(r, "/dir/c/"));
+        } finally {
+            r.close();
+        }
 
         // TODO: We cannot distinguish whether the dir does not exist or it has no children yet.
         // assertNull(r.listDirectory("NoSuchProject", "/"));
@@ -78,57 +96,81 @@ public class SourceDbTest {
     @Test
     public void testQuery_fileName() throws IOException {
         SourceDbWriter w = new SourceDbWriterImpl(tempDir);
-        writeFile(w, "/dir1/a", "hello");
-        writeFile(w, "/dir1/b", "world");
-        writeFile(w, "/dir2/a", "hello");
-        writeFile(w, "/dir2/b", "world");
-        w.close();
+        try {
+            writeFile(w, "/dir1/a", "hello");
+            writeFile(w, "/dir1/b", "world");
+            writeFile(w, "/dir2/a", "hello");
+            writeFile(w, "/dir2/b", "world");
+            w.flush();
+        } finally {
+            w.close();
+        }
 
         SourceDb r = new SourceDbImpl(tempDir);
-        List<Hit> hits;
-        Hit hit;
+        try {
+            List<Hit> hits;
+            Hit hit;
 
-        // full path
-        hits = r.query("/dir1/a", 10);
-        assertFalse(hits.isEmpty());
-        hit = hits.get(0);
-        assertEquals(Hit.Kind.FILE, hit.getKind());
-        assertEquals("/dir1/a", hit.getJumpTarget().getFile().getPath());
+            // full path
+            hits = r.query("/dir1/a", 10);
+            assertFalse(hits.isEmpty());
+            hit = hits.get(0);
+            assertEquals(Hit.Kind.FILE, hit.getKind());
+            assertEquals("/dir1/a", hit.getJumpTarget().getFile().getPath());
 
-        // partial path
-        hits = r.query("dir1", 10);
-        assertEquals(2, hits.size());
-        hits = r.query("b", 10);
-        assertEquals(2, hits.size());
-        hits = r.query("dir1 a", 10);
-        assertEquals(3, hits.size());
+            // partial path
+            hits = r.query("dir1", 10);
+            assertEquals(2, hits.size());
+            hits = r.query("b", 10);
+            assertEquals(2, hits.size());
+            hits = r.query("dir1 a", 10);
+            assertEquals(3, hits.size());
+        } finally {
+            r.close();
+        }
     }
 
     @Test
     public void testQuery_content() throws IOException {
         SourceDbWriter w = new SourceDbWriterImpl(tempDir);
+        try {
         writeFile(w, "/1", "hello");
         writeFile(w, "/2", "world");
         writeFile(w, "/3", "hello world");
-        w.close();
+        } finally  {
+            w.close();
+        }
 
         SourceDb r = new SourceDbImpl(tempDir);
-        List<Hit> hits = r.query("hello", 10);
-        assertEquals(2, hits.size());
+        try {
+            List<Hit> hits = r.query("hello", 10);
+            assertEquals(2, hits.size());
+        } finally {
+            r.close();
+        }
     }
 
     @Test
     public void testGetFileHandle() throws IOException {
         SourceDbWriter w = new SourceDbWriterImpl(tempDir);
-        long a = writeFile(w, "/a", "a");
-        long b = writeDirectory(w, "/b/");
-        w.close();
+        long a;
+        long b;
+        try {
+            a = writeFile(w, "/a", "a");
+            b = writeDirectory(w, "/b/");
+        } finally {
+            w.close();
+        }
 
         SourceDb r = new SourceDbImpl(tempDir);
-        assertEquals(a, r.getFileHandle(TEST_PROJECT, "/a").getId());
-        assertEquals(b, r.getFileHandle(TEST_PROJECT, "/b/").getId());
-        assertNull(r.getFileHandle("NoSuchProject", "/"));
-        assertNull(r.getFileHandle(TEST_PROJECT, "/NoSuchFile"));
+        try {
+            assertEquals(a, r.getFileHandle(TEST_PROJECT, "/a").getId());
+            assertEquals(b, r.getFileHandle(TEST_PROJECT, "/b/").getId());
+            assertNull(r.getFileHandle("NoSuchProject", "/"));
+            assertNull(r.getFileHandle(TEST_PROJECT, "/NoSuchFile"));
+        } finally {
+            r.close();
+        }
     }
 
     private long writeFile(SourceDbWriter w, String path, String content) throws IOException {

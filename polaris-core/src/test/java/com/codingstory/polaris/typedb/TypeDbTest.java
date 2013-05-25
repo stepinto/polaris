@@ -136,6 +136,7 @@ public class TypeDbTest {
         List<ClassType> types = r.getTypesInFile(FAKE_FILE.getId(), Integer.MAX_VALUE);
         assertEquals(ImmutableSet.of("A", "B"),
                 ImmutableSet.copyOf(getFullTypeNames(types)));
+        r.close();
     }
 
     private void doTestCompleteQuery(String query,
@@ -159,6 +160,7 @@ public class TypeDbTest {
             }
         }
         assertEqualsIgnoreOrder(expectedTypes, actualTypes);
+        r.close();
     }
 
     @Test

@@ -4,7 +4,7 @@ import com.codingstory.polaris.SnappyUtils;
 import com.codingstory.polaris.parser.ParserProtos.Usage;
 import com.codingstory.polaris.usagedb.UsageDbProtos.UsageData;
 import com.google.common.base.Preconditions;
-import org.apache.lucene.analysis.KeywordAnalyzer;
+import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexWriter;
@@ -20,7 +20,7 @@ public class UsageDbWriterImpl implements UsageDbWriter {
 
     public UsageDbWriterImpl(File path) throws IOException {
         Preconditions.checkNotNull(path);
-        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_36, new KeywordAnalyzer());
+        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_43, new KeywordAnalyzer());
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
         this.writer = new IndexWriter(FSDirectory.open(path), config);
     }

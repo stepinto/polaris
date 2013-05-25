@@ -22,7 +22,7 @@ public class TypeDbWriterImpl implements TypeDbWriter {
     private final IndexWriter writer;
 
     public TypeDbWriterImpl(File path) throws IOException {
-        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_36, new TypeDbAnalyzer());
+        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_43, new TypeDbAnalyzer());
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
         this.writer = new IndexWriter(FSDirectory.open(path), config);
     }
