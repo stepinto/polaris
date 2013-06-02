@@ -250,6 +250,7 @@ public class MultiPassProcessorsTest {
         String code = "class A { static { int a; } }";
         Method method = extractUniqueMethodFromCode(code);
         assertEquals("A.<cinit>", method.getHandle().getName());
+        assertEquals(spanOf(positionOf(0, 10), positionOf(0, 16)), method.getJumpTarget().getSpan());
     }
 
     // TODO: testMethod_public

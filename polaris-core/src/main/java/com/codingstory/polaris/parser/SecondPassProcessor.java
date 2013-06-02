@@ -15,6 +15,7 @@ import com.codingstory.polaris.parser.ParserProtos.Usage;
 import com.codingstory.polaris.parser.ParserProtos.Variable;
 import com.codingstory.polaris.parser.ParserProtos.VariableHandle;
 import com.codingstory.polaris.parser.ParserProtos.VariableUsage;
+import com.codingstory.polaris.parser.ParserProtos.Span;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -43,6 +44,8 @@ import static com.codingstory.polaris.parser.ParserUtils.nodeJumpTarget;
 import static com.codingstory.polaris.parser.TypeUtils.createTypeUsage;
 import static com.codingstory.polaris.parser.TypeUtils.getSimpleName;
 import static com.codingstory.polaris.parser.TypeUtils.handleOf;
+import static com.codingstory.polaris.parser.TypeUtils.positionOf;
+import static com.codingstory.polaris.parser.TypeUtils.positionOf;
 import static com.codingstory.polaris.parser.TypeUtils.snippetLine;
 import static com.codingstory.polaris.parser.TypeUtils.typeOf;
 import static com.codingstory.polaris.parser.TypeUtils.unresolvedClassHandleOf;
@@ -243,8 +246,19 @@ public final class SecondPassProcessor {
         @Override
         public void visit(final InitializerDeclaration node, final Object arg) {
             Preconditions.checkNotNull(node);
-            processMethodDeclaration(null, "<cinit>", nodeJumpTarget(file, node),
-                    null, null, new Runnable() {
+            // Because JavaParser cannot extract the exact position of "static",
+            // we have to do it in our own way.
+            int line = node.getBeginLine() - 1;
+            int column = node.getBeginColumn() - 1;
+            Span span = ParserProtos.Span.newBuilder()
+                    .setFrom(positionOf(line, column))
+                    .setTo(positionOf(line, column + 6)) // skip "static"
+                    .build();
+            JumpTarget jumpTarget = JumpTarget.newBuilder()
+                    .setFile(file)
+                    .setSpan(span)
+                    .build();
+            processMethodDeclaration(null, "<cinit>", jumpTarget, null, null, new Runnable() {
                 @Override
                 public void run() {
                     ASTVisitor.super.visit(node, arg);
