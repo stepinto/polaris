@@ -458,6 +458,16 @@ public class MultiPassProcessorsTest {
         assertEquals(spanOf(positionOf(0, 10), positionOf(0, 11)), usage.getDefinitionJumpTarget().getSpan());
     }
 
+    @Test
+    public void testTypeInference_newInstance() throws IOException {
+        String code = "class A { void f() {} }\n" +
+                "class B { void g() { new A().f(); }}\n";
+        Usage usage = findUniqueMethodUsageByKind(
+                extractFromCode(code).getUsages(),
+                MethodUsage.Kind.METHOD_CALL);
+        assertEquals("A.f", usage.getMethod().getMethod().getName());
+    }
+
     // TODO: testMethodCall_staticBlock()
 
     public static SecondPassProcessor.Result extractFromCode(String code) throws IOException {

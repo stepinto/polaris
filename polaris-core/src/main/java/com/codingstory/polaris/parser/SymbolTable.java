@@ -16,6 +16,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import japa.parser.ast.expr.Expression;
+import japa.parser.ast.expr.MethodCallExpr;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -42,6 +44,7 @@ public class SymbolTable {
     public static class Frame {
         private final Map<String, ClassType> shortlyNamedTypes = Maps.newHashMap();
         private final Map<String, Variable> variables = Maps.newHashMap();
+        private final Map<Expression, TypeHandle> expressionTypes = Maps.newHashMap();
 
         public void registerClassType(ClassType classType) {
             Preconditions.checkNotNull(classType);
@@ -54,12 +57,20 @@ public class SymbolTable {
             variables.put(simpleName, variable);
         }
 
+        public void registerExpressionType(Expression expression, TypeHandle type) {
+            expressionTypes.put(expression, type);
+        }
+
         public Iterable<ClassType> getClasses() {
             return shortlyNamedTypes.values();
         }
 
         public Variable getVariable(String variableName) {
             return variables.get(Preconditions.checkNotNull(variableName));
+        }
+
+        public TypeHandle getExpressionType(Expression expression) {
+            return expressionTypes.get(expression);
         }
     }
 
@@ -263,6 +274,21 @@ public class SymbolTable {
 
     public void registerVariable(Variable variable) {
         currentFrame().registerVariable(variable);
+    }
+
+    public void registerExpressionType(Expression expression, TypeHandle type) {
+        currentFrame().registerExpressionType(expression, type);
+    }
+
+    public TypeHandle getExpressionType(Expression expression) {
+        Preconditions.checkNotNull(expression);
+        for (Frame frame : frames) {
+            TypeHandle type = frame.getExpressionType(expression);
+            if (type != null) {
+                return type;
+            }
+        }
+        return null;
     }
 
     public Variable getVariable(String variableName) {

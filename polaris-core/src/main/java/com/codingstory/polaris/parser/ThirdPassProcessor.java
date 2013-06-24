@@ -183,20 +183,26 @@ public class ThirdPassProcessor {
         @Override
         public void visit(MethodCallExpr node, Void arg) {
             Preconditions.checkNotNull(node);
+            super.visit(node, arg); // visit scope first to determine its type
+
             Expression scope = node.getScope();
             TypeHandle type = null;
-            if (scope == null || scope instanceof ThisExpr) { // Call member methods
+            if (scope == null) {
+                // implict "this"
+                // TODO: calling static method
                 type = handleOf(symbolTable.currentClass().getHandle());
-            } else if (scope instanceof NameExpr) {
-                String name = ((NameExpr) scope).getName();
-                Variable variable = symbolTable.getVariable(name);
-                if (variable != null) {
-                    type = variable.getType();
-                } else {
-                    type = symbolTable.resolveTypeHandle(name); // calling static method
-                }
             } else {
-                // TODO: Handle more complex expressions.
+                if (scope instanceof NameExpr) {
+                    String name = ((NameExpr) scope).getName();
+                    Variable variable = symbolTable.getVariable(name);
+                    if (variable != null) {
+                        type = variable.getType();
+                    } else {
+                        type = symbolTable.resolveTypeHandle(name); // calling static method
+                    }
+                } else {
+                    type = symbolTable.getExpressionType(scope);
+                }
             }
             processMethodCall(
                     type,
@@ -204,18 +210,29 @@ public class ThirdPassProcessor {
                     nullToEmptyCollection(node.getArgs()).size(),
                     MethodUsage.Kind.METHOD_CALL,
                     nodeJumpTarget(file, node.getNameExpr()));
-            super.visit(node, arg);
         }
 
         @Override
         public void visit(ObjectCreationExpr node, Void arg) {
             Preconditions.checkNotNull(node);
+            TypeHandle type = symbolTable.resolveTypeHandle(node.getType().getName());
             processMethodCall(
-                    symbolTable.resolveTypeHandle(node.getType().getName()),
+                    type,
                     "<init>",
                     nullToEmptyCollection(node.getArgs()).size(),
                     MethodUsage.Kind.INSTANCE_CREATION,
                     nodeJumpTarget(file, node.getType()));
+            symbolTable.registerExpressionType(node, type);
+            super.visit(node, arg);
+        }
+
+
+        @Override
+        public void visit(ThisExpr node, Void arg) {
+            Preconditions.checkNotNull(node);
+            // TODO: handle OutterClassName.this
+            TypeHandle type = handleOf(symbolTable.currentClass().getHandle());
+            symbolTable.registerExpressionType(node, type);
             super.visit(node, arg);
         }
 
