@@ -192,17 +192,7 @@ public class ThirdPassProcessor {
                 // TODO: calling static method
                 type = handleOf(symbolTable.currentClass().getHandle());
             } else {
-                if (scope instanceof NameExpr) {
-                    String name = ((NameExpr) scope).getName();
-                    Variable variable = symbolTable.getVariable(name);
-                    if (variable != null) {
-                        type = variable.getType();
-                    } else {
-                        type = symbolTable.resolveTypeHandle(name); // calling static method
-                    }
-                } else {
-                    type = symbolTable.getExpressionType(scope);
-                }
+                type = symbolTable.getExpressionType(scope);
             }
             processMethodCall(
                     type,
@@ -272,15 +262,18 @@ public class ThirdPassProcessor {
         @Override
         public void visit(NameExpr node, Void arg) {
             super.visit(node, arg);
-            Variable variable =  symbolTable.getVariable(node.getName());
-            if (variable == null) {
-                return;
+            Variable variable;
+            TypeHandle type;
+            if ((variable = symbolTable.getVariable(node.getName())) != null) {
+                JumpTarget jumpTarget = nodeJumpTarget(file, node);
+                usages.add(usageOf(VariableUsage.newBuilder()
+                        .setKind(VariableUsage.Kind.ACCESS)
+                        .setVariable(variable.getHandle())
+                        .build(), jumpTarget, variable.getJumpTarget(), snippetLine(lines, jumpTarget)));
+                symbolTable.registerExpressionType(node, variable.getType());
+            } else if ((type = symbolTable.resolveTypeHandle(node.getName())) != null) {
+                symbolTable.registerExpressionType(node, type); // e.g. calling static method of class
             }
-            JumpTarget jumpTarget = nodeJumpTarget(file, node);
-            usages.add(usageOf(VariableUsage.newBuilder()
-                    .setKind(VariableUsage.Kind.ACCESS)
-                    .setVariable(variable.getHandle())
-                    .build(), jumpTarget, variable.getJumpTarget(), snippetLine(lines, jumpTarget)));
         }
 
         public List<Usage> getUsages() {
