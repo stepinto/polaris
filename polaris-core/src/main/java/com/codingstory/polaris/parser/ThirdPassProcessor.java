@@ -194,12 +194,15 @@ public class ThirdPassProcessor {
             } else {
                 type = symbolTable.getExpressionType(scope);
             }
-            processMethodCall(
+            TypeHandle returnType = processMethodCall(
                     type,
                     node.getName(),
                     nullToEmptyCollection(node.getArgs()).size(),
                     MethodUsage.Kind.METHOD_CALL,
                     nodeJumpTarget(file, node.getNameExpr()));
+            if (returnType != null) {
+                symbolTable.registerExpressionType(node, returnType);
+            }
         }
 
         @Override
@@ -226,7 +229,7 @@ public class ThirdPassProcessor {
             super.visit(node, arg);
         }
 
-        private void processMethodCall(TypeHandle type, String methodName, int argc,
+        private TypeHandle processMethodCall(TypeHandle type, String methodName, int argc,
                 MethodUsage.Kind kind, JumpTarget jumpTarget) {
             if (type != null && type.getKind() == TypeKind.CLASS && type.getClazz().getResolved()) {
                 ClassType clazz = symbolTable.getClassByHandle(type.getClazz());
@@ -238,9 +241,11 @@ public class ThirdPassProcessor {
                                 .setKind(kind)
                                 .setMethod(method.getHandle())
                                 .build(), jumpTarget, method.getJumpTarget(), snippet));
+                        return method.getReturnType();
                     }
                 }
             }
+            return null;
         }
 
         private Method findMethodInClass(ClassType clazz, String methodName, int argumentCount) {

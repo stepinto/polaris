@@ -468,6 +468,16 @@ public class MultiPassProcessorsTest {
         assertEquals("A.f", usage.getMethod().getMethod().getName());
     }
 
+    @Test
+    public void testTypeInference_chainingCalls() throws IOException {
+        String code = "class A { A f() {} A g() {} }\n" +
+                "class B { void g() { A a; a.f().g(); }}\n";
+        List<Usage> usages = filterMethodUsagesByKind(
+                extractFromCode(code).getUsages(),
+                MethodUsage.Kind.METHOD_CALL);
+        assertEquals(2, usages.size());
+    }
+
     // TODO: testMethodCall_staticBlock()
 
     public static SecondPassProcessor.Result extractFromCode(String code) throws IOException {
