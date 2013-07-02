@@ -276,8 +276,11 @@ angular.module('polarisServices', [])
       // Returns type/method/variable id of a given usage.
       'getEntityIdOfUsage': function(usage) {
         if (usage.kind == Protos.Usage.Kind.TYPE) {
-          if (usage.type.type.kind == Protos.TypeUsage.Kind.CLASS && usage.type.type.clazz.resolved) {
+          if (usage.type.type.clazz.resolved) {
             return usage.type.type.clazz.id;
+          } else {
+            console.log("Unresolved type: " + usage.type.type);
+            return 0;
           }
         } else if (usage.kind == Protos.Usage.Kind.METHOD) {
           return usage.method.method.id;

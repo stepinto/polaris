@@ -478,6 +478,23 @@ public class MultiPassProcessorsTest {
         assertEquals(2, usages.size());
     }
 
+    @Test
+    public void testUsageOfGenericTypes() throws IOException {
+        String code = "class List<T> { int size() { return 0; } }\n" +
+                "class A {}\n" +
+                "class B { void f() { List<A> a; a.size(); } }\n";
+        List<Usage> usages = extractFromCode(code).getUsages();
+        Usage usage1 = findUniqueTypeUsageByKind(
+                usages,
+                TypeUsage.Kind.LOCAL_VARIABLE);
+        assertEquals("List", usage1.getType().getType().getClazz().getName());
+        System.out.println("usage1 = " + usage1);
+        Usage usage2 = findUniqueMethodUsageByKind(
+                usages,
+                MethodUsage.Kind.METHOD_CALL);
+        assertEquals("List.size", usage2.getMethod().getMethod().getName());
+    }
+
     // TODO: testMethodCall_staticBlock()
 
     public static SecondPassProcessor.Result extractFromCode(String code) throws IOException {
