@@ -3,7 +3,12 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.codingstory.polaris</groupId>
+  <parent>
+    <groupId>com.codingstory.polaris</groupId>
+    <artifactId>polaris-parent</artifactId>
+    <version>0.1-SNAPSHOT</version>
+  </parent>
+
   <artifactId>polaris-core</artifactId>
   <version>0.1-SNAPSHOT</version>
   <packaging>jar</packaging>
@@ -126,7 +131,7 @@
     <dependency>
       <groupId>org.apache.crunch</groupId>
       <artifactId>crunch-core</artifactId>
-      <version>0.7.0-SNAPSHOT</version>
+      <version>0.7.0</version>
     </dependency>
     <dependency>
       <groupId>com.googlecode.protobuf-java-format</groupId>
@@ -137,7 +142,7 @@
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client</artifactId>
-      <version>0.23.5</version>
+      <version>1.2.0</version>
     </dependency>
     <dependency>
       <groupId>commons-httpclient</groupId>

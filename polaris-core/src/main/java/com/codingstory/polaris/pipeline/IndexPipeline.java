@@ -71,6 +71,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static com.codingstory.polaris.CollectionUtils.nullToEmptyCollection;
 import static org.apache.crunch.types.PTypes.protos;
@@ -92,6 +93,7 @@ public class IndexPipeline implements Serializable {
     private static final PType<ClassType> CLASS_TYPE_PTYPE = protos(ClassType.class, TYPE_FAMILY);
     private static final PType<Usage> USAGE_PTYPE = protos(Usage.class, TYPE_FAMILY);
     private static final PType<SourceFile> SOURCE_FILE_PTYPE = protos(SourceFile.class, TYPE_FAMILY);
+    private static final Pattern MAPREDUCE_OUTPUT_FILE_PATTER = Pattern.compile("part\\-[mr]\\-[0-9]+");
 
     private final transient Configuration conf; // "transient" No need to access it from MR tasks.
     private final transient FileSystem fs;
@@ -112,9 +114,9 @@ public class IndexPipeline implements Serializable {
             conf.setInt("io.sort.mb", 32); // To fit into 256MB heap.
             conf.setBoolean("mapreduce.map.output.compress", true);
             conf.setBoolean("mapreduce.output.fileoutputformat.compress", true);
-            conf.setStrings("mapreduce.output.fileoutputformat.compress.type", "BLOCK");
+            conf.set("mapreduce.output.fileoutputformat.compress.type", "BLOCK");
             conf.setBoolean("crunch.log.job.progress", true);
-            SequenceFile.setDefaultCompressionType(conf, SequenceFile.CompressionType.BLOCK);
+            conf.set("io.seqfile.compression.type", "BLOCK");
             fs = FileSystem.getLocal(conf);
         } catch (IOException e) {
             throw new AssertionError();
@@ -615,7 +617,7 @@ public class IndexPipeline implements Serializable {
             // Process pipeline output.
             BytesWritable value = new BytesWritable();
             for (File file : nullToEmptyCollection(classOutputDir.listFiles())) {
-                if (isCrcFile(file)) {
+                if (!isMapReduceOutputFile(file)) {
                     continue;
                 }
                 SequenceFile.Reader r = openLocalSequenceFile(file);
@@ -624,7 +626,7 @@ public class IndexPipeline implements Serializable {
                 }
             }
             for (File file : nullToEmptyCollection(usageOutputDir.listFiles())) {
-                if (isCrcFile(file)) {
+                if (!isMapReduceOutputFile(file)) {
                     continue;
                 }
                 SequenceFile.Reader r = openLocalSequenceFile(file);
@@ -637,7 +639,7 @@ public class IndexPipeline implements Serializable {
                 }
             }
             for (File file : nullToEmptyCollection(sourceOutputDir.listFiles())) {
-                if (isCrcFile(file)) {
+                if (!isMapReduceOutputFile(file)) {
                     continue;
                 }
                 SequenceFile.Reader r = openLocalSequenceFile(file);
@@ -648,7 +650,7 @@ public class IndexPipeline implements Serializable {
 
             // Process repository layout.
             for (File file : nullToEmptyCollection(inputDir2.listFiles())) {
-                if (isCrcFile(file)) {
+                if (!file.getName().startsWith("dirs-of-")) {
                     continue;
                 }
                 SequenceFile.Reader r = openLocalSequenceFile(file);
@@ -670,11 +672,12 @@ public class IndexPipeline implements Serializable {
         }
     }
 
-    private boolean isCrcFile(File file) {
-        return file.getPath().endsWith(".crc");
+    private boolean isMapReduceOutputFile(File file) {
+        return MAPREDUCE_OUTPUT_FILE_PATTER.matcher(file.getName()).matches();
     }
 
     private SequenceFile.Reader openLocalSequenceFile(File file) throws IOException {
+        LOG.info("Open local sequence file for read: " + file);
         return new SequenceFile.Reader(fs, new Path(file.getPath()), conf);
     }
 

@@ -18,13 +18,6 @@ Build Java Parser
 		$ mvn install
 		$ cd ..
 
-Build Apache Crunch
--------------------
-		$ git clone https://git-wip-us.apache.org/repos/asf/crunch.git
-		$ cd crunch
-		$ mvn install -Phadoop-2 -DskipTests
-		$ cd ..
-
 Build Polaris
 -------------
 Go to Polaris project root and run:
